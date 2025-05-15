@@ -78,6 +78,7 @@ export const useReportEntryForm = () => {
         new_product_intro: '',
         old_product_followup: '',
         delivery_time_update: '',
+        salesman_name: '',
       },
     ]);
   }, [today]);

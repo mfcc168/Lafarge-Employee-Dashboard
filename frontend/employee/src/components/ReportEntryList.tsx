@@ -7,17 +7,17 @@ import { ReportEntry } from '@interfaces/index';
 // Helper functions
 const formatDate = (date: Date): string => date.toISOString().split('T')[0];
 
-const getPreviousDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    date.setDate(date.getDate() - 1);
-    return formatDate(date);
-};
+// const getPreviousDate = (dateString: string): string => {
+//     const date = new Date(dateString);
+//     date.setDate(date.getDate() - 1);
+//     return formatDate(date);
+// };
 
-const getNextDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    date.setDate(date.getDate() + 1);
-    return formatDate(date);
-};
+// const getNextDate = (dateString: string): string => {
+//     const date = new Date(dateString);
+//     date.setDate(date.getDate() + 1);
+//     return formatDate(date);
+// };
 
 const ReportEntryList = () => {
     const [entries, setEntries] = useState<ReportEntry[]>([]);
