@@ -1,3 +1,6 @@
 psycopg[binary]
 djangorestframework-simplejwt
 djangorestframework
+django-cors-headers
+gunicorn
+whitenoise
