@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import axios from 'axios';
 import { useAuth } from '@context/AuthContext';
 import { DateItem } from '@interfaces/index';
+import { backendUrl } from '@configs/DotEnv';
 
 export const useVacationRequestForm = () => {
   const [dateItems, setDateItems] = useState<DateItem[]>([]);
@@ -70,7 +71,7 @@ export const useVacationRequestForm = () => {
     setSubmitting(true);
     try {
       await axios.post(
-        'http://127.0.0.1:8000/api/vacation/create',
+        `${backendUrl}/api/vacation/create`,
         { date_items: dateItems },
         {
           headers: {

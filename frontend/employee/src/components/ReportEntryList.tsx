@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { backendUrl } from '@configs/DotEnv';
 import { useAuth } from '@context/AuthContext';
 import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/index';
@@ -29,7 +30,7 @@ const ReportEntryList = () => {
     useEffect(() => {
         const fetchReportEntries = async () => {
             try {
-                const response = await axios.get('http://127.0.0.1:8000/api/all-report-entries/', {
+                const response = await axios.get(`${backendUrl}/api/all-report-entries/`, {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
                     }

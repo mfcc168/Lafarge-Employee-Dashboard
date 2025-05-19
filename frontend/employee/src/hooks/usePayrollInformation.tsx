@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { useAuth } from '@context/AuthContext';
-import { apiUrl } from '@configs/DotEnv';
+import { apiUrl, backendUrl } from '@configs/DotEnv';
 import { SalaryData, PaymentCalculations } from '@interfaces/index';
 
 export const usePayrollInformation = () => {
@@ -65,7 +65,7 @@ export const usePayrollInformation = () => {
                 setError(null);
 
                 const requests = [
-                    axios.get('http://127.0.0.1:8000/api/get_salary/', {
+                    axios.get(`${backendUrl}/api/get_salary/`, {
                         headers: { Authorization: `Bearer ${accessToken}` },
                     })
                 ];

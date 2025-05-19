@@ -1,5 +1,6 @@
   import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
   import axios from 'axios';
+  import { backendUrl } from '@configs/DotEnv';
   import { useAuth } from '@context/AuthContext';
   import { Loader2 } from 'lucide-react';
   import { DateItem, VacationRequest } from '@interfaces/index';
@@ -10,7 +11,7 @@
     const queryClient = useQueryClient();
 
     const fetchVacationRequests = async () => {
-      const res = await axios.get<VacationRequest[]>('http://127.0.0.1:8000/api/vacations/', {
+      const res = await axios.get<VacationRequest[]>(`${backendUrl}/api/vacations/`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -37,7 +38,7 @@
       status: 'approved' | 'rejected';
     }) => {
       const res = await axios.patch(
-        `http://127.0.0.1:8000/api/vacation/${id}/update/`,
+        `${backendUrl}/api/vacation/${id}/update/`,
         { status },
         {
           headers: {

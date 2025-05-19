@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import { useAuth } from "@context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { backendUrl } from "@configs/DotEnv";
 
 const ChangePassword = () => {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -25,7 +26,7 @@ const ChangePassword = () => {
 
     try {
       await axios.post(
-        "http://127.0.0.1:8000/api/change-password/",
+        `${backendUrl}/api/change-password/`,
         {
           current_password: currentPassword,
           new_password: newPassword,

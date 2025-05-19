@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ReportEntry } from '@interfaces/index';
 import axios from 'axios';
 import { useAuth } from '@context/AuthContext';
+import { backendUrl } from '@configs/DotEnv';
 
 export const useReportEntryForm = () => {
   const [entries, setEntries] = useState<ReportEntry[]>([]);
@@ -41,7 +42,7 @@ export const useReportEntryForm = () => {
     if (!accessToken) return;
     try {
       setIsLoading(true);
-      const response = await axios.get('http://127.0.0.1:8000/api/report-entries/', {
+      const response = await axios.get(`${backendUrl}/api/report-entries/`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -115,8 +116,8 @@ export const useReportEntryForm = () => {
       setSubmitting(true);
       const isUpdate = !!entry.id;
       const url = isUpdate
-        ? `http://127.0.0.1:8000/api/report-entries/${entry.id}/`
-        : 'http://127.0.0.1:8000/api/report-entries/';
+        ? `${backendUrl}/api/report-entries/${entry.id}/`
+        : `${backendUrl}/api/report-entries/`;
       const method = isUpdate ? 'PUT' : 'POST';
 
       const response = await axios({
@@ -157,7 +158,7 @@ export const useReportEntryForm = () => {
 
     try {
       setSubmitting(true);
-      await axios.delete(`http://127.0.0.1:8000/api/report-entries/${entry.id}/`, {
+      await axios.delete(`${backendUrl}/api/report-entries/${entry.id}/`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },

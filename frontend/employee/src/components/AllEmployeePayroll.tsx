@@ -4,7 +4,7 @@ import axios from "axios";
 import PayrollInformation from "./PayrollInformation";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "@context/AuthContext";
-import { apiUrl } from "@configs/DotEnv";
+import { apiUrl, backendUrl } from "@configs/DotEnv";
 import LoadingSpinner from "@components/LoadingSpinner";
 
 const AllEmployeePayroll = () => {
@@ -46,7 +46,7 @@ const AllEmployeePayroll = () => {
       try {
         // Fetch all employee salaries
         const res = await axios.get<EmployeeProfile[]>(
-          `http://127.0.0.1:8000/api/get_all_employee_salary/`,
+          `${backendUrl}/api/get_all_employee_salary/`,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
           }

@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import { User, AuthContextType } from "@interfaces/index";
 import axios from "axios";
+import { backendUrl } from "@configs/DotEnv";
 
 
 
@@ -23,7 +24,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/protected-endpoint/", {
+      const res = await fetch(`${backendUrl}/api/protected-endpoint/`, {
         credentials: "include",
         headers: {
           Authorization: `Bearer ${accessToken}`, // Include token in Authorization header
@@ -60,7 +61,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!refreshToken) return;
   
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/token/refresh/", {
+        const res = await fetch(`${backendUrl}/api/token/refresh/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh: refreshToken }),
@@ -94,7 +95,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (username: string, password: string) => {
     console.log("Logging in with username:", username); // Debugging line
 
-    const res = await fetch("http://127.0.0.1:8000/api/token/", {
+    const res = await fetch(`${backendUrl}/api/token/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
@@ -134,7 +135,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const refreshUser = async () => {
-    const res = await axios.get('http://127.0.0.1:8000/api/protected-endpoint/', {
+    const res = await axios.get(`${backendUrl}/api/protected-endpoint/`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
