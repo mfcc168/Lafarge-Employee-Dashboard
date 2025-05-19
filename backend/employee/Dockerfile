@@ -5,7 +5,8 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONPATH=/app \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=core.settings
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -21,12 +22,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create staticfiles directory
-RUN mkdir -p /app/staticfiles
-
-# Collect static files
-RUN python manage.py collectstatic --noinput
+# Create staticfiles directory and collect static files
+RUN mkdir -p /app/staticfiles \
+    && python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-# Updated command
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--pythonpath", "/app", "core.wsgi:application"]
