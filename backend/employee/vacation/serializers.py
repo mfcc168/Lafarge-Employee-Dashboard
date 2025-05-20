@@ -7,11 +7,19 @@ User = get_user_model()
 class VacationItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = VacationItem
-        fields = ['type', 'from_date', 'to_date', 'single_date']
+        fields = [
+            'type',
+            'from_date',
+            'to_date',
+            'single_date',
+            'half_day_period',
+        ]
+
 
 class VacationRequestSerializer(serializers.ModelSerializer):
     date_items = VacationItemSerializer(many=True)
     employee = serializers.CharField(source='employee.user.username', read_only=True)
+
     class Meta:
         model = VacationRequest
         fields = ['id', 'employee', 'submitted_at', 'status', 'date_items']
@@ -19,10 +27,9 @@ class VacationRequestSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         date_items_data = validated_data.pop('date_items')
-
         request_obj = VacationRequest.objects.create(**validated_data)
 
-        for item in date_items_data:
-            VacationItem.objects.create(request=request_obj, **item)
+        for item_data in date_items_data:
+            VacationItem.objects.create(request=request_obj, **item_data)
 
         return request_obj

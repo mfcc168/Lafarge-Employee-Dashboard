@@ -25,7 +25,7 @@ export const useVacationRequestForm = () => {
 
   const getTotalVacationDay = useMemo(() => {
     return dateItems.reduce((total, item) => {
-      if (item.type === 'half' && item.single_date) {
+      if (item.type === 'half' && item.single_date && item.half_day_period) {
         return total + 0.5;
       } else if (item.type === 'full' && item.from_date && item.to_date) {
         const from = new Date(item.from_date);
@@ -49,7 +49,7 @@ export const useVacationRequestForm = () => {
     if (
       dateItems.length === 0 ||
       !dateItems.every((item) => {
-        if (item.type === 'half') return !!item.single_date;
+        if (item.type === 'half') return !!item.single_date && !!item.half_day_period;
         if (item.type === 'full') return !!item.from_date && !!item.to_date;
         return false;
       })

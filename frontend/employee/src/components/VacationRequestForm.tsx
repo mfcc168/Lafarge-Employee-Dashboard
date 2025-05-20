@@ -89,25 +89,43 @@ const VacationRequestForm = ({
                   </div>
                 </div>
               ) : (
-                <div onClick={() => singleDateInput?.showPicker()}>
-                  <label className="block text-sm text-gray-600 mb-1">
-                    Date
-                  </label>
-                  <input
-                    ref={(el) => {
-                      singleDateInput = el;
-                    }}
-                    type="date"
-                    value={item.single_date}
-                    onChange={(e) =>
-                      updateItem(index, {
-                        ...item,
-                        single_date: e.target.value,
-                      })
-                    }
-                    className="bg-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div onClick={() => singleDateInput?.showPicker()}>
+                    <label className="block text-sm text-gray-600 mb-1">Date</label>
+                    <input
+                      ref={(el) => {
+                        singleDateInput = el;
+                      }}
+                      type="date"
+                      value={item.single_date}
+                      onChange={(e) =>
+                        updateItem(index, {
+                          ...item,
+                          single_date: e.target.value,
+                        })
+                      }
+                      className="bg-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Half Day Period</label>
+                    <select
+                      value={item.half_day_period || ''}
+                      onChange={(e) =>
+                        updateItem(index, {
+                          ...item,
+                          half_day_period: e.target.value as 'AM' | 'PM',
+                        })
+                      }
+                      className="bg-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  </div>
                 </div>
+
               )}
 
               <button
