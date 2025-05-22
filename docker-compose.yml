@@ -17,7 +17,7 @@ services:
 
   backend:
     build: ./backend/employee
-    command: bash -c "python manage.py makemigrations && python manage.py migrate && gunicorn --bind 0.0.0.0:8000 --pythonpath /app core.wsgi:application"
+    command: bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --pythonpath /app core.wsgi:application"
     volumes:
       - ./backend/employee:/app
     ports:
