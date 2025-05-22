@@ -65,7 +65,7 @@ export const usePayrollInformation = () => {
                 setError(null);
 
                 const requests = [
-                    axios.get(`${backendUrl}/api/get_salary/`, {
+                    axios.get(`${backendUrl}/api/salary/me`, {
                         headers: { Authorization: `Bearer ${accessToken}` },
                     })
                 ];

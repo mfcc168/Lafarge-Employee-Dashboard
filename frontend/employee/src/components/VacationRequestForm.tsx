@@ -111,7 +111,7 @@ const VacationRequestForm = ({
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Half Day Period</label>
                     <select
-                      value={item.half_day_period || ''}
+                      value={item.half_day_period || 'AM'}
                       onChange={(e) =>
                         updateItem(index, {
                           ...item,
