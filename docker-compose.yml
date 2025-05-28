@@ -31,6 +31,8 @@ services:
 
   frontend:
     build: ./frontend/employee
+    volumes:
+    - ./backend/employee/staticfiles:/app/staticfiles:ro
     ports:
       - "80:80"
     depends_on:
