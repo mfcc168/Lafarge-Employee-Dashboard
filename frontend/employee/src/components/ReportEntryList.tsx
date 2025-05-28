@@ -13,7 +13,7 @@ const ReportEntryList = () => {
     const [currentDate, setCurrentDate] = useState<string>(formatDate(new Date()));
     const { accessToken } = useAuth();
 
-    // Fetch data
+
     useEffect(() => {
         const fetchReportEntries = async () => {
             try {
@@ -32,10 +32,10 @@ const ReportEntryList = () => {
         fetchReportEntries();
     }, [accessToken]);
 
-    // All unique dates in the data
+
     const availableDates = Array.from(new Set(entries.map(e => e.date))).sort().reverse(); // latest to earliest
 
-    // Initialize current date to today or fallback to latest available date
+
     useEffect(() => {
         if (!isLoading && entries.length > 0) {
             const today = formatDate(new Date());

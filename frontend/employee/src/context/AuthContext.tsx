@@ -17,9 +17,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
 
   const fetchUser = async () => {
-    console.log("Fetching user with accessToken:", accessToken); // Debugging line
     if (!accessToken) {
-      console.log("No access token found, skipping fetchUser.");
       return; // If there's no access token, skip fetching user
     }
 
@@ -31,15 +29,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         },
       });
 
-      console.log("Response from protected endpoint:", res); // Debugging line
 
       if (res.ok) {
         const data = await res.json();
-        console.log("User data fetched:", data); // Debugging line
         setIsAuthenticated(true);
         setUser({ username: data.username, email: data.email, role:data.role, annual_leave_days:data.annual_leave_days  });
       } else {
-        console.log("Response was not OK:", res.status); // Debugging line
         setIsAuthenticated(false);
         setUser(null);
       }
@@ -51,7 +46,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    console.log("useEffect triggered - checking accessToken:", accessToken); // Debugging line
     fetchUser(); // Fetch user on mount if there's a valid access token
   }, [accessToken]); // Re-run the effect when the access token changes
 
@@ -93,7 +87,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 
   const login = async (username: string, password: string) => {
-    console.log("Logging in with username:", username); // Debugging line
 
     const res = await fetch(`${backendUrl}/api/token/`, {
       method: "POST",
@@ -101,15 +94,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       body: JSON.stringify({ username, password }),
     });
 
-    console.log("Response from login endpoint:", res); // Debugging line
 
     if (!res.ok) {
-      console.log("Login failed, response status:", res.status); // Debugging line
       throw new Error("Login failed");
     }
 
     const data = await res.json();
-    console.log("Login successful, token data:", data); // Debugging line
 
     // Store tokens in localStorage
     localStorage.setItem("accessToken", data.access);
@@ -122,7 +112,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
-    console.log("Logging out..."); // Debugging line
 
     // Remove tokens from localStorage
     localStorage.removeItem("accessToken");

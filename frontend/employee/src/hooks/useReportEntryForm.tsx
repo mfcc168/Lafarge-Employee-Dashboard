@@ -129,12 +129,12 @@ export const useReportEntryForm = () => {
         data: entry,
       });
 
-    // If entry is new, the backend will provide an ID, update the entry
+
     if (!entry.id && response.data?.id) {
-      const updatedEntry = { ...entry, id: response.data.id }; // Assuming backend responds with the real ID
+      const updatedEntry = { ...entry, id: response.data.id };
       setEntries(prevEntries => {
         const updatedEntries = [...prevEntries];
-        updatedEntries[globalIndex] = updatedEntry; // Update the specific entry
+        updatedEntries[globalIndex] = updatedEntry;
         return updatedEntries;
       });
     }
