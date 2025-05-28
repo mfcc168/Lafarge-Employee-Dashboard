@@ -1,11 +1,10 @@
-import { useEffect, useRef } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import LoadingSpinner from "@components/LoadingSpinner";
 import ErrorMessage from "@components/ErrorMessage";
 import { useSalesmanMonthlyReport } from "@hooks/useSalesmanMonthlyReport";
 import { Invoice, SalesmanMonthlyReportProps} from "@interfaces/index";
 
-const SalesmanMonthlyReport = ({ salesmanName, year, month }: SalesmanMonthlyReportProps) => {
+const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => {
   const {
     data,
     isLoading,
@@ -13,23 +12,26 @@ const SalesmanMonthlyReport = ({ salesmanName, year, month }: SalesmanMonthlyRep
     expandedWeek,
     currentPage,
     invoicesPerPage,
+    weekRef,
+    currentDate,
+    navigateMonth,
+    canGoPrevious,
+    canGoNext,
     paginateInvoices,
     handleNextPage,
     handlePrevPage,
     handleExpandWeek
-  } = useSalesmanMonthlyReport({ salesmanName, year, month });
-  const weekRef = useRef<HTMLDivElement>(null);
+  } = useSalesmanMonthlyReport({ salesmanName });
 
-  useEffect(() => {
-    if (expandedWeek !== null && weekRef.current) {
-      weekRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [expandedWeek, currentPage]);
+  const year = currentDate.year;
+  const month = currentDate.month;
 
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
   
   if (isLoading) return <LoadingSpinner />;
-
-  
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl shadow-2xl">
@@ -39,6 +41,43 @@ const SalesmanMonthlyReport = ({ salesmanName, year, month }: SalesmanMonthlyRep
         <ErrorMessage message="No data available." type="no-data" />
       ) : (
         <>
+          <div className="flex justify-center items-center mb-6">
+            <div className="flex items-center space-x-4 text-center">
+              {canGoPrevious && (
+                <button
+                  onClick={() => navigateMonth(-1)}
+                  className="flex items-center justify-center p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                  aria-label="Previous month"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              )}
+
+              <div className="text-center min-w-[200px]">
+                <h2 className="text-xl font-semibold text-gray-700">
+                  {monthNames[month - 1]} {year}
+                </h2>
+              </div>
+
+              {canGoNext && (
+                <button
+                  onClick={() => navigateMonth(1)}
+                  className="flex items-center justify-center p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                  aria-label="Next month"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+
+
+
+
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
               Sales Performance Report

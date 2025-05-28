@@ -1,16 +1,52 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import axios from "axios";
 import { apiUrl } from "@configs/DotEnv";
 import { Invoice, SalesmanMonthlyReportData, SalesmanMonthlyReportProps } from "@interfaces/index";
 
 
-export const useSalesmanMonthlyReport = ({ salesmanName, year, month }: SalesmanMonthlyReportProps) => {
+export const useSalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => {
   const [data, setData] = useState<SalesmanMonthlyReportData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const invoicesPerPage = 5;
+  const limitMonth = new Date(2025, 1);
+  
+  const now = new Date();
+
+  const [currentDate, setCurrentDate] = useState({
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+  });
+
+  const currentSelectedDate = useMemo(
+    () => new Date(currentDate.year, currentDate.month - 1),
+    [currentDate]
+  );
+
+  const navigateMonth = (direction: -1 | 1) => {
+    setCurrentDate((prev) => {
+      let newMonth = prev.month + direction;
+      let newYear = prev.year;
+
+      if (newMonth > 12) {
+        newMonth = 1;
+        newYear++;
+      } else if (newMonth < 1) {
+        newMonth = 12;
+        newYear--;
+      }
+
+      return { year: newYear, month: newMonth };
+    });
+  };
+
+  const canGoPrevious = currentSelectedDate > limitMonth;
+  const canGoNext = currentSelectedDate < new Date(now.getFullYear(), now.getMonth());
+  const year = currentDate.year;
+  const month = currentDate.month;
+
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -34,6 +70,14 @@ export const useSalesmanMonthlyReport = ({ salesmanName, year, month }: Salesman
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const weekRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (expandedWeek !== null && weekRef.current) {
+      weekRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [expandedWeek, currentPage]);
 
   const paginateInvoices = useCallback((invoices: Invoice[]) => {
     const startIndex = (currentPage - 1) * invoicesPerPage;
@@ -63,6 +107,10 @@ export const useSalesmanMonthlyReport = ({ salesmanName, year, month }: Salesman
     setExpandedWeek(expandedWeek === weekNumber ? null : weekNumber);
   }, [expandedWeek]);
 
+
+
+
+
   return {
     data,
     isLoading,
@@ -70,6 +118,12 @@ export const useSalesmanMonthlyReport = ({ salesmanName, year, month }: Salesman
     expandedWeek,
     currentPage,
     invoicesPerPage,
+    weekRef,
+    currentDate,
+    currentSelectedDate,
+    canGoPrevious,
+    canGoNext,
+    navigateMonth,
     paginateInvoices,
     handleNextPage,
     handlePrevPage,
