@@ -15,7 +15,7 @@ const AllEmployeePayroll = () => {
     toggleExpand,
   } = useAllEmployeePayroll();
 
-  if (!user || (user.role !== "MANAGER" && user.role !== "ADMIN" && user.role !== "CEO")) {
+  if (!user || (user.role !== "MANAGER" && user.role !== "ADMIN" && user.role !== "CEO" && user.role !== "DIRECTOR")) {
     return (
       <div className="max-w-md mx-auto mt-6 text-red-600 font-semibold">
         You do not have permission to view all employee payrolls.

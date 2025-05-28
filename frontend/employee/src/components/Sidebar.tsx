@@ -12,7 +12,6 @@ import { useMemo } from "react";
 
 const navItems = [
   { label: "Home", icon: <Home size={20} />, path: "/" },
-  { label: "Payroll", icon: <Wallet size={20} />, path: "/payroll" },
   { label: "Vacation", icon: <ClipboardPaste size={20} />, path: "/vacation" },
 ];
 
@@ -25,6 +24,9 @@ const Sidebar = () => {
     const baseItems = [...navItems];
     if (user?.role === "SALESMAN") {
       baseItems.push({ label: "Report", icon: <BarChart3 size={20} />, path: "/report" });
+    }
+    if (user?.role === "DIRECTOR" || user?.role === "ADMIN") {
+      baseItems.push({ label: "Payroll", icon: <Wallet size={20} />, path: "/payroll" });
     }
     return baseItems;
   }, [user?.role]);

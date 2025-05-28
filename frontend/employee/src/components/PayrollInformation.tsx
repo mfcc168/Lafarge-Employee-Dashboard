@@ -1,5 +1,5 @@
+import { useState } from 'react';
 import { PayrollInformationProps } from '@interfaces/index';
-
 
 const PayrollInformation = ({
     salaryData,
@@ -8,43 +8,110 @@ const PayrollInformation = ({
     mpfDeductionAmount,
     year,
     month,
-    userRole
-}: PayrollInformationProps) => {
-    
+    userRole,
+}: PayrollInformationProps ) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({
+        baseSalary: salaryData.baseSalary || 0,
+        bonusPayment: salaryData.bonusPayment || 0,
+        transportationAllowance: salaryData.transportationAllowance || 0,
+        commission: salaryData.commission || 0,
+        mpfDeduction: salaryData.mpfDeduction || 0
+    });
+
+    const handleEditToggle = () => {
+        setIsEditing(!isEditing);
+    };
+
+    const handleChange = (field: string, value: number) => {
+        setEditData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handleSave = () => {
+        setIsEditing(false);
+    };
+
+    const handleCancel = () => {
+        setEditData({
+            baseSalary: salaryData.baseSalary || 0,
+            bonusPayment: salaryData.bonusPayment || 0,
+            transportationAllowance: salaryData.transportationAllowance || 0,
+            commission: salaryData.commission || 0,
+            mpfDeduction: salaryData.mpfDeduction || 0
+        });
+        setIsEditing(false);
+    };
+
+    const renderEditableField = (label: string, field: string, value: number, isEditable = true) => {
+        if (!isEditable && isEditing) return null;
+        
+        return isEditing && isEditable ? (
+            <div>
+                <label className="text-gray-600 block">{label}</label>
+                <input
+                    type="number"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                    value={value}
+                    onChange={(e) => handleChange(field, parseFloat(e.target.value) || 0)}
+                />
+            </div>
+        ) : (
+            <div>
+                <p className="text-gray-600">{label}</p>
+                <p className="font-medium">${value?.toFixed(2)}</p>
+            </div>
+        );
+    };
+
     return (
         <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
-            <h1 className="text-2xl font-bold text-gray-800 mb-6">Payroll Information</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-gray-800">Payroll Information</h1>
+                {!isEditing ? (
+                    <button 
+                        onClick={handleEditToggle}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                        Edit
+                    </button>
+                ) : (
+                    <div className="space-x-2">
+                        <button 
+                            onClick={handleSave}
+                            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                        >
+                            Save
+                        </button>
+                        <button 
+                            onClick={handleCancel}
+                            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                )}
+            </div>
             
             <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded-lg">
                     <h2 className="text-lg font-semibold text-gray-700 mb-3">Salary Details</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-gray-600">Base salary</p>
-                            <p className="font-medium">${salaryData.baseSalary?.toFixed(2)}</p>
-                        </div>
-                        {salaryData.bonusPayment != null  && salaryData.bonusPayment > 0 && (
-                        <div>
-                            <p className="text-gray-600">Bonus</p>
-                            <p className="font-medium">${salaryData.bonusPayment?.toFixed(2)}</p>
-                        </div>
-                        )}
-                        {salaryData.transportationAllowance != null  && salaryData.transportationAllowance > 0 && (
-                        <div>
-                            <p className="text-gray-600">Transportation allowance</p>
-                            <p className="font-medium">${salaryData.transportationAllowance?.toFixed(2)}</p>
-                        </div>
-                        )}
-                        {userRole === "SALESMAN" && (
-                            <div>
-                                <p className="text-gray-600">Commission</p>
-                                <p className="font-medium">${salaryData.commission?.toFixed(2)}</p>
-                            </div>
-                        )}
-                        <div>
-                            <p className="text-gray-600">MPF deduction rate</p>
-                            <p className="font-medium">{(salaryData.mpfDeduction || 0) * 100}%</p>
-                        </div>
+                        {renderEditableField("Base salary", "baseSalary", editData.baseSalary)}
+                        
+                        {
+                            renderEditableField("Bonus", "bonusPayment", editData.bonusPayment)
+                        }
+                        
+                        {
+                            renderEditableField("Transportation allowance", "transportationAllowance", editData.transportationAllowance)
+                        }
+                        
+                        {(userRole === "SALESMAN") && (renderEditableField("Commission", "commission", editData.commission, false))}
+                        
+                        {renderEditableField("MPF deduction rate", "mpfDeduction", editData.mpfDeduction * 100, false)}
                     </div>
                 </div>
 
