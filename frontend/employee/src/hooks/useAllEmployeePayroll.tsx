@@ -18,12 +18,12 @@ export const useAllEmployeePayroll = () => {
     const y = today.getFullYear();
     const m = today.getMonth() + 1; // 1-based
   
-    // Payroll Month/Year
+
     const isBeforeSalaryDay = day < 10;
     const payrollMonth = isBeforeSalaryDay ? (m === 1 ? 12 : m - 1) : m;
     const payrollYear = isBeforeSalaryDay && m === 1 ? y - 1 : y;
   
-    // Commission should be 1 month BEFORE payroll month (which is now already "adjusted")
+    // Commission should be 1 month BEFORE payroll month
     let commissionMonth = payrollMonth - 1;
     let commissionYear = payrollYear;
     if (commissionMonth === 0) {
