@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { PayrollInformationProps } from '@interfaces/index';
+import axios from 'axios';
+import { useAuth } from '@context/AuthContext';
+import { backendUrl } from '@configs/DotEnv';
 
 const PayrollInformation = ({
     salaryData,
@@ -9,8 +12,10 @@ const PayrollInformation = ({
     year,
     month,
     userRole,
+    employeeId
 }: PayrollInformationProps ) => {
     const [isEditing, setIsEditing] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [editData, setEditData] = useState({
         baseSalary: salaryData.baseSalary || 0,
         bonusPayment: salaryData.bonusPayment || 0,
@@ -18,6 +23,8 @@ const PayrollInformation = ({
         commission: salaryData.commission || 0,
         mpfDeduction: salaryData.mpfDeduction || 0
     });
+
+    const { accessToken } = useAuth();
 
     const handleEditToggle = () => {
         setIsEditing(!isEditing);
@@ -30,9 +37,35 @@ const PayrollInformation = ({
         }));
     };
 
-    const handleSave = () => {
-        setIsEditing(false);
+
+    const handleSave = async () => {
+        setIsLoading(true);
+        try {
+            const payload = {
+                base_salary: editData.baseSalary,
+                bonus_payment: editData.bonusPayment,
+                transportation_allowance: editData.transportationAllowance,
+                ...(userRole === 'SALESMAN' && { commission: editData.commission })
+            };
+
+            await axios.patch(
+                `${backendUrl}/api/profile/${employeeId}/update/`,
+                payload,
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    }
+                }
+            );
+            setIsEditing(false);
+        } catch (error: any) {
+            alert(error?.response?.data?.detail || 'An error occurred while saving.');
+        } finally {
+            setIsLoading(false);
+        }
     };
+
 
     const handleCancel = () => {
         setEditData({
@@ -81,9 +114,17 @@ const PayrollInformation = ({
                     <div className="space-x-2">
                         <button 
                             onClick={handleSave}
-                            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 items-center justify-center min-w-[100px]"
                         >
-                            Save
+                            {isLoading ? (
+                                <div className="flex items-center">
+                                    <svg className="animate-spin h-3 w-3 mr-2 relative top-[1px]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                    </svg>
+                                    Saving...
+                                </div>
+                            ) : "Save"}
                         </button>
                         <button 
                             onClick={handleCancel}

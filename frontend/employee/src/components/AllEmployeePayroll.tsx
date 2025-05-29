@@ -82,6 +82,7 @@ const AllEmployeePayroll = () => {
                   year={year}
                   month={month}
                   userRole={profile.role}
+                  employeeId={profile.id}
                 />
               </div>
             )}

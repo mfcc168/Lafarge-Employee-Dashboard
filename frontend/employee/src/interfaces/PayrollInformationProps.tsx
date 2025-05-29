@@ -8,4 +8,5 @@ export interface PayrollInformationProps {
     year: number;
     month: number;
     userRole?: string;
+    employeeId?: number;
 };
