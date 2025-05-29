@@ -4,7 +4,8 @@ import {
   Home,
   Wallet,
   BarChart3,
-  ClipboardPaste
+  ClipboardPaste,
+  ChartNoAxesCombined
 } from "lucide-react";
 import { useMemo } from "react";
 
@@ -27,6 +28,9 @@ const Sidebar = () => {
     }
     if (user?.role === "DIRECTOR" || user?.role === "ADMIN") {
       baseItems.push({ label: "Payroll", icon: <Wallet size={20} />, path: "/payroll" });
+    }
+    if (user?.role === "DIRECTOR" || user?.role === "ADMIN") {
+      baseItems.push({ label: "Sales", icon: <ChartNoAxesCombined size={20} />, path: "/sales" });
     }
     return baseItems;
   }, [user?.role]);

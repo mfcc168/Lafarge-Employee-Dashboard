@@ -7,6 +7,7 @@ import Report from "@pages/Report";
 import Payroll from "@pages/Payroll";
 import ChangePassword from "@pages/ChangePassword";
 import Vacation from "@pages/Vacation";
+import Sales from "@pages/Sales";
 
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
           <Route path="/payroll" element={<RequireAuth><Payroll /></RequireAuth>}/>
           <Route path="/report" element={<RequireAuth><Report /></RequireAuth>}/>
           <Route path="/vacation" element={<RequireAuth><Vacation /></RequireAuth>}/>
+          <Route path="/sales" element={<RequireAuth><Sales /></RequireAuth>}/>
         </Route>
       </Routes>
   )

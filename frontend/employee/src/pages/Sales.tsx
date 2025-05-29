@@ -1,0 +1,31 @@
+import { useAuth } from "@context/AuthContext";
+import SalesmanMonthlyReport from "@components/SalesmanMonthlyReport";
+
+const Sales = () => {
+  const { user } = useAuth();
+
+  const isManagerialRole = ["MANAGER", "ADMIN", "CEO", "DIRECTOR"].includes(user?.role || "");
+
+
+  return (
+    <div className="min-h-screen p-6">
+      {isManagerialRole && (
+      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6">
+
+            <SalesmanMonthlyReport
+              salesmanName="dominic"
+            />
+            <SalesmanMonthlyReport
+              salesmanName="alex"
+            />
+             <SalesmanMonthlyReport
+              salesmanName="matthew"
+            />
+ 
+      </div>
+      )}
+    </div>
+  );
+}
+
+export default Sales;

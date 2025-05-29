@@ -214,7 +214,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                 >
                   <div className="flex items-center space-x-4">
                     <div className="text-left">
-                      <h3 className="font-semibold text-gray-800">HK Health LTd</h3>
+                      <h3 className="font-semibold text-gray-800">Shared Sales</h3>
                       <p className="text-sm text-gray-500">
                       ${data.monthly_total_share.toFixed(2)} * {data.monthly_total_share_percentage*100}%
                       </p>
