@@ -152,7 +152,6 @@ const PayrollInformation = ({
                         
                         {(userRole === "SALESMAN") && (renderEditableField("Commission", "commission", editData.commission, false))}
                         
-                        {renderEditableField("MPF deduction rate", "mpfDeduction", editData.mpfDeduction * 100, false)}
                     </div>
                 </div>
 
