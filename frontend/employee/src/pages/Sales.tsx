@@ -15,9 +15,11 @@ const Sales = () => {
             <SalesmanMonthlyReport
               salesmanName="dominic"
             />
+            <br></br>
             <SalesmanMonthlyReport
               salesmanName="alex"
             />
+            <br></br>
              <SalesmanMonthlyReport
               salesmanName="matthew"
             />

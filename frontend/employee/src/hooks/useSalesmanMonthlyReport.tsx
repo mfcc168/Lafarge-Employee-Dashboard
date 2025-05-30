@@ -10,6 +10,8 @@ export const useSalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReport
   const [error, setError] = useState<string | null>(null);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [sharedExpanded, setSharedExpanded] = useState<boolean>(false);
+  const toggleSharedExpanded = () => setSharedExpanded((prev) => !prev);
   const invoicesPerPage = 5;
   const limitMonth = new Date(2025, 1);
   
@@ -72,12 +74,15 @@ export const useSalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReport
   }, [fetchData]);
 
   const weekRef = useRef<HTMLDivElement>(null);
+  const sharedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (expandedWeek !== null && weekRef.current) {
       weekRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (sharedExpanded && sharedRef.current) {
+      sharedRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }, [expandedWeek, currentPage]);
+  }, [expandedWeek, currentPage, sharedExpanded]);
 
   const paginateInvoices = useCallback((invoices: Invoice[]) => {
     const startIndex = (currentPage - 1) * invoicesPerPage;
@@ -119,10 +124,13 @@ export const useSalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReport
     currentPage,
     invoicesPerPage,
     weekRef,
+    sharedRef,
     currentDate,
     currentSelectedDate,
     canGoPrevious,
     canGoNext,
+    sharedExpanded,
+    toggleSharedExpanded,
     navigateMonth,
     paginateInvoices,
     handleNextPage,

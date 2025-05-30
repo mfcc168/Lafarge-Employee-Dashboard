@@ -1,7 +1,8 @@
-import { WeekData } from "./index";
+import { Invoice, WeekData } from "./index";
 
 export type SalesmanMonthlyReportData = {
     weeks: Record<number, WeekData>;
+    invoice_shares_data: Invoice[];
     year: number;
     month: number;
     monthly_total: number;

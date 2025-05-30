@@ -13,9 +13,12 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
     currentPage,
     invoicesPerPage,
     weekRef,
+    sharedRef,
     currentDate,
     canGoPrevious,
     canGoNext,
+    sharedExpanded,
+    toggleSharedExpanded,
     navigateMonth,
     paginateInvoices,
     handleNextPage,
@@ -208,26 +211,79 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                   </div>
                 );
               })}
-              <div className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300">
-                <button
-                  className="w-full flex justify-between items-center px-6 py-4 hover:bg-gray-50 transition-colors duration-200"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="text-left">
-                      <h3 className="font-semibold text-gray-800">Shared Sales</h3>
-                      <p className="text-sm text-gray-500">
-                      ${data.monthly_total_share.toFixed(2)} * {data.monthly_total_share_percentage*100}%
-                      </p>
-                    </div>
+            <div 
+            ref={sharedExpanded ? sharedRef : null}
+            className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300">
+              <button
+                onClick={toggleSharedExpanded}
+                className="w-full flex justify-between items-center px-6 py-4 hover:bg-gray-50 transition-colors duration-200"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="text-left">
+                    <h3 className="font-semibold text-gray-800">Shared Sales</h3>
+                    <p className="text-sm text-gray-500">
+                      ${data.monthly_total_share.toFixed(2)} * {data.monthly_total_share_percentage * 100}%
+                    </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium text-gray-800">
-                      ${data.personal_monthly_total_share.toFixed(2)}
-                    </span>
-                    <ChevronDown size={20} className="text-gray-500" />
-                  </div>   
-                </button>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium text-gray-800">
+                    ${data.personal_monthly_total_share.toFixed(2)}
+                  </span>
+                  {sharedExpanded ? (
+                    <ChevronUp size={20} className="text-indigo-600" />
+                  ) : (
+                    <ChevronDown size={20} className="text-gray-500" />
+                  )}
+                </div>
+              </button>
+
+              {sharedExpanded && (
+                <div className="border-t border-gray-200">
+                  <ul className="divide-y divide-gray-200">
+                    {data.invoice_shares_data.map((invoice: Invoice, index: number) => (
+                      <li key={index} className="px-6 py-4 hover:bg-gray-50 transition-colors duration-150">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-bold text-gray-800 flex items-center">
+                              Invoice #{invoice.number}
+                            </h4>
+                            <p className="text-gray-600 text-sm mt-1">
+                              <span className="font-medium">Customer:</span> {invoice.customer}
+                              {invoice.care_of && <span className="text-gray-500"> ({invoice.care_of})</span>}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-indigo-600">
+                              ${invoice.total_price.toFixed(2)}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Delivery: {new Date(invoice.delivery_date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Items */}
+                        <div className="mt-3">
+                          <h5 className="text-sm font-medium text-gray-700 mb-1">Items:</h5>
+                          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                            {invoice.items.map((item, itemIndex) => (
+                              <li
+                                key={itemIndex}
+                                className="bg-gray-50 px-3 py-2 rounded text-sm text-gray-700 flex items-center"
+                              >
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
 
           </div>
         </>
