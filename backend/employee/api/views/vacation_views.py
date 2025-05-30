@@ -42,8 +42,22 @@ class VacationRequestUpdateAPIView(generics.UpdateAPIView):
 
         if new_status not in ['approved', 'rejected']:
             return Response({'detail': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if new_status == "rejected" and vacation_request.status != "rejected":
+            user_profile = vacation_request.employee
+            total_days = vacation_request.get_total_days()
+            user_profile.annual_leave_days += total_days
+            user_profile.save()
 
         vacation_request.status = new_status
         vacation_request.save()
 
         return Response(self.get_serializer(vacation_request).data, status=status.HTTP_200_OK)
+    
+class MyVacationRequestListView(generics.ListAPIView):
+    serializer_class = VacationRequestSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user_profile = self.request.user.profile
+        return VacationRequest.objects.filter(employee=user_profile)

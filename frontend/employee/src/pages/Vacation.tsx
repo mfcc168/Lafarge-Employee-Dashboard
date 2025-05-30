@@ -1,5 +1,6 @@
 import { useVacationRequestForm } from '@hooks/useVacationRequestForm';
 import VacationRequestForm from '@components/VacationRequestForm';
+import MyVacationRequestList from '@components/MyVacationRequestList';
 
 const Vacation = () => {
   const {
@@ -23,6 +24,7 @@ const Vacation = () => {
   };
 
   return (
+    <>
     <VacationRequestForm
       dateItems={dateItems}
       submitting={submitting}
@@ -33,6 +35,8 @@ const Vacation = () => {
       removeItem={removeItem}
       handleSubmit={onSubmit}
     />
+    <MyVacationRequestList />
+    </>
   );
 }
 

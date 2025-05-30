@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views.auth_views import TokenObtainPairViewCustom, TokenRefreshViewCustom, ProtectedView, ChangePassword
 from .views.employee_views import GetOwnSalaryView, GetAllEmployeeSalary, GetOwnEmployeeProfile, GetEmployeeProfileAPIView, UpdateEmployeeProfileAPIView
-from .views.vacation_views import VacationRequestCreateView, VacationRequestListView, VacationRequestUpdateAPIView
+from .views.vacation_views import MyVacationRequestListView, VacationRequestCreateView, VacationRequestListView, VacationRequestUpdateAPIView
 from .views.report_views import ReportEntryViewSet, AllReportEntriesView
 
 router = DefaultRouter()
@@ -22,6 +22,7 @@ urlpatterns = [
     path('vacation/create', VacationRequestCreateView.as_view(), name='create-vacation'),
     path('vacations/', VacationRequestListView.as_view(), name='vacation-list'),
     path('vacation/<int:pk>/update/', VacationRequestUpdateAPIView.as_view(), name='vacation-update'),
+    path('vacations/me/', MyVacationRequestListView.as_view(), name='get-own-vacation-list'),
 
     path('all-report-entries/', AllReportEntriesView.as_view(), name='all-report-entries'),
     path('', include(router.urls)),

@@ -13,7 +13,7 @@ const VacationRequestForm = ({
 }: VacationRequestFormProps) => {
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded-2xl shadow-xl mt-10">
+    <div className="max-w-4xl mx-auto px-6 py-8 bg-white rounded-3xl shadow-2xl mt-12">
       <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
         Vacation Request
       </h2>
@@ -37,7 +37,7 @@ const VacationRequestForm = ({
                       index,
                       newType === 'full'
                         ? { type: 'full', from_date: '', to_date: '' }
-                        : { type: 'half', single_date: '' }
+                        : { type: 'half', single_date: '', half_day_period: 'AM' }
                     );
                   }}
                   className="bg-white border border-gray-300 rounded px-3 py-1 text-sm"
@@ -143,7 +143,7 @@ const VacationRequestForm = ({
       <div className="flex flex-wrap gap-6 mt-6 items-center justify-between">
         <button
           onClick={addItem}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-sm font-medium transition-colors"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Date Item
@@ -151,7 +151,7 @@ const VacationRequestForm = ({
 
         <button
           onClick={handleSubmit}
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           disabled={submitting}
         >
           {submitting ? (
@@ -166,8 +166,9 @@ const VacationRequestForm = ({
       </div>
 
       {typeof getVacationDayLeft === 'number' && (
-        <div className="mt-6 bg-gray-100 p-4 rounded-xl shadow-sm">
-          <h3 className="text-lg font-medium text-gray-800">Request Summary</h3>
+        <div>
+          <br />
+          <h3 className="text-xl font-semibold text-gray-900 mb-4 border-b border-gray-300 pb-2"></h3>
           <p className="text-sm text-gray-600 mt-2">
             Total Requested:{' '}
             <span className="font-semibold text-blue-600">
