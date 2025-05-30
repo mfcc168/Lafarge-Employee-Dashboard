@@ -1,5 +1,5 @@
 import { ReportEntryFormProps } from "@interfaces/index";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Plus } from "lucide-react";
 
 const ReportEntryForm = ({
   entries,
@@ -13,6 +13,7 @@ const ReportEntryForm = ({
   handleSubmitEntry,
   handleDelete,
   toggleCollapse,
+  addEmptyEntry
 }: ReportEntryFormProps) => {
 
   return (
@@ -219,30 +220,51 @@ const ReportEntryForm = ({
         </div>
       ))}
 
-      <div className="flex justify-between items-center mt-6">
-        <button
-          onClick={() => setCurrentPage(currentPage + 1)}
-          disabled={currentPage >= sortedDates.length - 1}
-          className="flex items-center justify-center p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
-          aria-label="Previous month"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
-        </button>
-        <button
-          onClick={() => setCurrentPage(currentPage - 1)}
-          disabled={currentPage === 0}
-          className="flex items-center justify-center p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
-          aria-label="Next month"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-          </svg>
-        </button>
-      </div>
+      {/* Pagination Controls */}
+<div className="flex justify-center items-center gap-6 mt-8 mb-4">
+  <button
+    onClick={() => setCurrentPage(currentPage + 1)}
+    disabled={currentPage >= sortedDates.length - 1}
+    className={`flex items-center justify-center p-3 rounded-full transition 
+      ${currentPage >= sortedDates.length - 1 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700"}
+    `}
+    aria-label="Prev date"
+    title="Prev Date"
+  >
+    <ChevronLeft size={20} />
+  </button>
+  
 
+  <div className="text-gray-700 font-medium select-none">
+    {sortedDates[currentPage]}
+  </div>
+  <button
+    onClick={() => setCurrentPage(currentPage - 1)}
+    disabled={currentPage === 0}
+    className={`flex items-center justify-center p-3 rounded-full transition 
+      ${currentPage === 0 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700"}
+    `}
+    aria-label="Next date"
+    title="Next Date"
+  >
+    <ChevronRight size={20} />
+  </button>
+
+</div>
+
+{/* Add New Entry Button */}
+<div className=" bottom-6 z-20 max-w-xl mx-auto px-4">
+  <button
+    type="button"
+    onClick={addEmptyEntry}
+    className="w-full flex items-center justify-center gap-3 py-3 px-6 bg-indigo-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition"
+  >
+    <Plus size={20} />
+    Add New Entry
+  </button>
+</div>
     </>
+    
   );
 };
 

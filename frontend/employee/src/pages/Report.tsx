@@ -38,14 +38,8 @@ const Report = () => {
             handleSubmitEntry={handleSubmitEntry}
             handleDelete={handleDelete}
             toggleCollapse={toggleCollapse}
+            addEmptyEntry={addEmptyEntry}
           />
-          <button
-            type="button"
-            onClick={addEmptyEntry}
-            className="w-full py-3 px-6 border border-transparent rounded-md shadow-md bg-gray-700 text-white font-semibold text-lg hover:bg-gray-800"
-          >
-            Add New Entry
-          </button>
         </div>
       </div>
     </div>

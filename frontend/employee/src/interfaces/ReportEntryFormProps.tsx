@@ -17,4 +17,5 @@ export interface ReportEntryFormProps {
   handleSubmitEntry: (index: number) => Promise<void>;
   handleDelete: (index: number) => Promise<void>;
   toggleCollapse: (index: number) => void;
+  addEmptyEntry: () => void;
 }
