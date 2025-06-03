@@ -8,18 +8,15 @@ const Home = () => {
   const { user } = useAuth();
   const salesmanName = user?.username?.toLowerCase().trim() ?? "";
 
-  const isManagerialRole = ["MANAGER", "ADMIN", "CEO", "DIRECTOR"].includes(user?.role || "");
-
 
   return (
     <div className="min-h-screen p-6">
-      {isManagerialRole && (
-        <>
+      {(user?.role === "MANAGER" || user?.role === "ADMIN"|| user?.role === "CEO" || user?.role === "CLERK" || user?.role === "DIRECTOR") && (
         <ReportEntryList />
-        <VacationRequestList />
-        </>
       )}
-      
+      {(user?.role === "MANAGER" || user?.role === "ADMIN"|| user?.role === "CEO" || user?.role === "DIRECTOR") && (
+        <VacationRequestList />
+      )}
       {(user?.role === "SALESMAN") && (
       <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6">
           {user?.username ? (

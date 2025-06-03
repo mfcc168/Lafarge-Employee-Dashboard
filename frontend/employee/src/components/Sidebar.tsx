@@ -13,7 +13,6 @@ import { useMemo } from "react";
 
 const navItems = [
   { label: "Home", icon: <Home size={20} />, path: "/" },
-  { label: "Vacation", icon: <ClipboardPaste size={20} />, path: "/vacation" },
 ];
 
 
@@ -31,6 +30,9 @@ const Sidebar = () => {
     }
     if (user?.role === "DIRECTOR" || user?.role === "ADMIN") {
       baseItems.push({ label: "Sales", icon: <ChartNoAxesCombined size={20} />, path: "/sales" });
+    }
+    if (user?.role !== "DIRECTOR" && user?.role !== "ADMIN" && user?.role !== "CEO") {
+      baseItems.push({ label: "Vacation", icon: <ClipboardPaste size={20} />, path: "/vacation" });
     }
     return baseItems;
   }, [user?.role]);
