@@ -4,7 +4,6 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 const ReportEntryForm = ({
   entries,
   submitting,
-  pagedDate,
   currentPage,
   sortedDates,
   setCurrentPage,
