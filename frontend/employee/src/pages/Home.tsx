@@ -18,7 +18,7 @@ const Home = () => {
         <VacationRequestList />
       )}
       {(user?.role === "SALESMAN") && (
-      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6">
+      <>
           {user?.username ? (
             <SalesmanMonthlyReport
               salesmanName={salesmanName}
@@ -26,7 +26,7 @@ const Home = () => {
           ) : (
             <LoadingSpinner />
           )}
-      </div>
+      </>
       )}
     </div>
   );

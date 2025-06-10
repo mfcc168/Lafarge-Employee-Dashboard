@@ -88,6 +88,8 @@ const ReportEntryForm = ({
                     <td className="px-2 py-4">
                       <input
                         type="text"
+                        name="doctor_name"
+                        autoComplete="name"
                         value={entry.doctor_name}
                         onChange={(e) => handleChange(index, 'doctor_name', e.target.value)}
                         className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
@@ -98,6 +100,8 @@ const ReportEntryForm = ({
                     <td className="px-2 py-4">
                       <input
                         type="text"
+                        name="district"
+                        autoComplete="address-level2"
                         value={entry.district}
                         onChange={(e) => handleChange(index, 'district', e.target.value)}
                         className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
@@ -212,7 +216,6 @@ const ReportEntryForm = ({
       </div>
 
       
-
       {/* Add New Entry Button */}
       <div className="flex">
         <button

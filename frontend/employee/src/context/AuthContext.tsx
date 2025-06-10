@@ -79,7 +79,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
     const interval = setInterval(() => {
       refreshAccessToken();
-    }, 4 * 60 * 1000); // Refresh every 4 minutes
+    }, 30 * 60 * 1000); // Refresh every 30 minutes
   
     return () => clearInterval(interval); // Cleanup on unmount
   }, [refreshToken]);

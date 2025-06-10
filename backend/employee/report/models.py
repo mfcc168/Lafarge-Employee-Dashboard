@@ -10,10 +10,10 @@ class ReportEntry(models.Model):
     salesman = models.ForeignKey(User, on_delete=models.CASCADE, related_name='report_entries')
     date = models.DateField()
 
-    time_range = models.CharField(max_length=100)
+    time_range = models.CharField(max_length=100, blank=True)
     
-    doctor_name = models.CharField(max_length=255)
-    district = models.CharField(max_length=255)
+    doctor_name = models.CharField(max_length=255, blank=True)
+    district = models.CharField(max_length=255, blank=True)
     client_type = models.CharField(max_length=10, choices=CLIENT_TYPE_CHOICES)
     new_client = models.BooleanField(default=False)
 
