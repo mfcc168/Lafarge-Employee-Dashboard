@@ -8,7 +8,6 @@ export const useReportEntryForm = () => {
   const [entries, setEntries] = useState<ReportEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [collapsedStates, setCollapsedStates] = useState<boolean[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const { accessToken } = useAuth();
   const today = new Date().toISOString().split('T')[0];
@@ -59,9 +58,6 @@ export const useReportEntryForm = () => {
     fetchEntries();
   }, [fetchEntries]);
 
-  useEffect(() => {
-    setCollapsedStates(Array(entriesForCurrentPage.length).fill(true));
-  }, [currentPage]);
 
   const addEmptyEntry = useCallback(() => {
     setEntries(prevEntries => [
@@ -173,19 +169,12 @@ export const useReportEntryForm = () => {
     }
   }, [entries, entriesForCurrentPage, accessToken]);
 
-  const toggleCollapse = (index: number) => {
-    setCollapsedStates(prev => {
-      const newState = [...prev];
-      newState[index] = !newState[index];
-      return newState;
-    });
-  };
+
 
   return {
     entries: entriesForCurrentPage,
     isLoading,
     submitting,
-    collapsedStates,
     currentPage,
     sortedDates,
     pagedDate,
@@ -193,7 +182,6 @@ export const useReportEntryForm = () => {
     handleChange,
     handleSubmitEntry,
     handleDelete,
-    toggleCollapse,
     setCurrentPage,
     totalPages: sortedDates.length,
   };

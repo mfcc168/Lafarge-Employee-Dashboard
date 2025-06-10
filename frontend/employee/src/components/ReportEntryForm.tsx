@@ -1,10 +1,9 @@
 import { ReportEntryFormProps } from "@interfaces/index";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 const ReportEntryForm = ({
   entries,
   submitting,
-  collapsedStates,
   pagedDate,
   currentPage,
   sortedDates,
@@ -12,259 +11,221 @@ const ReportEntryForm = ({
   handleChange,
   handleSubmitEntry,
   handleDelete,
-  toggleCollapse,
   addEmptyEntry
 }: ReportEntryFormProps) => {
 
   return (
-    <>
-      <h2 className="text-2xl font-semibold text-gray-800 mb-4 text-center">
-        Entries for {pagedDate}
-      </h2>
-      {entries.length === 0 && (
-          <p className="text-center text-gray-500 italic mb-6">
-            No entries available for this date.
-          </p>
-        )}
-      {entries.map((entry, index) => (
-        <div
-          key={entry.id || `new-${index}`}
-          className="bg-white shadow-xl rounded-lg overflow-hidden mb-6"
+    <div className="space-y-6">
+      {/* Pagination Controls */}
+      <div className="flex justify-center items-center gap-6 mt-8 mb-4">
+        <button
+          onClick={() => setCurrentPage(currentPage + 1)}
+          disabled={currentPage >= sortedDates.length - 1}
+          className={`flex items-center justify-center p-3 rounded-full transition 
+            ${currentPage >= sortedDates.length - 1 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700"}
+          `}
+          aria-label="Prev date"
+          title="Prev Date"
         >
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-indigo-700 flex items-center">
-                {entry.id ? `(${entry.time_range}) ${entry.doctor_name}` : "New Visit Entry"}
-                <button
-                  type="button"
-                  onClick={() => handleDelete(index)}
-                  disabled={submitting}
-                  className="ml-5 text-red-500 hover:text-red-700 flex items-center text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-1"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Remove
-                </button>
-              </h3>
-              <div className="flex space-x-2 items-center">
-                <button
-                  type="button"
-                  onClick={() => toggleCollapse(index)}
-                  className="text-indigo-600 hover:underline text-sm font-medium"
-                >
-                  {collapsedStates[index] ? (<ChevronDown size={20} className="text-gray-500" />) : (<ChevronUp size={20} className="text-indigo-600" />)}
-                </button>
-              </div>
+          <ChevronLeft size={20} />
+        </button>
+        
+        <div className="text-gray-700 font-medium select-none">
+          {sortedDates[currentPage]}
+        </div>
+        
+        <button
+          onClick={() => setCurrentPage(currentPage - 1)}
+          disabled={currentPage === 0}
+          className={`flex items-center justify-center p-3 rounded-full transition 
+            ${currentPage === 0 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700"}
+          `}
+          aria-label="Next date"
+          title="Next Date"
+        >
+          <ChevronRight size={20} />
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        {entries.length === 0 && (
+          <div className="px-6 py-4 text-center text-gray-500 italic bg-white rounded-lg shadow">
+            No entries available for this date.
+          </div>
+        )}
+
+        {entries.map((entry, index) => (
+          <div key={entry.id || `new-${index}`} className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-52">Time Range</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-60">Client Name</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">District</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Type</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">New?</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Orders</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Tel Orders</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Samples</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">New Product Intro</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Old Product Followup</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Delivery Time Update</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  <tr className="hover:bg-gray-50">
+                    {/* Time Range - Now Wider */}
+                    <td className="px-2 py-4">
+                      <input
+                        type="text"
+                        value={entry.time_range}
+                        onChange={(e) => handleChange(index, 'time_range', e.target.value)}
+                        className="w-30 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base"
+                      />
+                    </td>
+
+                    {/* Doctor Name */}
+                    <td className="px-2 py-4">
+                      <input
+                        type="text"
+                        value={entry.doctor_name}
+                        onChange={(e) => handleChange(index, 'doctor_name', e.target.value)}
+                        className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </td>
+
+                    {/* District */}
+                    <td className="px-2 py-4">
+                      <input
+                        type="text"
+                        value={entry.district}
+                        onChange={(e) => handleChange(index, 'district', e.target.value)}
+                        className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </td>
+
+                    {/* Client Type */}
+                    <td className="px-2 py-4">
+                      <select
+                        value={entry.client_type}
+                        onChange={(e) => handleChange(index, 'client_type', e.target.value as 'doctor' | 'nurse')}
+                        className="w-30 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="doctor">Doctor</option>
+                        <option value="nurse">Nurse</option>
+                      </select>
+                    </td>
+
+                    {/* New Client */}
+                    <td className="px-2 py-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={entry.new_client}
+                        onChange={(e) => handleChange(index, 'new_client', e.target.checked)}
+                        className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                    </td>
+
+                    {/* Orders */}
+                    <td className="px-2 py-4">
+                      <textarea
+                        value={entry.orders}
+                        onChange={(e) => handleChange(index, 'orders', e.target.value)}
+                        className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        rows={2}
+                      />
+                    </td>
+
+                    {/* Tel Orders */}
+                    <td className="px-2 py-4">
+                      <textarea
+                        value={entry.tel_orders}
+                        onChange={(e) => handleChange(index, 'tel_orders', e.target.value)}
+                        className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        rows={2}
+                      />
+                    </td>
+
+                    {/* Samples */}
+                    <td className="px-2 py-4">
+                      <textarea
+                        value={entry.samples}
+                        onChange={(e) => handleChange(index, 'samples', e.target.value)}
+                        className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        rows={2}
+                      />
+                    </td>
+
+                    {/* New Product Intro */}
+                    <td className="px-2 py-4">
+                      <textarea
+                        value={entry.new_product_intro || ''}
+                        onChange={(e) => handleChange(index, 'new_product_intro', e.target.value)}
+                        className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        rows={2}
+                      />
+                    </td>
+
+                    {/* Old Product Followup */}
+                    <td className="px-2 py-4">
+                      <textarea
+                        value={entry.old_product_followup || ''}
+                        onChange={(e) => handleChange(index, 'old_product_followup', e.target.value)}
+                        className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        rows={2}
+                      />
+                    </td>
+
+                    {/* Delivery Time Update */}
+                    <td className="px-2 py-4">
+                      <textarea
+                        value={entry.delivery_time_update || ''}
+                        onChange={(e) => handleChange(index, 'delivery_time_update', e.target.value)}
+                        className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        rows={2}
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Actions outside the table */}
+            <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-4">
+              <button
+                onClick={() => handleSubmitEntry(index)}
+                disabled={submitting}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+              >
+                {submitting ? "Saving..." : "Save Entry"}
+              </button>
+              <button
+                onClick={() => handleDelete(index)}
+                disabled={submitting}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
+              >
+                Delete Entry
+              </button>
             </div>
           </div>
+        ))}
+      </div>
 
-          {!collapsedStates[index] && (
-            <div className="p-6 space-y-4">
-              <div className="space-y-4">
-                <h4 className="text-xl font-semibold text-gray-700">Visit Details</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <input
-                      type="date"
-                      value={entry.date}
-                      onChange={(e) => handleChange(index, 'date', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      value={entry.time_range}
-                      onChange={(e) => handleChange(index, 'time_range', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Time Range e.g., 10:30am–11:00am"
-                    />
-                  </div>
-                </div>
-              </div>
+      
 
-              <div className="space-y-4">
-                <h4 className="text-xl font-semibold text-gray-700">Client Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div>
-                    <input
-                      type="text"
-                      value={entry.doctor_name}
-                      onChange={(e) => handleChange(index, 'doctor_name', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Client Name"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      value={entry.district}
-                      onChange={(e) => handleChange(index, 'district', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="District/Area"
-                    />
-                  </div>
-                  <div>
-                    <select
-                      value={entry.client_type}
-                      onChange={(e) => handleChange(index, 'client_type', e.target.value as 'doctor' | 'nurse')}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="doctor">Doctor</option>
-                      <option value="nurse">Nurse</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id={`new-client-${index}`}
-                      checked={entry.new_client}
-                      onChange={(e) => handleChange(index, 'new_client', e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor={`new-client-${index}`} className="ml-2 block text-sm text-gray-700">
-                      New Client?
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="text-xl font-semibold text-gray-700">Orders Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <textarea
-                      value={entry.orders}
-                      onChange={(e) => handleChange(index, 'orders', e.target.value)}
-                      rows={2}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Details of orders placed"
-                    />
-                  </div>
-                  <div>
-                    <textarea
-                      value={entry.tel_orders}
-                      onChange={(e) => handleChange(index, 'tel_orders', e.target.value)}
-                      rows={2}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Details of tel orders placed"
-                    />
-                  </div>
-                  <div>
-                    <textarea
-                      value={entry.samples}
-                      onChange={(e) => handleChange(index, 'samples', e.target.value)}
-                      rows={2}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Details of samples provided"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="text-xl font-semibold text-gray-700">Additional Details</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <textarea
-                      value={entry.new_product_intro}
-                      onChange={(e) => handleChange(index, 'new_product_intro', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Describe new product introductions during the visit"
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <textarea
-                      value={entry.old_product_followup}
-                      onChange={(e) => handleChange(index, 'old_product_followup', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Describe old product followup during the visit"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <textarea
-                    value={entry.delivery_time_update}
-                    onChange={(e) => handleChange(index, 'delivery_time_update', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Update Delivery Time e.g., 8–1 pm, 4–7 pm. Wed.: Close"
-                    rows={2}
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <button
-                  type="button"
-                  onClick={() => { handleSubmitEntry(index); toggleCollapse(index); }}
-                  disabled={submitting}
-                  className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-700 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? "Saving..." : entry.id ? "Update Entry" : "Submit Entry"}
-                </button>
-              </div>
-            </div>
-          )}  
-        </div>
-      ))}
-
-      {/* Pagination Controls */}
-<div className="flex justify-center items-center gap-6 mt-8 mb-4">
-  <button
-    onClick={() => setCurrentPage(currentPage + 1)}
-    disabled={currentPage >= sortedDates.length - 1}
-    className={`flex items-center justify-center p-3 rounded-full transition 
-      ${currentPage >= sortedDates.length - 1 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700"}
-    `}
-    aria-label="Prev date"
-    title="Prev Date"
-  >
-    <ChevronLeft size={20} />
-  </button>
-  
-
-  <div className="text-gray-700 font-medium select-none">
-    {sortedDates[currentPage]}
-  </div>
-  <button
-    onClick={() => setCurrentPage(currentPage - 1)}
-    disabled={currentPage === 0}
-    className={`flex items-center justify-center p-3 rounded-full transition 
-      ${currentPage === 0 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700"}
-    `}
-    aria-label="Next date"
-    title="Next Date"
-  >
-    <ChevronRight size={20} />
-  </button>
-
-</div>
-
-{/* Add New Entry Button */}
-<div className=" bottom-6 z-20 max-w-xl mx-auto px-4">
-  <button
-    type="button"
-    onClick={addEmptyEntry}
-    className="w-full flex items-center justify-center gap-3 py-3 px-6 bg-indigo-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition"
-  >
-    <Plus size={20} />
-    Add New Entry
-  </button>
-</div>
-    </>
-    
+      {/* Add New Entry Button */}
+      <div className="flex">
+        <button
+          type="button"
+          onClick={addEmptyEntry}
+          className="flex items-center justify-center gap-3 py-3 px-6 bg-indigo-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition"
+        >
+          <Plus size={20} />
+          Add New Entry
+        </button>
+      </div>
+    </div>
   );
 };
 

@@ -4,7 +4,6 @@ export interface ReportEntryFormProps {
   entries: ReportEntry[];
   submitting: boolean;
   isLoading: boolean;
-  collapsedStates: boolean[];
   pagedDate: string;
   currentPage: number;
   sortedDates: string[];
@@ -16,6 +15,5 @@ export interface ReportEntryFormProps {
   ) => void;
   handleSubmitEntry: (index: number) => Promise<void>;
   handleDelete: (index: number) => Promise<void>;
-  toggleCollapse: (index: number) => void;
   addEmptyEntry: () => void;
 }

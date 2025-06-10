@@ -7,7 +7,6 @@ const Report = () => {
     entries,
     isLoading,
     submitting,
-    collapsedStates,
     pagedDate,
     currentPage,
     sortedDates,
@@ -15,7 +14,6 @@ const Report = () => {
     handleChange,
     handleSubmitEntry,
     handleDelete,
-    toggleCollapse,
     addEmptyEntry,
   } = useReportEntryForm();
 
@@ -26,20 +24,18 @@ const Report = () => {
       <div className="max-w-5xl mx-auto">
         <div className="space-y-6">
         <ReportEntryForm 
-            entries={entries}
-            isLoading={isLoading}
-            submitting={submitting}
-            collapsedStates={collapsedStates}
-            pagedDate={pagedDate}
-            sortedDates={sortedDates}
-            setCurrentPage={setCurrentPage}
-            currentPage={currentPage}
-            handleChange={handleChange}
-            handleSubmitEntry={handleSubmitEntry}
-            handleDelete={handleDelete}
-            toggleCollapse={toggleCollapse}
-            addEmptyEntry={addEmptyEntry}
-          />
+          entries={entries}
+          isLoading={isLoading}
+          submitting={submitting}
+          pagedDate={pagedDate}
+          sortedDates={sortedDates}
+          setCurrentPage={setCurrentPage}
+          currentPage={currentPage}
+          handleChange={handleChange}
+          handleSubmitEntry={handleSubmitEntry}
+          handleDelete={handleDelete}
+          addEmptyEntry={addEmptyEntry}
+        />
         </div>
       </div>
     </div>
