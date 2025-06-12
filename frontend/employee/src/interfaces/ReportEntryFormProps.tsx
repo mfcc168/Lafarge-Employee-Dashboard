@@ -14,6 +14,7 @@ export interface ReportEntryFormProps {
     value: ReportEntry[T]
   ) => void;
   handleSubmitEntry: (index: number) => Promise<void>;
+  handleSubmitAllEntries: () => void;
   handleDelete: (index: number) => Promise<void>;
   addEmptyEntry: () => void;
 }

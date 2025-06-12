@@ -1,5 +1,6 @@
-  import { ReportEntryFormProps } from "@interfaces/index";
-  import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+  import { useAuth } from "@context/AuthContext";
+import { ReportEntryFormProps } from "@interfaces/index";
+  import { ChevronLeft, ChevronRight, Plus, SaveAll, Save, Trash2 } from "lucide-react";
 
   const ReportEntryForm = ({
     entries,
@@ -7,11 +8,14 @@
     currentPage,
     sortedDates,
     setCurrentPage,
+    handleSubmitAllEntries,
     handleChange,
     handleSubmitEntry,
     handleDelete,
     addEmptyEntry
   }: ReportEntryFormProps) => {
+
+    const { user } = useAuth();
 
     return (
       <div className="space-y-6">
@@ -54,7 +58,12 @@
           )}
 
           {entries.map((entry, index) => (
-            <div key={entry.id || `new-${index}`} className="bg-white rounded-lg shadow overflow-hidden">
+            <div
+              key={entry.id || `new-${index}`}
+              className={`rounded-lg shadow overflow-hidden border-l-4 ${
+                entry.id ? "bg-yellow-50 border-yellow-400" : "bg-white border-green-500"
+              }`}
+            >
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -80,7 +89,7 @@
                           type="text"
                           value={entry.time_range}
                           onChange={(e) => handleChange(index, 'time_range', e.target.value)}
-                          className="w-30 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base"
+                          className="w-25 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base"
                         />
                       </td>
 
@@ -92,7 +101,7 @@
                           autoComplete="name"
                           value={entry.doctor_name}
                           onChange={(e) => handleChange(index, 'doctor_name', e.target.value)}
-                          className="w-25 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                         />
                       </td>
 
@@ -104,7 +113,7 @@
                           autoComplete="address-level2"
                           value={entry.district}
                           onChange={(e) => handleChange(index, 'district', e.target.value)}
-                          className="w-30 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-25 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                         />
                       </td>
 
@@ -113,7 +122,7 @@
                         <select
                           value={entry.client_type}
                           onChange={(e) => handleChange(index, 'client_type', e.target.value as 'doctor' | 'nurse')}
-                          className="w-25 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-14 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                         >
                           <option value="doctor">Doctor</option>
                           <option value="nurse">Nurse</option>
@@ -135,7 +144,7 @@
                         <textarea
                           value={entry.orders}
                           onChange={(e) => handleChange(index, 'orders', e.target.value)}
-                          className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                           rows={2}
                         />
                       </td>
@@ -145,7 +154,7 @@
                         <textarea
                           value={entry.tel_orders}
                           onChange={(e) => handleChange(index, 'tel_orders', e.target.value)}
-                          className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                           rows={2}
                         />
                       </td>
@@ -155,7 +164,7 @@
                         <textarea
                           value={entry.samples}
                           onChange={(e) => handleChange(index, 'samples', e.target.value)}
-                          className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                           rows={2}
                         />
                       </td>
@@ -165,7 +174,7 @@
                         <textarea
                           value={entry.new_product_intro || ''}
                           onChange={(e) => handleChange(index, 'new_product_intro', e.target.value)}
-                          className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                           rows={2}
                         />
                       </td>
@@ -175,7 +184,7 @@
                         <textarea
                           value={entry.old_product_followup || ''}
                           onChange={(e) => handleChange(index, 'old_product_followup', e.target.value)}
-                          className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                           rows={2}
                         />
                       </td>
@@ -185,7 +194,7 @@
                         <textarea
                           value={entry.delivery_time_update || ''}
                           onChange={(e) => handleChange(index, 'delivery_time_update', e.target.value)}
-                          className="w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                           rows={2}
                         />
                       </td>
@@ -195,38 +204,72 @@
               </div>
 
               {/* Actions outside the table */}
-              <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-4">
+              <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
                 <button
                   onClick={() => handleSubmitEntry(index)}
                   disabled={submitting}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
-                >
-                  {submitting ? "Saving..." : "Save Entry"}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white ${entry.id ? "bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-400" : "bg-green-600 hover:bg-green-700 focus:ring-green-500"} shadow-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50`}>
+                  <Save size={15} />
+                  {submitting
+                    ? entry.id
+                      ? "Updating..."
+                      : "Saving..."
+                    : entry.id
+                    ? "Update"
+                    : "Save"}
                 </button>
                 <button
                   onClick={() => handleDelete(index)}
                   disabled={submitting}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
                 >
-                  Delete Entry
+                  <Trash2 size={15} />
+                  Delete
                 </button>
               </div>
+
             </div>
           ))}
         </div>
 
-        
-        {/* Add New Entry Button */}
-        <div className="flex">
+        <div>
           <button
             type="button"
             onClick={addEmptyEntry}
-            className="flex items-center justify-center gap-3 py-3 px-6 bg-indigo-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition"
+            className="group relative inline-flex items-center justify-center p-3 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-gray-50"
           >
-            <Plus size={20} />
-            Add New Entry
+            {/* Plus icon with animation */}
+            <Plus 
+              size={18} 
+              className="transform group-hover:rotate-90 transition-transform duration-200 ease-in-out" 
+            />
+            
+            <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs bg-gray-800 text-white px-2 py-1 rounded whitespace-nowrap">
+              Add New Entry
+            </span>
+            
+            <span className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/10"></span>
           </button>
         </div>
+
+        <div>
+          <p>I, {user?.username}, declare the following data provided are true and correct</p>
+        </div>
+        
+        {/* Add New Entry Button */}
+        <div className="flex flex-wrap gap-4 mt-4">
+
+          <button
+            onClick={handleSubmitAllEntries}
+            disabled={submitting}
+            className="inline-flex items-center gap-2 px-5 py-3 bg-green-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 transition"
+          >
+            <SaveAll size={15} />
+            {submitting ? "Saving All..." : "Save All"}
+          </button>
+        </div>
+
+
       </div>
     );
   };

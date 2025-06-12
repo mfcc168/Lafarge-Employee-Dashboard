@@ -13,6 +13,7 @@ const Report = () => {
     setCurrentPage,
     handleChange,
     handleSubmitEntry,
+    handleSubmitAllEntries,
     handleDelete,
     addEmptyEntry,
   } = useReportEntryForm();
@@ -33,6 +34,7 @@ const Report = () => {
           currentPage={currentPage}
           handleChange={handleChange}
           handleSubmitEntry={handleSubmitEntry}
+          handleSubmitAllEntries= {handleSubmitAllEntries}
           handleDelete={handleDelete}
           addEmptyEntry={addEmptyEntry}
         />

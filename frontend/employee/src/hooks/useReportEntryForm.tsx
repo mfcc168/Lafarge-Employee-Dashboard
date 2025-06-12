@@ -1,193 +1,218 @@
-  import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-  import { ReportEntry } from '@interfaces/index';
-  import axios from 'axios';
-  import { useAuth } from '@context/AuthContext';
-  import { backendUrl } from '@configs/DotEnv';
+    import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+    import { ReportEntry } from '@interfaces/index';
+    import axios from 'axios';
+    import { useAuth } from '@context/AuthContext';
+    import { backendUrl } from '@configs/DotEnv';
 
-  export const useReportEntryForm = () => {
-    const [entries, setEntries] = useState<ReportEntry[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-    const [currentPage, setCurrentPage] = useState(0);
-    const { accessToken } = useAuth();
-    const today = new Date().toISOString().split('T')[0];
+    export const useReportEntryForm = () => {
+      const [entries, setEntries] = useState<ReportEntry[]>([]);
+      const [isLoading, setIsLoading] = useState(true);
+      const [submitting, setSubmitting] = useState(false);
+      const [currentPage, setCurrentPage] = useState(0);
+      const { accessToken } = useAuth();
+      const today = new Date().toISOString().split('T')[0];
 
-    const groupedEntriesByDate = useMemo(() => {
-      const groups: { [date: string]: ReportEntry[] } = {};
-      for (const entry of entries) {
-        if (!groups[entry.date]) {
-          groups[entry.date] = [];
+      const groupedEntriesByDate = useMemo(() => {
+        const groups: { [date: string]: ReportEntry[] } = {};
+        for (const entry of entries) {
+          if (!groups[entry.date]) {
+            groups[entry.date] = [];
+          }
+          groups[entry.date].push(entry);
         }
-        groups[entry.date].push(entry);
-      }
-      return groups;
-    }, [entries]);
+        return groups;
+      }, [entries]);
 
-    const sortedDates = useMemo(() => {
-      const dates = new Set(Object.keys(groupedEntriesByDate));
-      dates.add(today);
-      return Array.from(dates).sort((a, b) => b.localeCompare(a));
-    }, [groupedEntriesByDate, today]);
+      const sortedDates = useMemo(() => {
+        const dates = new Set(Object.keys(groupedEntriesByDate));
+        dates.add(today);
+        return Array.from(dates).sort((a, b) => b.localeCompare(a));
+      }, [groupedEntriesByDate, today]);
 
-    const pagedDate = sortedDates[currentPage] || today;
+      const pagedDate = sortedDates[currentPage] || today;
 
-    const entriesForCurrentPage = useMemo(() => {
-      return groupedEntriesByDate[pagedDate] || [];
-    }, [groupedEntriesByDate, pagedDate]);
+      const entriesForCurrentPage = useMemo(() => {
+        return groupedEntriesByDate[pagedDate] || [];
+      }, [groupedEntriesByDate, pagedDate]);
 
-    const accessTokenRef = useRef(accessToken);
+      const accessTokenRef = useRef(accessToken);
 
-    useEffect(() => {
-      accessTokenRef.current = accessToken;
-    }, [accessToken]);
-    
-    const fetchEntries = useCallback(async () => {
-      const token = accessTokenRef.current;
-      if (!token) return;
-      try {
-        setIsLoading(true);
-        const response = await axios.get(`${backendUrl}/api/report-entries/`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-        setEntries(response.data);
-      } catch (error) {
-        console.error('Error fetching entries:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }, []);
-
-    useEffect(() => {
-      fetchEntries();
-    }, []);
-
-
-    const addEmptyEntry = useCallback(() => {
-      setEntries(prevEntries => [
-        ...prevEntries,
-        {
-          date: today,
-          time_range: '',
-          doctor_name: '',
-          district: '',
-          client_type: 'doctor',
-          new_client: false,
-          orders: '',
-          samples: '',
-          tel_orders: '',
-          new_product_intro: '',
-          old_product_followup: '',
-          delivery_time_update: '',
-          salesman_name: '',
-        },
-      ]);
-    }, [today]);
-
-    const getGlobalIndex = (localIndex: number): number => {
-      const entry = entriesForCurrentPage[localIndex];
-      return entries.findIndex(e => e === entry);
-    };
-
-    const handleChange = useCallback(<T extends keyof ReportEntry>(
-      index: number,
-      field: T,
-      value: ReportEntry[T]
-    ) => {
-      setEntries(prevEntries => {
-        const updatedEntries = [...prevEntries];
-        const globalIndex = getGlobalIndex(index);
-        if (globalIndex !== -1) {
-          updatedEntries[globalIndex] = {
-            ...updatedEntries[globalIndex],
-            [field]: value,
-          };
+      useEffect(() => {
+        accessTokenRef.current = accessToken;
+      }, [accessToken]);
+      
+      const fetchEntries = useCallback(async () => {
+        const token = accessTokenRef.current;
+        if (!token) return;
+        try {
+          setIsLoading(true);
+          const response = await axios.get(`${backendUrl}/api/report-entries/`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+          setEntries(response.data);
+        } catch (error) {
+          console.error('Error fetching entries:', error);
+        } finally {
+          setIsLoading(false);
         }
-        return updatedEntries;
-      });
-    }, [entries, entriesForCurrentPage]);
+      }, []);
 
-    const handleSubmitEntry = useCallback(async (index: number) => {
-      const globalIndex = getGlobalIndex(index);
-      const entry = entries[globalIndex];
-      if (!entry) return;
+      useEffect(() => {
+        fetchEntries();
+      }, []);
 
-      try {
-        setSubmitting(true);
-        const isUpdate = !!entry.id;
-        const url = isUpdate
-          ? `${backendUrl}/api/report-entries/${entry.id}/`
-          : `${backendUrl}/api/report-entries/`;
-        const method = isUpdate ? 'PUT' : 'POST';
 
-        const response = await axios({
-          method,
-          url,
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
+      const addEmptyEntry = useCallback(() => {
+        setEntries(prevEntries => [
+          ...prevEntries,
+          {
+            date: today,
+            time_range: '',
+            doctor_name: '',
+            district: '',
+            client_type: 'doctor',
+            new_client: false,
+            orders: '',
+            samples: '',
+            tel_orders: '',
+            new_product_intro: '',
+            old_product_followup: '',
+            delivery_time_update: '',
+            salesman_name: '',
           },
-          data: entry,
-        });
+        ]);
+      }, [today]);
 
+      const getGlobalIndex = (localIndex: number): number => {
+        const entry = entriesForCurrentPage[localIndex];
+        return entries.findIndex(e => e === entry);
+      };
 
-      if (!entry.id && response.data?.id) {
-        const updatedEntry = { ...entry, id: response.data.id };
+      const handleChange = useCallback(<T extends keyof ReportEntry>(
+        index: number,
+        field: T,
+        value: ReportEntry[T]
+      ) => {
         setEntries(prevEntries => {
           const updatedEntries = [...prevEntries];
-          updatedEntries[globalIndex] = updatedEntry;
+          const globalIndex = getGlobalIndex(index);
+          if (globalIndex !== -1) {
+            updatedEntries[globalIndex] = {
+              ...updatedEntries[globalIndex],
+              [field]: value,
+            };
+          }
           return updatedEntries;
         });
+      }, [entries, entriesForCurrentPage]);
+
+      const handleSubmitEntry = useCallback(async (index: number) => {
+        const globalIndex = getGlobalIndex(index);
+        const entry = entries[globalIndex];
+        if (!entry) return;
+
+        try {
+          setSubmitting(true);
+          const isUpdate = !!entry.id;
+          const url = isUpdate
+            ? `${backendUrl}/api/report-entries/${entry.id}/`
+            : `${backendUrl}/api/report-entries/`;
+          const method = isUpdate ? 'PUT' : 'POST';
+
+          const response = await axios({
+            method,
+            url,
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+            data: entry,
+          });
+
+
+        if (!entry.id && response.data?.id) {
+          const updatedEntry = { ...entry, id: response.data.id };
+          setEntries(prevEntries => {
+            const updatedEntries = [...prevEntries];
+            updatedEntries[globalIndex] = updatedEntry;
+            return updatedEntries;
+          });
+        }
+        } catch (error) {
+          console.error('Error submitting entry:', error);
+          alert('Failed to submit entry. Please try again.');
+        } finally {
+          setSubmitting(false);
+        }
+      }, [entries, entriesForCurrentPage, accessToken]);
+
+      const handleDelete = useCallback(async (index: number) => {
+        const globalIndex = getGlobalIndex(index);
+        const entry = entries[globalIndex];
+        if (!entry) return;
+
+        if (!entry.id) {
+          setEntries(prevEntries => prevEntries.filter((_, i) => i !== globalIndex));
+          return;
+        }
+
+        try {
+          setSubmitting(true);
+          await axios.delete(`${backendUrl}/api/report-entries/${entry.id}/`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+
+          setEntries(prevEntries => prevEntries.filter((_, i) => i !== globalIndex));
+        } catch (error) {
+          console.error('Error deleting entry:', error);
+          alert('Failed to delete entry. Please try again.');
+        } finally {
+          setSubmitting(false);
+        }
+      }, [entries, entriesForCurrentPage, accessToken]);
+
+  const handleSubmitAllEntries = useCallback(async () => {
+    const unsavedIndexes = entriesForCurrentPage
+      .map((entry, index) => (!entry.id ? index : null))
+      .filter((index): index is number => index !== null);
+
+    if (unsavedIndexes.length === 0) {
+      alert("No unsaved entries on this page.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      for (const index of unsavedIndexes) {
+        await handleSubmitEntry(index);
       }
-      } catch (error) {
-        console.error('Error submitting entry:', error);
-        alert('Failed to submit entry. Please try again.');
-      } finally {
-        setSubmitting(false);
-      }
-    }, [entries, entriesForCurrentPage, accessToken]);
-
-    const handleDelete = useCallback(async (index: number) => {
-      const globalIndex = getGlobalIndex(index);
-      const entry = entries[globalIndex];
-      if (!entry) return;
-
-      if (!entry.id) {
-        setEntries(prevEntries => prevEntries.filter((_, i) => i !== globalIndex));
-        return;
-      }
-
-      try {
-        setSubmitting(true);
-        await axios.delete(`${backendUrl}/api/report-entries/${entry.id}/`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-
-        setEntries(prevEntries => prevEntries.filter((_, i) => i !== globalIndex));
-      } catch (error) {
-        console.error('Error deleting entry:', error);
-        alert('Failed to delete entry. Please try again.');
-      } finally {
-        setSubmitting(false);
-      }
-    }, [entries, entriesForCurrentPage, accessToken]);
+    } catch (error) {
+      console.error("Error saving all entries:", error);
+      alert("Failed to save some entries.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [entriesForCurrentPage, handleSubmitEntry]);
 
 
 
-    return {
-      entries: entriesForCurrentPage,
-      isLoading,
-      submitting,
-      currentPage,
-      sortedDates,
-      pagedDate,
-      addEmptyEntry,
-      handleChange,
-      handleSubmitEntry,
-      handleDelete,
-      setCurrentPage,
-      totalPages: sortedDates.length,
-    };
-  }
+      return {
+        entries: entriesForCurrentPage,
+        isLoading,
+        submitting,
+        currentPage,
+        sortedDates,
+        pagedDate,
+        addEmptyEntry,
+        handleChange,
+        handleSubmitAllEntries,
+        handleSubmitEntry,
+        handleDelete,
+        setCurrentPage,
+        totalPages: sortedDates.length,
+      };
+    }

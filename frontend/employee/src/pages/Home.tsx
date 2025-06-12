@@ -11,7 +11,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen p-6">
-      {(user?.role === "MANAGER" || user?.role === "ADMIN"|| user?.role === "CEO" || user?.role === "CLERK" || user?.role === "DIRECTOR") && (
+      {(user?.role === "MANAGER" || user?.role === "ADMIN"|| user?.role === "CEO" || user?.role === "CLERK" || user?.role === "DIRECTOR" || user?.role === "DELIVERYMAN") && (
         <ReportEntryList />
       )}
       {(user?.role === "MANAGER" || user?.role === "ADMIN"|| user?.role === "CEO" || user?.role === "DIRECTOR") && (
