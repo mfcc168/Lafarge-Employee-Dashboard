@@ -86,6 +86,29 @@ export const useAllEmployeePayroll = () => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
+const handleViewPayrollPDF = async () => {
+  try {
+    const response = await axios.post(
+      `${backendUrl}/api/payroll/pdf/`,
+      { profiles,commissions,year,month },
+      {
+        responseType: "blob",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
+
+    // Open PDF in new tab
+    window.open(url);
+  } catch (error) {
+    console.error("Failed to load PDF:", error);
+  }
+};
+
 
 
 
@@ -99,5 +122,6 @@ export const useAllEmployeePayroll = () => {
     month,
     commissions,
     toggleExpand,
+    handleViewPayrollPDF,
   };
 };

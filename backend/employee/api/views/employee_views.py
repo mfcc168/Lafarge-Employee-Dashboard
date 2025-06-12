@@ -1,10 +1,15 @@
+from api.pdf import draw_payslip_page
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
 from rest_framework.views import APIView
+from django.http import HttpResponse
 from employee.models import EmployeeProfile
 from employee.serializers import EmployeeProfileSerializer
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+import io
 
 
 class GetOwnSalaryView(APIView):
@@ -57,3 +62,31 @@ class UpdateEmployeeProfileAPIView(generics.UpdateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class DownloadPaySlipPDFView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        employees_data = request.data.get("profiles", [])
+        commissions_data = request.data.get("commissions", {})  # username -> commission
+        year = request.data.get("year")
+        month = request.data.get("month")
+
+        buffer = io.BytesIO()
+        pdf = canvas.Canvas(buffer, pagesize=A4)
+
+        for employee_data in employees_data:
+            username = employee_data.get("user", {}).get("username")
+            commission = float(commissions_data.get(username, 0))
+            draw_payslip_page(pdf, employee_data, commission, year, month)
+            pdf.showPage()
+
+        pdf.save()
+        buffer.seek(0)
+        pdf_content = buffer.getvalue()
+        buffer.close()
+
+        response = HttpResponse(pdf_content, content_type='application/pdf')
+        response['Content-Disposition'] = 'inline; filename="Payslip.pdf"'
+        return response

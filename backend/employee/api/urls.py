@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views.auth_views import TokenObtainPairViewCustom, TokenRefreshViewCustom, ProtectedView, ChangePassword
-from .views.employee_views import GetOwnSalaryView, GetAllEmployeeSalary, GetOwnEmployeeProfile, GetEmployeeProfileAPIView, UpdateEmployeeProfileAPIView
+from .views.employee_views import DownloadPaySlipPDFView, GetOwnSalaryView, GetAllEmployeeSalary, GetOwnEmployeeProfile, GetEmployeeProfileAPIView, UpdateEmployeeProfileAPIView
 from .views.vacation_views import MyVacationRequestListView, VacationRequestCreateView, VacationRequestListView, VacationRequestUpdateAPIView
 from .views.report_views import ReportEntryViewSet, AllReportEntriesView
 
@@ -16,6 +16,8 @@ urlpatterns = [
 
     path('salary/me', GetOwnSalaryView.as_view(), name='get-own-salary'),
     path('salaries/', GetAllEmployeeSalary.as_view(), name='get-all-employee-salary'),
+
+    path('payroll/pdf/', DownloadPaySlipPDFView.as_view(), name='payslip-pdf'),
     
     path('profile/<int:pk>/update/', UpdateEmployeeProfileAPIView.as_view(), name='update-employee-profile'),
 
