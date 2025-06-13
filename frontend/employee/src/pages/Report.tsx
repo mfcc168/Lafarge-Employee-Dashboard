@@ -21,9 +21,8 @@ const Report = () => {
   if (isLoading) return <LoadingSpinner />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
-        <div className="space-y-6">
+    <div className="min-h-screen w-full bg-gradient-to-br flex items-center justify-center h-screen">
+      <div className="w-full h-full py-8">
         <ReportEntryForm 
           entries={entries}
           isLoading={isLoading}
@@ -38,7 +37,6 @@ const Report = () => {
           handleDelete={handleDelete}
           addEmptyEntry={addEmptyEntry}
         />
-        </div>
       </div>
     </div>
   );

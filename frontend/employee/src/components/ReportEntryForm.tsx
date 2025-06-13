@@ -16,7 +16,11 @@ import { ReportEntryFormProps } from "@interfaces/index";
   }: ReportEntryFormProps) => {
 
     const { user } = useAuth();
-
+    const adjustTextareaHeight = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const textarea = e.target;
+      textarea.style.height = "auto"; // reset height first
+      textarea.style.height = textarea.scrollHeight + "px"; // set height to scrollHeight
+    };
     return (
       <div className="space-y-6">
         {/* Pagination Controls */}
@@ -50,7 +54,7 @@ import { ReportEntryFormProps } from "@interfaces/index";
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="flex-grow min-h-0 overflow-y-auto space-y-4">
           {entries.length === 0 && (
             <div className="px-6 py-4 text-center text-gray-500 italic bg-white rounded-lg shadow">
               No entries available for this date.
@@ -60,146 +64,125 @@ import { ReportEntryFormProps } from "@interfaces/index";
           {entries.map((entry, index) => (
             <div
               key={entry.id || `new-${index}`}
-              className={`rounded-lg shadow overflow-hidden border-l-4 ${
-                entry.id ? "bg-yellow-50 border-yellow-400" : "bg-white border-green-500"
+              className={`rounded-lg shadow-md overflow-hidden border-l-4 ${
+                entry.id ? "border-yellow-400" : "border-green-500"
               }`}
             >
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+              <div className="overflow-x-auto max-w-full">
+                <table className="min-w-full table-auto divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-52">Time Range</th>
                       <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-60">Client Name</th>
                       <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">District</th>
-                      <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Type</th>
-                      <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">New?</th>
                       <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Orders</th>
                       <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Tel Orders</th>
                       <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Samples</th>
                       <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">New Product Intro</th>
+                    
                       <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Old Product Followup</th>
-                      <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Delivery Time Update</th>
+                      
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    <tr className="hover:bg-gray-50">
-                      {/* Time Range - Now Wider */}
-                      <td className="px-2 py-4">
-                        <input
-                          type="text"
-                          value={entry.time_range}
-                          onChange={(e) => handleChange(index, 'time_range', e.target.value)}
-                          className="w-25 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base"
-                        />
-                      </td>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {/* First Row - Main Inputs */}
+                      <tr>
+                        <td className="px-1 py-4">
+                          <input
+                            type="text"
+                            value={entry.time_range}
+                            onChange={(e) => handleChange(index, 'time_range', e.target.value)}
+                            className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </td>
+                        <td className="px-1 py-4">
+                          <input
+                            type="text"
+                            name="doctor_name"
+                            autoComplete="name"
+                            value={entry.doctor_name}
+                            onChange={(e) => handleChange(index, 'doctor_name', e.target.value)}
+                            className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </td>
+                        <td className="px-1 py-4">
+                          <input
+                            type="text"
+                            name="district"
+                            autoComplete="address-level2"
+                            value={entry.district}
+                            onChange={(e) => handleChange(index, 'district', e.target.value)}
+                            className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </td>
 
-                      {/* Doctor Name */}
-                      <td className="px-2 py-4">
-                        <input
-                          type="text"
-                          name="doctor_name"
-                          autoComplete="name"
-                          value={entry.doctor_name}
-                          onChange={(e) => handleChange(index, 'doctor_name', e.target.value)}
-                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                      </td>
+                        <td className="px-1 py-4">
+                          <textarea
+                            value={entry.orders}
+                            onChange={(e) => {handleChange(index, 'orders', e.target.value);adjustTextareaHeight(e);}}
+                            className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            rows={2}
+                          />
+                        </td>
+                        <td className="px-1 py-4">
+                          <textarea
+                            value={entry.tel_orders}
+                          onChange={(e) => {handleChange(index, 'tel_orders', e.target.value);adjustTextareaHeight(e);}}
+                            className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            rows={2}
+                          />
+                        </td>
+                        <td className="px-1 py-4">
+                          <textarea
+                            value={entry.samples}
+                            onChange={(e) => {handleChange(index, 'samples', e.target.value);adjustTextareaHeight(e);}}
+                            className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            rows={2}
+                          />
+                        </td>
+                        <td className="px-1 py-4">
+                          <textarea
+                            value={entry.new_product_intro || ''}
+                            onChange={(e) => {handleChange(index, 'new_product_intro', e.target.value);adjustTextareaHeight(e);}}
+                            className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            rows={2}
+                          />
+                        </td>
+                        <td className="px-1 py-4">
+                          <textarea
+                            value={entry.old_product_followup || ''}
+                            onChange={(e) => {handleChange(index, 'old_product_followup', e.target.value);adjustTextareaHeight(e);}}
+                            className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            rows={2}
+                          />
+                        </td>
+                      </tr>
 
-                      {/* District */}
-                      <td className="px-2 py-4">
-                        <input
-                          type="text"
-                          name="district"
-                          autoComplete="address-level2"
-                          value={entry.district}
-                          onChange={(e) => handleChange(index, 'district', e.target.value)}
-                          className="w-25 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                      </td>
+                      {/* Second Row - Type & New? */}
+                      <tr>
+                        <td className="px-1 py-3 font-medium text-sm text-gray-700" colSpan={3}>
+                          <select
+                            value={entry.client_type}
+                            onChange={(e) => handleChange(index, 'client_type', e.target.value as 'doctor' | 'nurse')}
+                            className="w-36 px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white bg-white"
+                          >
+                            <option value="doctor">Doctor</option>
+                            <option value="nurse">Nurse</option>
+                          </select>
+                        </td>
+                        <td className="px-1 py-3 font-medium text-sm text-gray-700" colSpan={3}>
+                          New Client?
+                          <input
+                            type="checkbox"
+                            checked={entry.new_client}
+                            onChange={(e) => handleChange(index, 'new_client', e.target.checked)}
+                            className="ml-3 h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                        </td>
 
-                      {/* Client Type */}
-                      <td className="px-2 py-4">
-                        <select
-                          value={entry.client_type}
-                          onChange={(e) => handleChange(index, 'client_type', e.target.value as 'doctor' | 'nurse')}
-                          className="w-14 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                          <option value="doctor">Doctor</option>
-                          <option value="nurse">Nurse</option>
-                        </select>
-                      </td>
+                      </tr>
+                    </tbody>
 
-                      {/* New Client */}
-                      <td className="px-2 py-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={entry.new_client}
-                          onChange={(e) => handleChange(index, 'new_client', e.target.checked)}
-                          className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                        />
-                      </td>
-
-                      {/* Orders */}
-                      <td className="px-2 py-4">
-                        <textarea
-                          value={entry.orders}
-                          onChange={(e) => handleChange(index, 'orders', e.target.value)}
-                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                          rows={2}
-                        />
-                      </td>
-
-                      {/* Tel Orders */}
-                      <td className="px-2 py-4">
-                        <textarea
-                          value={entry.tel_orders}
-                          onChange={(e) => handleChange(index, 'tel_orders', e.target.value)}
-                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                          rows={2}
-                        />
-                      </td>
-
-                      {/* Samples */}
-                      <td className="px-2 py-4">
-                        <textarea
-                          value={entry.samples}
-                          onChange={(e) => handleChange(index, 'samples', e.target.value)}
-                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                          rows={2}
-                        />
-                      </td>
-
-                      {/* New Product Intro */}
-                      <td className="px-2 py-4">
-                        <textarea
-                          value={entry.new_product_intro || ''}
-                          onChange={(e) => handleChange(index, 'new_product_intro', e.target.value)}
-                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                          rows={2}
-                        />
-                      </td>
-
-                      {/* Old Product Followup */}
-                      <td className="px-2 py-4">
-                        <textarea
-                          value={entry.old_product_followup || ''}
-                          onChange={(e) => handleChange(index, 'old_product_followup', e.target.value)}
-                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                          rows={2}
-                        />
-                      </td>
-
-                      {/* Delivery Time Update */}
-                      <td className="px-2 py-4">
-                        <textarea
-                          value={entry.delivery_time_update || ''}
-                          onChange={(e) => handleChange(index, 'delivery_time_update', e.target.value)}
-                          className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                          rows={2}
-                        />
-                      </td>
-                    </tr>
-                  </tbody>
                 </table>
               </div>
 
