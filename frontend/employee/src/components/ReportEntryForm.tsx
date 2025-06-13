@@ -11,6 +11,7 @@ const ReportEntryForm = ({
   timeRangeSuggestions,
   doctorNameSuggestions,
   districtSuggestions,
+  getTelOrderSuggestions,
   setCurrentPage,
   handleSubmitAllEntries,
   handleChange,
@@ -21,11 +22,16 @@ const ReportEntryForm = ({
 
   console.log(entries);
   const { user } = useAuth();
-  const adjustTextareaHeight = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const textarea = e.target;
-    textarea.style.height = "auto"; // reset height first
-    textarea.style.height = textarea.scrollHeight + "px"; // set height to scrollHeight
-  };
+  const adjustTextareaHeight = (
+  e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+) => {
+  const textarea = e.target;
+  if (textarea instanceof HTMLTextAreaElement) {
+    textarea.style.height = "auto";
+    textarea.style.height = textarea.scrollHeight + "px";
+  }
+};
+
   return (
     <div className="space-y-6">
       {/* Pagination Controls */}
@@ -97,6 +103,7 @@ const ReportEntryForm = ({
                           value={entry.time_range}
                           onChange={(e) => handleChange(index, 'time_range', e.target.value)}
                           suggestions={timeRangeSuggestions}
+                          openOnFocus={true}
                           className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                           inputProps={{ maxLength: 20, /* other input props */ }}
                         />
@@ -151,12 +158,20 @@ const ReportEntryForm = ({
                         />
                       </td>
                       <td className="px-1 py-4">
-                        <textarea
+                        <AutocompleteInput
+                          value={entry.tel_orders}
+                          onChange={(e) => {handleChange(index, "tel_orders", e.target.value);adjustTextareaHeight(e);}}
+                          suggestions={getTelOrderSuggestions(entry.doctor_name)}
+                          isTextarea={true}
+                          openOnFocus={true}
+                          className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                        {/* <textarea
                           value={entry.tel_orders}
                         onChange={(e) => {handleChange(index, 'tel_orders', e.target.value);adjustTextareaHeight(e);}}
                           className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                           rows={2}
-                        />
+                        /> */}
                       </td>
                       <td className="px-1 py-4">
                         <textarea

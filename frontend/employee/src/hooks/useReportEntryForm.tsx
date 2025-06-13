@@ -205,6 +205,16 @@
     return Array.from(new Set(values));
   }, [entries]);
 
+  const getTelOrderSuggestions = (doctorName: string): string[] => {
+  const matchingEntries = entries.filter(entry => entry.doctor_name === doctorName);
+  const telOrders = matchingEntries
+    .map(entry => entry.tel_orders.trim())
+    .filter(order => order !== '');
+
+  return Array.from(new Set(telOrders)); // remove duplicates
+};
+
+
   const timeRangeSuggestions = useMemo(() => getUniqueSuggestions('time_range'), [getUniqueSuggestions]);
   const doctorNameSuggestions = useMemo(() => getUniqueSuggestions('doctor_name'), [getUniqueSuggestions]);
   const districtSuggestions = useMemo(() => getUniqueSuggestions('district'), [getUniqueSuggestions]);
@@ -220,6 +230,7 @@
         timeRangeSuggestions,
         doctorNameSuggestions,
         districtSuggestions,
+        getTelOrderSuggestions,
         addEmptyEntry,
         handleChange,
         handleSubmitAllEntries,

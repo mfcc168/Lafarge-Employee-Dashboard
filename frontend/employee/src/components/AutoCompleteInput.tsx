@@ -5,6 +5,7 @@ interface AutocompleteInputPropsBase {
   suggestions: string[];
   className?: string;
   rows?: number;
+  openOnFocus?: boolean;
 }
 
 interface AutocompleteInputPropsInput extends AutocompleteInputPropsBase {
@@ -36,16 +37,24 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
     className,
     rows = 2,
     isTextarea = false,
+    openOnFocus = false, 
   } = props;
 
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const openSuggestions = () => {
+    setFilteredSuggestions(suggestions);
+    setShowSuggestions(suggestions.length > 0);
+  };
+
   useEffect(() => {
     if (value.trim() === "") {
-      setFilteredSuggestions([]);
-      setShowSuggestions(false);
+      setFilteredSuggestions(
+        openOnFocus ? suggestions : []
+      );
+      setShowSuggestions(openOnFocus); 
       return;
     }
     const filtered = suggestions.filter(
@@ -94,6 +103,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
           onChange={props.onChange as React.ChangeEventHandler<HTMLTextAreaElement>}
           rows={rows}
           className={`${className ?? ""} resize-none`}
+          onFocus={() => openOnFocus && openSuggestions()}
           autoComplete="off"
           {...("textareaProps" in props ? props.textareaProps : {})}
         />
@@ -103,6 +113,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
           onChange={props.onChange as React.ChangeEventHandler<HTMLInputElement>}
           className={className}
           autoComplete="off"
+          onFocus={() => openOnFocus && openSuggestions()}
           spellCheck={false}
           {...("inputProps" in props ? props.inputProps : {})}
         />

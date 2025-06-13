@@ -10,6 +10,7 @@ export interface ReportEntryFormProps {
   timeRangeSuggestions: string[];
   doctorNameSuggestions: string[];
   districtSuggestions: string[];
+  getTelOrderSuggestions: (doctorName: string) => string[];
   setCurrentPage: (page: number) => void;
   handleChange: <T extends keyof ReportEntry>(
     index: number, 

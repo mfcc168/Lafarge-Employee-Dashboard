@@ -13,6 +13,7 @@ const Report = () => {
     timeRangeSuggestions,
     doctorNameSuggestions,
     districtSuggestions,
+    getTelOrderSuggestions,
     setCurrentPage,
     handleChange,
     handleSubmitEntry,
@@ -35,6 +36,7 @@ const Report = () => {
           timeRangeSuggestions={timeRangeSuggestions}
           doctorNameSuggestions={doctorNameSuggestions}
           districtSuggestions={districtSuggestions}
+          getTelOrderSuggestions={getTelOrderSuggestions}
           setCurrentPage={setCurrentPage}
           currentPage={currentPage}
           handleChange={handleChange}
