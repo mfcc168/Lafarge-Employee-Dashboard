@@ -7,6 +7,9 @@ export interface ReportEntryFormProps {
   pagedDate: string;
   currentPage: number;
   sortedDates: string[];
+  timeRangeSuggestions: string[];
+  doctorNameSuggestions: string[];
+  districtSuggestions: string[];
   setCurrentPage: (page: number) => void;
   handleChange: <T extends keyof ReportEntry>(
     index: number, 

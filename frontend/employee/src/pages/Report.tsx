@@ -10,6 +10,9 @@ const Report = () => {
     pagedDate,
     currentPage,
     sortedDates,
+    timeRangeSuggestions,
+    doctorNameSuggestions,
+    districtSuggestions,
     setCurrentPage,
     handleChange,
     handleSubmitEntry,
@@ -29,6 +32,9 @@ const Report = () => {
           submitting={submitting}
           pagedDate={pagedDate}
           sortedDates={sortedDates}
+          timeRangeSuggestions={timeRangeSuggestions}
+          doctorNameSuggestions={doctorNameSuggestions}
+          districtSuggestions={districtSuggestions}
           setCurrentPage={setCurrentPage}
           currentPage={currentPage}
           handleChange={handleChange}

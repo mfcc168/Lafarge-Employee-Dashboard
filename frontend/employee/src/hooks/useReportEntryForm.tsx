@@ -198,6 +198,16 @@
     }
   }, [entriesForCurrentPage, handleSubmitEntry]);
 
+  const getUniqueSuggestions = useCallback((field: keyof ReportEntry): string[] => {
+    const values = entries
+      .map(entry => entry[field])
+      .filter(v => typeof v === 'string' && v.trim() !== '') as string[];
+    return Array.from(new Set(values));
+  }, [entries]);
+
+  const timeRangeSuggestions = useMemo(() => getUniqueSuggestions('time_range'), [getUniqueSuggestions]);
+  const doctorNameSuggestions = useMemo(() => getUniqueSuggestions('doctor_name'), [getUniqueSuggestions]);
+  const districtSuggestions = useMemo(() => getUniqueSuggestions('district'), [getUniqueSuggestions]);
 
 
       return {
@@ -207,6 +217,9 @@
         currentPage,
         sortedDates,
         pagedDate,
+        timeRangeSuggestions,
+        doctorNameSuggestions,
+        districtSuggestions,
         addEmptyEntry,
         handleChange,
         handleSubmitAllEntries,
