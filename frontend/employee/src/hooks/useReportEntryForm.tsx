@@ -68,7 +68,7 @@
         setEntries(prevEntries => [
           ...prevEntries,
           {
-            date: today,
+            date: pagedDate,
             time_range: '',
             doctor_name: '',
             district: '',
@@ -83,7 +83,7 @@
             salesman_name: '',
           },
         ]);
-      }, [today]);
+      }, [pagedDate]);
 
       const getGlobalIndex = (localIndex: number): number => {
         const entry = entriesForCurrentPage[localIndex];
