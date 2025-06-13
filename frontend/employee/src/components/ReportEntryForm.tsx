@@ -104,7 +104,7 @@ const ReportEntryForm = ({
                           onChange={(e) => handleChange(index, 'time_range', e.target.value)}
                           suggestions={timeRangeSuggestions}
                           openOnFocus={true}
-                          className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full max-w-xs min-w-[7rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                           inputProps={{ maxLength: 20, /* other input props */ }}
                         />
                         {/* <input
