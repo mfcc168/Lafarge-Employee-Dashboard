@@ -139,8 +139,8 @@ const ReportEntryList = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {salesmanEntries
-                    .filter((entry) => entry.orders || entry.samples || entry.tel_orders)
+                  {(userRole === "CLERK" ? salesmanEntries
+                    .filter((entry) => entry.orders || entry.samples || entry.tel_orders) : salesmanEntries)
                     .map((entry) => (
                       <tr key={entry.id}>
                         <td className="px-4 py-2">
