@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { backendUrl } from '@configs/DotEnv';
@@ -10,6 +10,7 @@ const VacationRequestList = () => {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'pendingOrRejected' | 'approvedOrRejected'>('pendingOrRejected');
+
 
   const fetchVacationRequests = async () => {
     const res = await axios.get<VacationRequest[]>(`${backendUrl}/api/vacations/`, {
@@ -80,6 +81,17 @@ const VacationRequestList = () => {
     }
   });
 
+  useEffect(() => {
+    if (!requests) return;
+
+    const hasPending = requests.some((req) => req.status === 'pending');
+    if (hasPending) {
+      setActiveTab('pendingOrRejected');
+    } else {
+      setActiveTab('approvedOrRejected');
+    }
+  }, [requests]);
+  
   return (
     <div className="max-w-5xl mx-auto px-6 py-8 bg-white rounded-3xl shadow-2xl mt-12">
       <h2 className="text-3xl font-bold text-gray-800 mb-8 text-center">Vacation Requests</h2>
@@ -154,13 +166,13 @@ const VacationRequestList = () => {
                   >
                     {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Approve'}
                   </button>
-                  <button
+                  {/* <button
                     onClick={() => handleApproveReject(req.id, 'rejected')}
                     className="flex items-center justify-center px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition disabled:opacity-50"
                     disabled={mutation.isPending}
                   >
                     {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reject'}
-                  </button>
+                  </button> */}
                 </div>
               )}
             </div>
