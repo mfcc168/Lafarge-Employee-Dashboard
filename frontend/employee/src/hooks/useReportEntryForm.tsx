@@ -24,10 +24,20 @@
       }, [entries]);
 
       const sortedDates = useMemo(() => {
-        const dates = new Set(Object.keys(groupedEntriesByDate));
-        dates.add(today);
-        return Array.from(dates).sort((a, b) => b.localeCompare(a));
-      }, [groupedEntriesByDate, today]);
+        const recentDates = Array.from({ length: 7 }, (_, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          return date.toISOString().split('T')[0];
+        });
+
+        const allDates = new Set([
+          ...recentDates,
+          ...Object.keys(groupedEntriesByDate),
+        ]);
+
+        return Array.from(allDates).sort((a, b) => b.localeCompare(a));
+      }, [groupedEntriesByDate]);
+
 
       const pagedDate = sortedDates[currentPage] || today;
 
@@ -65,25 +75,32 @@
 
 
       const addEmptyEntry = useCallback(() => {
-        setEntries(prevEntries => [
-          ...prevEntries,
-          {
-            date: pagedDate,
-            time_range: '',
-            doctor_name: '',
-            district: '',
-            client_type: 'doctor',
-            new_client: false,
-            orders: '',
-            samples: '',
-            tel_orders: '',
-            new_product_intro: '',
-            old_product_followup: '',
-            delivery_time_update: '',
-            salesman_name: '',
-          },
-        ]);
-      }, [pagedDate]);
+        const newEntry: ReportEntry = {
+          date: pagedDate,
+          time_range: '',
+          doctor_name: '',
+          district: '',
+          client_type: 'doctor',
+          new_client: false,
+          orders: '',
+          samples: '',
+          tel_orders: '',
+          new_product_intro: '',
+          old_product_followup: '',
+          delivery_time_update: '',
+          salesman_name: '',
+        };
+
+        setEntries(prevEntries => {
+          const updated = [...prevEntries, newEntry];
+          return updated;
+        });
+
+        if (!sortedDates.includes(pagedDate)) {
+          setCurrentPage(0);
+        }
+      }, [pagedDate, sortedDates]);
+
 
       const getGlobalIndex = (localIndex: number): number => {
         const entry = entriesForCurrentPage[localIndex];
