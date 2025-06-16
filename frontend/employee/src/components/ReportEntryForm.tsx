@@ -8,7 +8,6 @@ const ReportEntryForm = ({
   submitting,
   currentPage,
   sortedDates,
-  timeRangeSuggestions,
   doctorNameSuggestions,
   districtSuggestions,
   getTelOrderSuggestions,

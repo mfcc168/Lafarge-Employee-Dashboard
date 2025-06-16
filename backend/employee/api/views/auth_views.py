@@ -38,6 +38,8 @@ class ProtectedView(APIView):
     def get(self, request):
         return Response({
             "username": request.user.username,
+            "firstname": request.user.first_name,
+            "lastname": request.user.last_name,
             "email": request.user.email,
             "role": request.user.profile.role,
             "annual_leave_days": request.user.profile.annual_leave_days,

@@ -15,6 +15,9 @@ const ReportEntryList = () => {
   const { accessToken, user } = useAuth();
   const userRole = user?.role;
   const isLimitedView = userRole === 'CLERK' || userRole === 'DELIVERYMAN';
+  const isSalesman = userRole === 'SALESMAN';
+  const userFullname = user?.firstname + " " + user?.lastname;
+  
   useEffect(() => {
     const fetchReportEntries = async () => {
       try {
@@ -47,7 +50,8 @@ const ReportEntryList = () => {
   }, [isLoading, entries]);
 
   // Entries filtered by selected date
-  const filteredEntries = entries.filter((entry) => entry.date === currentDate);
+  const filteredEntries = entries.filter((entry) => entry.date === currentDate)
+  .filter((entry) => !isSalesman || entry.salesman_name === userFullname);
 
   // Distinct salesman names for the current date
   const salesmen = Array.from(new Set(filteredEntries.map((e) => e.salesman_name))).sort();
@@ -101,23 +105,25 @@ const ReportEntryList = () => {
       ) : (
         <>
           {/* Tabs for salesmen */}
-          <div className="mb-6 border-b border-gray-200">
-            <nav className="-mb-px flex space-x-6" aria-label="Salesman tabs">
-              {salesmen.map((salesman) => (
-                <button
-                  key={salesman}
-                  onClick={() => setSelectedSalesman(salesman)}
-                  className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-                    salesman === selectedSalesman
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  {salesman}
-                </button>
-              ))}
-            </nav>
-          </div>
+          {!isSalesman && 
+            <div className="mb-6 border-b border-gray-200">
+              <nav className="-mb-px flex space-x-6" aria-label="Salesman tabs">
+                {salesmen.map((salesman) => (
+                  <button
+                    key={salesman}
+                    onClick={() => setSelectedSalesman(salesman)}
+                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                      salesman === selectedSalesman
+                        ? 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    {salesman}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          }
 
           {/* Table for selected salesman */}
           <div>

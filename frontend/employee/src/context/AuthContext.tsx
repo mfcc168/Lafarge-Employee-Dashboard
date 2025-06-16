@@ -33,7 +33,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (res.ok) {
         const data = await res.json();
         setIsAuthenticated(true);
-        setUser({ username: data.username, email: data.email, role:data.role, annual_leave_days:data.annual_leave_days  });
+        setUser({ 
+          username: data.username, 
+          firstname: data.firstname, 
+          lastname: data.lastname, 
+          email: data.email, 
+          role:data.role, 
+          annual_leave_days:data.annual_leave_days  
+        });
       } else {
         setIsAuthenticated(false);
         setUser(null);

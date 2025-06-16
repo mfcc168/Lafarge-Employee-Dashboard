@@ -28,7 +28,7 @@ const Sidebar = () => {
     if (user?.role === "DIRECTOR" || user?.role === "ADMIN") {
       baseItems.push({ label: "Payroll", icon: <Wallet size={20} />, path: "/payroll" });
     }
-    if (user?.role === "DIRECTOR" || user?.role === "ADMIN") {
+    if (user?.role === "DIRECTOR" || user?.role === "ADMIN" || user?.role === "SALESMAN") {
       baseItems.push({ label: "Sales", icon: <ChartNoAxesCombined size={20} />, path: "/sales" });
     }
     if (user?.role !== "DIRECTOR" && user?.role !== "ADMIN" && user?.role !== "CEO") {

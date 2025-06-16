@@ -1,5 +1,7 @@
 export type User = {
     username: string;
+    firstname: string;
+    lastname: string;
     email?: string;
     role?: string;
     annual_leave_days?: number;
