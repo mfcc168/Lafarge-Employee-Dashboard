@@ -61,7 +61,7 @@ def draw_payslip_page(pdf: Canvas, employee: dict, commission: float, year: int 
     values.append(("Gross Payment", gross_payment))
 
     if not mpf_exempt:
-        values.append(("MPF Deduction", -mpf_deduction_amount))
+        values.append(("MPF Deduction", mpf_deduction_amount))
     else:
         # Optional: hide this line if you don't want to show exemption
         values.append(("MPF Deduction (Exempt)", 0))
@@ -72,7 +72,10 @@ def draw_payslip_page(pdf: Canvas, employee: dict, commission: float, year: int 
     y = box_top - 20
     for label, amount in values:
         pdf.drawString(margin_left + 10, y, f"{label}:")
-        pdf.drawRightString(margin_left + box_width - 10, y, f"${amount:,.2f}")
+        if label == "MPF Deduction":
+            pdf.drawRightString(margin_left + box_width - 10, y, f" - ${amount:,.2f}")
+        else:
+            pdf.drawRightString(margin_left + box_width - 10, y, f"${amount:,.2f}")
         y -= line_height + 2
 
     # Optional footer
