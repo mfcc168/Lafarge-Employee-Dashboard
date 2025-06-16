@@ -139,7 +139,7 @@ const ReportEntryList = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {(userRole === "CLERK" ? salesmanEntries
+                  {(isLimitedView ? salesmanEntries
                     .filter((entry) => entry.orders || entry.samples || entry.tel_orders) : salesmanEntries)
                     .map((entry) => (
                       <tr key={entry.id}>
