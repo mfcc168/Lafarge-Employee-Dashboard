@@ -12,8 +12,9 @@ const ReportEntryList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState<string>(formatDate(new Date()));
   const [selectedSalesman, setSelectedSalesman] = useState<string | null>(null);
-  const { accessToken } = useAuth();
-
+  const { accessToken, user } = useAuth();
+  const userRole = user?.role;
+  const isLimitedView = userRole === 'CLERK' || userRole === 'DELIVERYMAN';
   useEffect(() => {
     const fetchReportEntries = async () => {
       try {
@@ -128,70 +129,49 @@ const ReportEntryList = () => {
                     <th className="px-4 py-2">Time Range</th>
                     <th className="px-4 py-2">Client Info</th>
                     <th className="px-4 py-2">Order Info</th>
-                    <th className="px-4 py-2">Product Discussion</th>
+                    {!isLimitedView && <th className="px-4 py-2">Product Discussion</th>}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {salesmanEntries.map((entry) => (
-                    <tr key={entry.id}>
-                      <td className="px-4 py-2">
-                        <div>
-                          <strong>{entry.district}:</strong> {entry.time_range}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2">
-                        <strong>{entry.client_type.toUpperCase()}:</strong> {entry.doctor_name}{' '}
-                        {entry.new_client && (
-                          <span className="ml-2 inline-flex items-center px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full shadow-sm transition duration-300 ease-in-out hover:bg-green-200">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="w-3 h-3 mr-1"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            New
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="px-4 py-2 text-xs">
-                        {entry.orders && (
+                  {salesmanEntries
+                    .filter((entry) => entry.orders || entry.samples || entry.tel_orders)
+                    .map((entry) => (
+                      <tr key={entry.id}>
+                        <td className="px-4 py-2">
                           <div>
-                            <strong>Orders:</strong> {entry.orders}
+                            <strong>{entry.district}:</strong> {entry.time_range}
                           </div>
+                        </td>
+                        <td className="px-4 py-2">
+                          <strong>{entry.client_type.toUpperCase()}:</strong> {entry.doctor_name}{' '}
+                          {entry.new_client && (
+                            <span className="ml-2 inline-flex items-center px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full shadow-sm">
+                              <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                              </svg>
+                              New
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-xs">
+                          {entry.orders && <div><strong>Orders:</strong> {entry.orders}</div>}
+                          {entry.tel_orders && <div><strong>Tel Orders:</strong> {entry.tel_orders}</div>}
+                          {entry.samples && <div><strong>Samples:</strong> {entry.samples}</div>}
+                        </td>
+                        {!isLimitedView && (
+                          <td className="px-4 py-2 text-xs">
+                            {entry.new_product_intro && (
+                              <div><strong>New:</strong> {entry.new_product_intro}</div>
+                            )}
+                            {entry.old_product_followup && (
+                              <div><strong>Follow-up:</strong> {entry.old_product_followup}</div>
+                            )}
+                            {entry.delivery_time_update && (
+                              <div><strong>Delivery:</strong> {entry.delivery_time_update}</div>
+                            )}
+                          </td>
                         )}
-                        {entry.tel_orders && (
-                          <div>
-                            <strong>Tel Orders:</strong> {entry.tel_orders}
-                          </div>
-                        )}
-                        {entry.samples && (
-                          <div>
-                            <strong>Samples:</strong> {entry.samples}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-2 text-xs">
-                        {entry.new_product_intro && (
-                          <div>
-                            <strong>New:</strong> {entry.new_product_intro}
-                          </div>
-                        )}
-                        {entry.old_product_followup && (
-                          <div>
-                            <strong>Follow-up:</strong> {entry.old_product_followup}
-                          </div>
-                        )}
-                        {entry.delivery_time_update && (
-                          <div>
-                            <strong>Delivery:</strong> {entry.delivery_time_update}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
+                      </tr>
                   ))}
                 </tbody>
               </table>
