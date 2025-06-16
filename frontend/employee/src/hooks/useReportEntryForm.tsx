@@ -175,28 +175,50 @@
       }, [entries, entriesForCurrentPage, accessToken]);
 
   const handleSubmitAllEntries = useCallback(async () => {
-    const unsavedIndexes = entriesForCurrentPage
-      .map((entry, index) => (!entry.id ? index : null))
-      .filter((index): index is number => index !== null);
+  if (entriesForCurrentPage.length === 0) {
+    alert("No entries to submit on this page.");
+    return;
+  }
 
-    if (unsavedIndexes.length === 0) {
-      alert("No unsaved entries on this page.");
-      return;
-    }
+  setSubmitting(true);
 
-    setSubmitting(true);
+  try {
+    const requests = entriesForCurrentPage.map(async (entry, index) => {
+      const globalIndex = getGlobalIndex(index);
+      const isUpdate = !!entry.id;
+      const url = isUpdate
+        ? `${backendUrl}/api/report-entries/${entry.id}/`
+        : `${backendUrl}/api/report-entries/`;
+      const method = isUpdate ? 'PUT' : 'POST';
 
-    try {
-      for (const index of unsavedIndexes) {
-        await handleSubmitEntry(index);
+      const response = await axios({
+        method,
+        url,
+        headers: {
+          Authorization: `Bearer ${accessTokenRef.current}`,
+        },
+        data: entry,
+      });
+
+      if (!entry.id && response.data?.id) {
+        const updatedEntry = { ...entry, id: response.data.id };
+        setEntries(prevEntries => {
+          const updatedEntries = [...prevEntries];
+          updatedEntries[globalIndex] = updatedEntry;
+          return updatedEntries;
+        });
       }
-    } catch (error) {
-      console.error("Error saving all entries:", error);
-      alert("Failed to save some entries.");
-    } finally {
-      setSubmitting(false);
-    }
-  }, [entriesForCurrentPage, handleSubmitEntry]);
+    });
+
+    await Promise.all(requests);
+  } catch (error) {
+    console.error("Error submitting entries:", error);
+    alert("Failed to submit some entries.");
+  } finally {
+    setSubmitting(false);
+  }
+}, [entriesForCurrentPage, getGlobalIndex]);
+
 
   const getUniqueSuggestions = useCallback((field: keyof ReportEntry): string[] => {
     const values = entries
