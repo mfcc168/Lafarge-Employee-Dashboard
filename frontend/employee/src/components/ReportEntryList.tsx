@@ -12,12 +12,23 @@ const ReportEntryList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState<string>(formatDate(new Date()));
   const [selectedSalesman, setSelectedSalesman] = useState<string | null>(null);
+  const [crossedRows, setCrossedRows] = useState<Set<number>>(new Set());
+
   const { accessToken, user } = useAuth();
   const userRole = user?.role;
   const isLimitedView = userRole === 'CLERK' || userRole === 'DELIVERYMAN';
   const isSalesman = userRole === 'SALESMAN';
   const userFullname = user?.firstname + " " + user?.lastname;
   
+  const toggleRowCross = (id: number) => {
+    if (!isLimitedView) return;
+    setCrossedRows((prev) => {
+      const newSet = new Set(prev);
+      newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+      return newSet;
+    });
+  };
+
   useEffect(() => {
     const fetchReportEntries = async () => {
       try {
@@ -142,7 +153,15 @@ const ReportEntryList = () => {
                   {(isLimitedView ? salesmanEntries
                     .filter((entry) => entry.orders || entry.samples || entry.tel_orders) : salesmanEntries)
                     .map((entry) => (
-                      <tr key={entry.id}>
+                    <tr
+                      key={entry.id}
+                      onClick={() => entry.id && toggleRowCross(Number(entry.id))}
+                      className={`cursor-pointer ${
+                        isLimitedView && crossedRows.has(Number(entry.id)) ? 'line-through text-gray-400' : ''
+                      }`}
+                    >
+
+
                         <td className="px-4 py-2">
                           <div>
                             <strong>{entry.district}:</strong> {entry.time_range}
