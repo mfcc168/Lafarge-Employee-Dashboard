@@ -135,7 +135,7 @@ const VacationRequestList = () => {
           {filteredRequests?.map((req) => (
             <div key={req.id} className="bg-white border border-gray-200 rounded-2xl p-6 shadow hover:shadow-md transition">
               <div className="mb-3">
-                <p className="text-lg font-semibold text-gray-800">Request from {req.employee}</p>
+                <p className="text-lg font-semibold text-gray-800 capitalize">{req.employee}</p>
                 <ul className="list-disc list-inside text-sm text-gray-600 mt-2 space-y-1">
                   {req.date_items.map((item, i) => (
                     <li key={i}>{formatDateItem(item)}</li>
