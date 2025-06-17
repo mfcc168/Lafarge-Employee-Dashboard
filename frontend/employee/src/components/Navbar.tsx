@@ -24,13 +24,11 @@ const Navbar = () => {
   // Navigation items (same logic as Sidebar)
   const navItems = [
     { label: "Home", icon: <Home size={16} />, path: "/" },
+    { label: "Vacation", icon: <ClipboardPaste size={16} />, path: "/vacation" },
   ];
 
   if (user?.role === "SALESMAN") {
     navItems.push({ label: "Report", icon: <BarChart3 size={16} />, path: "/report" });
-  }
-  if (user?.role !== "DIRECTOR" && user?.role !== "ADMIN" && user?.role !== "CEO") {
-    navItems.push({ label: "Vacation", icon: <ClipboardPaste size={16} />, path: "/vacation" });
   }
 
   return (

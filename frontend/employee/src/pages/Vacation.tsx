@@ -1,8 +1,11 @@
 import { useVacationRequestForm } from '@hooks/useVacationRequestForm';
 import VacationRequestForm from '@components/VacationRequestForm';
 import MyVacationRequestList from '@components/MyVacationRequestList';
+import { useAuth } from '@context/AuthContext';
+import VacationRequestList from '@components/VacationRequestList';
 
 const Vacation = () => {
+
   const {
     dateItems,
     submitting,
@@ -23,19 +26,28 @@ const Vacation = () => {
     }
   };
 
+  const { user } = useAuth(); 
+
   return (
     <>
-    <VacationRequestForm
-      dateItems={dateItems}
-      submitting={submitting}
-      getTotalVacationDay={getTotalVacationDay}
-      getVacationDayLeft={getVacationDayLeft}
-      addItem={addItem}
-      updateItem={updateItem}
-      removeItem={removeItem}
-      handleSubmit={onSubmit}
-    />
-    <MyVacationRequestList />
+    {(user?.role === "MANAGER" || user?.role === "ADMIN"|| user?.role === "CEO" || user?.role === "DIRECTOR") && (
+        <VacationRequestList />
+    )}
+    {(user?.role === "CLERK" || user?.role === "DELIVERYMAN"|| user?.role === "SALESMAN") && (
+      <>
+        <VacationRequestForm
+          dateItems={dateItems}
+          submitting={submitting}
+          getTotalVacationDay={getTotalVacationDay}
+          getVacationDayLeft={getVacationDayLeft}
+          addItem={addItem}
+          updateItem={updateItem}
+          removeItem={removeItem}
+          handleSubmit={onSubmit}
+        />
+        <MyVacationRequestList />
+      </>
+    )}
     </>
   );
 }

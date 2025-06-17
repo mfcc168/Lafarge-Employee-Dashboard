@@ -4,6 +4,7 @@ import { backendUrl } from '@configs/DotEnv';
 import { useAuth } from '@context/AuthContext';
 import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/index';
+import { useNameAlias } from '@hooks/useNameAlias';
 
 const formatDate = (date: Date): string => date.toISOString().split('T')[0];
 
@@ -119,26 +120,30 @@ const ReportEntryList = () => {
           {!isSalesman && 
             <div className="mb-6 border-b border-gray-200">
               <nav className="-mb-px flex space-x-6" aria-label="Salesman tabs">
-                {salesmen.map((salesman) => (
-                  <button
-                    key={salesman}
-                    onClick={() => setSelectedSalesman(salesman)}
-                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-                      salesman === selectedSalesman
-                        ? 'border-blue-600 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    {salesman}
-                  </button>
-                ))}
+                {salesmen.map((salesman) => {
+                  const alias = useNameAlias(salesman);
+                  return (
+                    <button
+                      key={salesman}
+                      onClick={() => setSelectedSalesman(salesman)}
+                      className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                        salesman === selectedSalesman
+                          ? 'border-blue-600 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      {alias}
+                    </button>
+                  );
+                })}
+
               </nav>
             </div>
           }
 
           {/* Table for selected salesman */}
           <div>
-            <h3 className="text-lg font-medium text-gray-700 mb-3">{selectedSalesman}</h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-3">{String(useNameAlias(selectedSalesman))}</h3>
             <div className="overflow-x-auto rounded-xl shadow-sm">
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-700">
@@ -163,7 +168,7 @@ const ReportEntryList = () => {
 
 
                         <td className="px-4 py-2">
-                          <div>
+                          <div> 
                             <strong>{entry.district}:</strong> {entry.time_range}
                           </div>
                         </td>
