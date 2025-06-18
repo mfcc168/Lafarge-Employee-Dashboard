@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useQuery } from '@tanstack/react-query';
 import { backendUrl } from '@configs/DotEnv';
 import { useAuth } from '@context/AuthContext';
 import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
@@ -8,19 +9,27 @@ import { useNameAlias } from '@hooks/useNameAlias';
 
 const formatDate = (date: Date): string => date.toISOString().split('T')[0];
 
-const ReportEntryList = () => {
-  const [entries, setEntries] = useState<ReportEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentDate, setCurrentDate] = useState<string>(formatDate(new Date()));
-  const [selectedSalesman, setSelectedSalesman] = useState<string | null>(null);
-  const [crossedRows, setCrossedRows] = useState<Set<number>>(new Set());
+const fetchEntriesByDate = async (date: string, token: string) => {
+  const res = await axios.get(`${backendUrl}/api/all-report-entries/`, {
+    headers: { Authorization: `Bearer ${token}` },
+    params: { date },
+  });
+  return res.data as ReportEntry[];
+};
 
+
+const ReportEntryList = () => {
   const { accessToken, user } = useAuth();
   const userRole = user?.role;
   const isLimitedView = userRole === 'CLERK' || userRole === 'DELIVERYMAN';
   const isSalesman = userRole === 'SALESMAN';
-  const userFullname = user?.firstname + " " + user?.lastname;
-  
+  const userFullname = user?.firstname + ' ' + user?.lastname;
+
+  const [currentDate, setCurrentDate] = useState(formatDate(new Date()));
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [selectedSalesman, setSelectedSalesman] = useState<string | null>(null);
+  const [crossedRows, setCrossedRows] = useState<Set<number>>(new Set());
+
   const toggleRowCross = (id: number) => {
     if (!isLimitedView) return;
     setCrossedRows((prev) => {
@@ -30,45 +39,45 @@ const ReportEntryList = () => {
     });
   };
 
+  // Fetch available dates (once)
   useEffect(() => {
-    const fetchReportEntries = async () => {
+    const fetchDates = async () => {
       try {
-        const response = await axios.get(`${backendUrl}/api/all-report-entries/`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+        const res = await axios.get(`${backendUrl}/api/report-entry-dates/`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
         });
-        setEntries(response.data);
-      } catch (error) {
-        console.error('Error fetching report entries:', error);
-      } finally {
-        setIsLoading(false);
+        const sortedDates = res.data.sort().reverse();
+        setAvailableDates(sortedDates);
+        if (sortedDates.includes(currentDate)) {
+          setCurrentDate(currentDate);
+        } else if (sortedDates.length > 0) {
+          setCurrentDate(sortedDates[0]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch dates', err);
       }
     };
-    fetchReportEntries();
+    fetchDates();
   }, [accessToken]);
 
-  const availableDates = Array.from(new Set(entries.map((e) => e.date))).sort().reverse(); // latest to earliest
+  // Fetch entries for current date
+  const {
+    data: entries = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['reportEntries', currentDate],
+    queryFn: () => fetchEntriesByDate(currentDate, accessToken as string),
+    enabled: !!currentDate && !!accessToken,
+  });
 
-  useEffect(() => {
-    if (!isLoading && entries.length > 0) {
-      const today = formatDate(new Date());
-      if (availableDates.includes(today)) {
-        setCurrentDate(today);
-      } else {
-        setCurrentDate(availableDates[0]);
-      }
-    }
-  }, [isLoading, entries]);
+  // Filter by salesman
+  const filteredEntries = entries.filter((entry) =>
+    isSalesman ? entry.salesman_name === userFullname : true
+  );
 
-  // Entries filtered by selected date
-  const filteredEntries = entries.filter((entry) => entry.date === currentDate)
-  .filter((entry) => !isSalesman || entry.salesman_name === userFullname);
-
-  // Distinct salesman names for the current date
   const salesmen = Array.from(new Set(filteredEntries.map((e) => e.salesman_name))).sort();
 
-  // When the current date or filtered entries change, reset selected salesman if needed
   useEffect(() => {
     if (salesmen.length > 0) {
       if (!selectedSalesman || !salesmen.includes(selectedSalesman)) {
@@ -79,7 +88,6 @@ const ReportEntryList = () => {
     }
   }, [currentDate, salesmen]);
 
-  // Entries for the selected salesman
   const salesmanEntries = filteredEntries.filter((entry) => entry.salesman_name === selectedSalesman);
 
   const currentIndex = availableDates.indexOf(currentDate);
@@ -112,12 +120,13 @@ const ReportEntryList = () => {
         <div className="flex justify-center py-10">
           <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
         </div>
+      ) : isError ? (
+        <div className="text-center text-red-500 py-10">Failed to load entries.</div>
       ) : salesmen.length === 0 ? (
         <div className="text-center text-gray-500 py-10">No entries for {currentDate}.</div>
       ) : (
         <>
-          {/* Tabs for salesmen */}
-          {!isSalesman && 
+          {!isSalesman && (
             <div className="mb-6 border-b border-gray-200">
               <nav className="-mb-px flex space-x-6" aria-label="Salesman tabs">
                 {salesmen.map((salesman) => {
@@ -136,14 +145,14 @@ const ReportEntryList = () => {
                     </button>
                   );
                 })}
-
               </nav>
             </div>
-          }
+          )}
 
-          {/* Table for selected salesman */}
           <div>
-            <h3 className="text-lg font-medium text-gray-700 mb-3">{String(useNameAlias(selectedSalesman))}</h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-3">
+              {String(useNameAlias(selectedSalesman))}
+            </h3>
             <div className="overflow-x-auto rounded-xl shadow-sm">
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-700">
@@ -155,53 +164,52 @@ const ReportEntryList = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {(isLimitedView ? salesmanEntries
-                    .filter((entry) => entry.orders || entry.samples || entry.tel_orders) : salesmanEntries)
-                    .map((entry) => (
+                  {(isLimitedView
+                    ? salesmanEntries.filter((entry) => entry.orders || entry.samples || entry.tel_orders)
+                    : salesmanEntries
+                  ).map((entry, idx) => (
                     <tr
-                      key={entry.id}
+                      key={entry.id ?? `${entry.salesman_name}-${entry.date}-${idx}`}
                       onClick={() => entry.id && toggleRowCross(Number(entry.id))}
                       className={`cursor-pointer ${
                         isLimitedView && crossedRows.has(Number(entry.id)) ? 'line-through text-gray-400' : ''
                       }`}
                     >
-
-
-                        <td className="px-4 py-2">
-                          <div> 
-                            <strong>{entry.district}:</strong> {entry.time_range}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2">
-                          <strong>{entry.client_type.toUpperCase()}:</strong> {entry.doctor_name}{' '}
-                          {entry.new_client && (
-                            <span className="ml-2 inline-flex items-center px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full shadow-sm">
-                              <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                              </svg>
-                              New
-                            </span>
+                      <td className="px-4 py-2">
+                        <div>
+                          <strong>{entry.district}:</strong> {entry.time_range}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">
+                        <strong>{entry.client_type.toUpperCase()}:</strong> {entry.doctor_name}{' '}
+                        {entry.new_client && (
+                          <span className="ml-2 inline-flex items-center px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full shadow-sm">
+                            <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            New
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-xs">
+                        {entry.orders && <div><strong>Orders:</strong> {entry.orders}</div>}
+                        {entry.tel_orders && <div><strong>Tel Orders:</strong> {entry.tel_orders}</div>}
+                        {entry.samples && <div><strong>Samples:</strong> {entry.samples}</div>}
+                      </td>
+                      {!isLimitedView && (
+                        <td className="px-4 py-2 text-xs">
+                          {entry.new_product_intro && (
+                            <div><strong>New:</strong> {entry.new_product_intro}</div>
+                          )}
+                          {entry.old_product_followup && (
+                            <div><strong>Follow-up:</strong> {entry.old_product_followup}</div>
+                          )}
+                          {entry.delivery_time_update && (
+                            <div><strong>Delivery:</strong> {entry.delivery_time_update}</div>
                           )}
                         </td>
-                        <td className="px-4 py-2 text-xs">
-                          {entry.orders && <div><strong>Orders:</strong> {entry.orders}</div>}
-                          {entry.tel_orders && <div><strong>Tel Orders:</strong> {entry.tel_orders}</div>}
-                          {entry.samples && <div><strong>Samples:</strong> {entry.samples}</div>}
-                        </td>
-                        {!isLimitedView && (
-                          <td className="px-4 py-2 text-xs">
-                            {entry.new_product_intro && (
-                              <div><strong>New:</strong> {entry.new_product_intro}</div>
-                            )}
-                            {entry.old_product_followup && (
-                              <div><strong>Follow-up:</strong> {entry.old_product_followup}</div>
-                            )}
-                            {entry.delivery_time_update && (
-                              <div><strong>Delivery:</strong> {entry.delivery_time_update}</div>
-                            )}
-                          </td>
-                        )}
-                      </tr>
+                      )}
+                    </tr>
                   ))}
                 </tbody>
               </table>

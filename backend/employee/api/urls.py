@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views.auth_views import TokenObtainPairViewCustom, TokenRefreshViewCustom, ProtectedView, ChangePassword
 from .views.employee_views import DownloadPaySlipPDFView, GetOwnSalaryView, GetAllEmployeeSalary, GetOwnEmployeeProfile, GetEmployeeProfileAPIView, UpdateEmployeeProfileAPIView
 from .views.vacation_views import MyVacationRequestListView, VacationRequestCreateView, VacationRequestListView, VacationRequestUpdateAPIView
-from .views.report_views import ReportEntryViewSet, AllReportEntriesView
+from .views.report_views import ReportEntryDatesView, ReportEntryViewSet, AllReportEntriesView
 
 router = DefaultRouter()
 router.register(r'report-entries', ReportEntryViewSet, basename='reportentry')
@@ -27,5 +27,6 @@ urlpatterns = [
     path('vacations/me/', MyVacationRequestListView.as_view(), name='get-own-vacation-list'),
 
     path('all-report-entries/', AllReportEntriesView.as_view(), name='all-report-entries'),
+    path("report-entry-dates/", ReportEntryDatesView.as_view()),
     path('', include(router.urls)),
 ]
