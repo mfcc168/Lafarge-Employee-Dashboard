@@ -7,17 +7,6 @@ import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/index';
 import { useNameAlias } from '@hooks/useNameAlias';
 
-const formatDate = (date: Date): string => date.toISOString().split('T')[0];
-
-const fetchEntriesByDate = async (date: string, token: string) => {
-  const res = await axios.get(`${backendUrl}/api/all-report-entries/`, {
-    headers: { Authorization: `Bearer ${token}` },
-    params: { date },
-  });
-  return res.data as ReportEntry[];
-};
-
-
 const ReportEntryList = () => {
   const { accessToken, user } = useAuth();
   const userRole = user?.role;
@@ -25,8 +14,7 @@ const ReportEntryList = () => {
   const isSalesman = userRole === 'SALESMAN';
   const userFullname = user?.firstname + ' ' + user?.lastname;
 
-  const [currentDate, setCurrentDate] = useState(formatDate(new Date()));
-  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [currentDate, setCurrentDate] = useState<string>('');
   const [selectedSalesman, setSelectedSalesman] = useState<string | null>(null);
   const [crossedRows, setCrossedRows] = useState<Set<number>>(new Set());
 
@@ -39,45 +27,41 @@ const ReportEntryList = () => {
     });
   };
 
-  // Fetch available dates (once)
-  useEffect(() => {
-    const fetchDates = async () => {
-      try {
-        const res = await axios.get(`${backendUrl}/api/report-entry-dates/`, {
+  // Fetch all entries at once
+  const { data: allEntries = [], isLoading, isError } = useQuery({
+    queryKey: ['allReportEntries'],
+    queryFn: () =>
+      axios
+        .get(`${backendUrl}/api/all-report-entries/`, {
           headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        const sortedDates = res.data.sort().reverse();
-        setAvailableDates(sortedDates);
-        if (sortedDates.includes(currentDate)) {
-          setCurrentDate(currentDate);
-        } else if (sortedDates.length > 0) {
-          setCurrentDate(sortedDates[0]);
-        }
-      } catch (err) {
-        console.error('Failed to fetch dates', err);
-      }
-    };
-    fetchDates();
-  }, [accessToken]);
-
-  // Fetch entries for current date
-  const {
-    data: entries = [],
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ['reportEntries', currentDate],
-    queryFn: () => fetchEntriesByDate(currentDate, accessToken as string),
-    enabled: !!currentDate && !!accessToken,
+        })
+        .then((res) => res.data as ReportEntry[]),
+    enabled: !!accessToken,
   });
 
-  // Filter by salesman
+  // Extract available dates from all entries
+  const availableDates = Array.from(new Set(allEntries.map((e) => e.date))).sort().reverse();
+
+  // Set initial currentDate on data load
+  useEffect(() => {
+    if (availableDates.length === 0) return;
+    if (!currentDate || !availableDates.includes(currentDate)) {
+      setCurrentDate(availableDates[0]);
+    }
+  }, [availableDates, currentDate]);
+
+  // Filter entries by currentDate
+  const entries = allEntries.filter((e) => e.date === currentDate);
+
+  // Filter entries by user role
   const filteredEntries = entries.filter((entry) =>
     isSalesman ? entry.salesman_name === userFullname : true
   );
 
+  // Salesmen list for tabs
   const salesmen = Array.from(new Set(filteredEntries.map((e) => e.salesman_name))).sort();
 
+  // Select salesman tab logic
   useEffect(() => {
     if (salesmen.length > 0) {
       if (!selectedSalesman || !salesmen.includes(selectedSalesman)) {
@@ -86,7 +70,7 @@ const ReportEntryList = () => {
     } else {
       setSelectedSalesman(null);
     }
-  }, [currentDate, salesmen]);
+  }, [currentDate, salesmen, selectedSalesman]);
 
   const salesmanEntries = filteredEntries.filter((entry) => entry.salesman_name === selectedSalesman);
 
