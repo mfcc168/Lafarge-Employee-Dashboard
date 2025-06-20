@@ -21,7 +21,6 @@ def draw_payslip_page(pdf: Canvas, employee: dict, commission: float, year: int 
     pdf.setFont("Helvetica-Bold", 20)
     user = employee.get("user", {})
     full_name = f"{user.get('last_name', '')} {user.get('first_name', '')}"
-    role = employee.get("role", "")
     payroll_period = f"{year}-{str(month).zfill(2)}" if year and month else ""
 
     info_top = margin_top - 25
@@ -30,11 +29,12 @@ def draw_payslip_page(pdf: Canvas, employee: dict, commission: float, year: int 
     # Financial details
     base_salary = float(employee.get("base_salary") or 0)
     bonus_payment = float(employee.get("bonus_payment") or 0)
+    year_end_bonus = float(employee.get("year_end_bonus") or 0)
     transportation_allowance = float(employee.get("transportation_allowance") or 0)
     mpf_exempt = employee.get("is_mpf_exempt", False)
     mpf_deduction_rate = 0 if mpf_exempt else 0.05
 
-    gross_payment = base_salary + bonus_payment + transportation_allowance + commission
+    gross_payment = base_salary + bonus_payment + transportation_allowance + commission + year_end_bonus
     mpf_deduction_amount = gross_payment * mpf_deduction_rate
     net_payment = gross_payment - mpf_deduction_amount
 
@@ -50,12 +50,13 @@ def draw_payslip_page(pdf: Canvas, employee: dict, commission: float, year: int 
 
     if base_salary != 0:
         values.append(("Base Salary", base_salary))
-    if bonus_payment != 0:
-        values.append(("Bonus Payment", bonus_payment))
     if transportation_allowance != 0:
         values.append(("Transportation Allowance", transportation_allowance))
+    if year_end_bonus > 0:
+        values.append(("Year End Bonus", year_end_bonus))
+
     if commission > 0:
-        values.append(("Commission", commission))
+        values.append(("Commission", (commission + bonus_payment)))
 
     # Always show these:
     values.append(("Gross Payment", gross_payment))
@@ -71,11 +72,20 @@ def draw_payslip_page(pdf: Canvas, employee: dict, commission: float, year: int 
     pdf.setFont("Helvetica", 11)
     y = box_top - 20
     for label, amount in values:
+        if label == "Net Payment":
+            # Draw line above Net Payment
+            pdf.line(margin_left + 10, y + 15, margin_left + box_width - 10, y + 15)
+            pdf.setFont("Helvetica-Bold", 11)  # Make Net Payment bold
+            
         pdf.drawString(margin_left + 10, y, f"{label}:")
         if label == "MPF Deduction":
             pdf.drawRightString(margin_left + box_width - 10, y, f" - ${amount:,.2f}")
         else:
             pdf.drawRightString(margin_left + box_width - 10, y, f"${amount:,.2f}")
+            
+        if label == "Net Payment":
+            pdf.setFont("Helvetica", 11)  # Reset to regular font after Net Payment
+            
         y -= line_height + 2
 
     # Optional footer

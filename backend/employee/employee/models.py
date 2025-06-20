@@ -20,6 +20,7 @@ class EmployeeProfile(models.Model):
     is_mpf_exempt = models.BooleanField(default=False)
     annual_leave_days = models.FloatField(default=7.0)
     bonus_payment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    year_end_bonus = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
 
     def __str__(self):
         return f"{self.user.username}"

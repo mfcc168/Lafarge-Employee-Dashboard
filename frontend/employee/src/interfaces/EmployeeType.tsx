@@ -11,6 +11,7 @@ export type EmployeeProfile = {
     user: EmployeeUser;
     role: string;
     base_salary: string;
+    year_end_bonus: string;
     bonus_payment: string;
     transportation_allowance: string;
     is_mpf_exempt: boolean;

@@ -8,6 +8,7 @@ export const usePayrollInformation = () => {
     const [salaryData, setSalaryData] = useState<SalaryData>({
         baseSalary: null,
         bonusPayment: null,
+        yearEndBonus: null,
         transportationAllowance: null,
         mpfDeduction: null,
         commission: null
@@ -43,11 +44,12 @@ export const usePayrollInformation = () => {
     const { grossPayment, netPayment, mpfDeductionAmount }: PaymentCalculations = useMemo(() => {
         const base = salaryData.baseSalary || 0;
         const bonusPayment = salaryData.bonusPayment || 0;
+        const yearEndBonus = salaryData.yearEndBonus || 0;
         const transport = salaryData.transportationAllowance || 0;
         const commission = salaryData.commission || 0;
         const mpfRate = salaryData.mpfDeduction || 0;
 
-        const gross = base + transport + commission + bonusPayment;
+        const gross = base + transport + commission + bonusPayment + yearEndBonus;
         const mpfDeductionAmount = gross * mpfRate;
         const net = gross - mpfDeductionAmount;
 
@@ -84,6 +86,7 @@ export const usePayrollInformation = () => {
                 setSalaryData({
                     baseSalary: salaryResponse.data.base_salary,
                     bonusPayment: salaryResponse.data.bonus_payment,
+                    yearEndBonus: salaryResponse.data.year_end_bonus,
                     transportationAllowance: salaryResponse.data.transportation_allowance,
                     mpfDeduction: salaryResponse.data.is_mpf_exempt ? 0 : 0.05,
                     commission: commissionResponse?.data?.commission || null

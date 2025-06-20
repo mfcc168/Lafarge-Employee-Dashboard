@@ -19,6 +19,7 @@ const PayrollInformation = ({
     const [editData, setEditData] = useState({
         baseSalary: salaryData.baseSalary || 0,
         bonusPayment: salaryData.bonusPayment || 0,
+        yearEndBonus: salaryData.yearEndBonus || 0,
         transportationAllowance: salaryData.transportationAllowance || 0,
         commission: salaryData.commission || 0,
         mpfDeduction: salaryData.mpfDeduction || 0
@@ -44,6 +45,7 @@ const PayrollInformation = ({
             const payload = {
                 base_salary: editData.baseSalary,
                 bonus_payment: editData.bonusPayment,
+                year_end_bonus: editData.yearEndBonus,
                 transportation_allowance: editData.transportationAllowance,
                 ...(userRole === 'SALESMAN' && { commission: editData.commission })
             };
@@ -71,6 +73,7 @@ const PayrollInformation = ({
         setEditData({
             baseSalary: salaryData.baseSalary || 0,
             bonusPayment: salaryData.bonusPayment || 0,
+            yearEndBonus: salaryData.yearEndBonus || 0,
             transportationAllowance: salaryData.transportationAllowance || 0,
             commission: salaryData.commission || 0,
             mpfDeduction: salaryData.mpfDeduction || 0
@@ -145,6 +148,10 @@ const PayrollInformation = ({
                         {
                             renderEditableField("Bonus", "bonusPayment", editData.bonusPayment)
                         }
+                        {
+                            renderEditableField("Year End Bonus", "yearEndBonus", editData.yearEndBonus)
+                        }
+                        
                         
                         {
                             renderEditableField("Transportation allowance", "transportationAllowance", editData.transportationAllowance)

@@ -69,6 +69,7 @@ const AllEmployeePayroll = () => {
         const salaryData = {
           baseSalary: parseFloat(profile.base_salary),
           bonusPayment: parseFloat(profile.bonus_payment),
+          yearEndBonus: parseFloat(profile.year_end_bonus),
           transportationAllowance: parseFloat(profile.transportation_allowance),
           commission,
           mpfDeduction: profile.is_mpf_exempt ? 0 : 0.05,
@@ -77,6 +78,7 @@ const AllEmployeePayroll = () => {
         const grossPayment =
           salaryData.baseSalary +
           salaryData.bonusPayment +
+          salaryData.yearEndBonus +
           (salaryData.transportationAllowance || 0) +
           (salaryData.commission || 0);
 
