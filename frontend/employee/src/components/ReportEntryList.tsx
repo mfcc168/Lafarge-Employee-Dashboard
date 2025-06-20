@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useQuery } from '@tanstack/react-query';
-import { backendUrl } from '@configs/DotEnv';
 import { useAuth } from '@context/AuthContext';
-import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
+import {  ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/index';
 import { useNameAlias } from '@hooks/useNameAlias';
 
-const ReportEntryList = () => {
-  const { accessToken, user } = useAuth();
+interface ReportEntryListProps {
+  allEntries: ReportEntry[];
+}
+
+const ReportEntryList = ({ allEntries }: ReportEntryListProps) => {
+  const { user } = useAuth();
   const userRole = user?.role;
   const isLimitedView = userRole === 'CLERK' || userRole === 'DELIVERYMAN';
   const isSalesman = userRole === 'SALESMAN';
@@ -27,17 +28,6 @@ const ReportEntryList = () => {
     });
   };
 
-  // Fetch all entries at once
-  const { data: allEntries = [], isLoading, isError } = useQuery({
-    queryKey: ['allReportEntries'],
-    queryFn: () =>
-      axios
-        .get(`${backendUrl}/api/all-report-entries/`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        })
-        .then((res) => res.data as ReportEntry[]),
-    enabled: !!accessToken,
-  });
 
   // Extract available dates from all entries
   const availableDates = Array.from(new Set(allEntries.map((e) => e.date))).sort().reverse();
@@ -99,16 +89,6 @@ const ReportEntryList = () => {
           </button>
         </div>
       </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-        </div>
-      ) : isError ? (
-        <div className="text-center text-red-500 py-10">Failed to load entries.</div>
-      ) : salesmen.length === 0 ? (
-        <div className="text-center text-gray-500 py-10">No entries for {currentDate}.</div>
-      ) : (
         <>
           {!isSalesman && (
             <div className="mb-6 border-b border-gray-200">
@@ -198,7 +178,6 @@ const ReportEntryList = () => {
             </div>
           </div>
         </>
-      )}
     </div>
   );
 };

@@ -8,23 +8,15 @@ import { useNameAlias } from '@hooks/useNameAlias';
 import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/ReportEntryType';
 
-const WeeklySampleSummary: React.FC = () => {
+interface WeeklySampleSummaryProps {
+  entries: ReportEntry[];
+}
+
+const WeeklySampleSummary = ({ entries }: WeeklySampleSummaryProps) => {
   const { accessToken, user } = useAuth();
   const userRole = user?.role;
   const isSalesman = userRole === 'SALESMAN';
   const userFullname = `${user?.firstname} ${user?.lastname}`;
-
-
-  const { data: entries = [], isLoading, isError } = useQuery({
-    queryKey: ['allEntries'],
-    queryFn: async () => {
-      const res = await axios.get<ReportEntry[]>(`${backendUrl}/api/all-report-entries/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      return res.data;
-    },
-    enabled: !!accessToken,
-  });
 
 
   const sampleEntries = useMemo(
@@ -69,15 +61,6 @@ const WeeklySampleSummary: React.FC = () => {
     if (!selectedSalesman && salesmen.length) setSelectedSalesman(salesmen[0]);
   }, [salesmen, selectedSalesman]);
 
-
-  if (isLoading)
-    return (
-      <div className="flex justify-center py-10">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-      </div>
-    );
-  if (isError)
-    return <p className="text-center text-red-500 py-10">Failed to load weekly sample summary.</p>;
   if (!sampleEntries.length)
     return <p className="text-center text-gray-500 py-10">No sample entries to display.</p>;
 
