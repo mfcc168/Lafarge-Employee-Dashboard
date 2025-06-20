@@ -97,7 +97,7 @@ const ReportEntryList = () => {
   return (
     <div className="max-w-5xl mx-auto px-6 py-8 bg-white rounded-3xl shadow-2xl mt-12">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold text-gray-800">Report Entries ({currentDate})</h2>
+        <h2 className="text-2xl font-semibold text-gray-800">Daily Reports ({currentDate})</h2>
         <div className="flex items-center space-x-2">
           <button
             onClick={() => hasPrevious && setCurrentDate(availableDates[currentIndex + 1])}
@@ -150,9 +150,7 @@ const ReportEntryList = () => {
           )}
 
           <div>
-            <h3 className="text-lg font-medium text-gray-700 mb-3">
-              {String(useNameAlias(selectedSalesman))}
-            </h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-3"></h3>
             <div className="overflow-x-auto rounded-xl shadow-sm">
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-700">
