@@ -245,12 +245,12 @@
   }, [entries]);
 
   const getTelOrderSuggestions = (doctorName: string): string[] => {
-  const matchingEntries = entries.filter(entry => entry.doctor_name === doctorName);
-  const telOrders = matchingEntries
-    .map(entry => entry.tel_orders.trim())
-    .filter(order => order !== '');
+    const matchingEntries = entries.filter(entry => entry.doctor_name === doctorName && entry.doctor_name !== null);
+    const telOrders = matchingEntries
+      .map(entry => entry.tel_orders.trim())
+      .filter(order => order !== '');
 
-  return Array.from(new Set(telOrders)); // remove duplicates
+    return Array.from(new Set(telOrders)); // remove duplicates
 };
 
 

@@ -6,7 +6,7 @@ from django.db.models import DateField
 from django.db.models.functions import TruncDate
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
+from django.utils.dateparse import parse_date
 
 class ReportEntryViewSet(viewsets.ModelViewSet):
     queryset = ReportEntry.objects.all().order_by('-date')
@@ -19,12 +19,6 @@ class ReportEntryViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(salesman=self.request.user)
 
-# employee/api/views/report_views.py
-from django.utils.dateparse import parse_date
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
-from report.models import ReportEntry
-from report.serializers import ReportEntrySerializer
 
 class AllReportEntriesView(generics.ListAPIView):
     """
