@@ -1,11 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useMemo } from 'react';
 import { parseISO, format, getISOWeek, startOfISOWeek, endOfISOWeek } from 'date-fns';
 import { useAuth } from '@context/AuthContext';
-import { backendUrl } from '@configs/DotEnv';
 import { useNameAlias } from '@hooks/useNameAlias';
-import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/ReportEntryType';
 
 interface WeeklySampleSummaryProps {
@@ -13,7 +10,7 @@ interface WeeklySampleSummaryProps {
 }
 
 const WeeklySampleSummary = ({ entries }: WeeklySampleSummaryProps) => {
-  const { accessToken, user } = useAuth();
+  const { user } = useAuth();
   const userRole = user?.role;
   const isSalesman = userRole === 'SALESMAN';
   const userFullname = `${user?.firstname} ${user?.lastname}`;
