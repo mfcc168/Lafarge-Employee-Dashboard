@@ -9,7 +9,7 @@ import { Loader2 } from "lucide-react";
 
 const Home = () => {
 
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
 
   const { data: allEntries = [], isLoading, isError } = useQuery({
     queryKey: ['allReportEntries'],
@@ -35,10 +35,15 @@ const Home = () => {
   }
 
   return (
+    
     <div className="min-h-screen p-6">
         <ReportEntryList allEntries={allEntries} />
-        <WeeklySamplesSummary entries={allEntries} />
-        <WeeklyNewClientOrder entries={allEntries} />
+        {(user?.role !== "SALESMAN") && (
+          <>
+          <WeeklySamplesSummary entries={allEntries} />
+          <WeeklyNewClientOrder entries={allEntries} />
+          </>
+        )}
     </div>
   );
 }
