@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PayrollInformationProps } from '@interfaces/index';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '@context/AuthContext';
 import { backendUrl } from '@configs/DotEnv';
@@ -13,9 +14,8 @@ const PayrollInformation = ({
     month,
     userRole,
     employeeId
-}: PayrollInformationProps ) => {
+}: PayrollInformationProps) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
     const [editData, setEditData] = useState({
         baseSalary: salaryData.baseSalary || 0,
         bonusPayment: salaryData.bonusPayment || 0,
@@ -26,6 +26,39 @@ const PayrollInformation = ({
     });
 
     const { accessToken } = useAuth();
+    const queryClient = useQueryClient();
+
+    // Update salary mutation
+    const { mutate: updateSalary, isPending: isUpdating } = useMutation({
+        mutationFn: async (payload: {
+            base_salary: number;
+            bonus_payment: number;
+            year_end_bonus: number;
+            transportation_allowance: number;
+            commission?: number;
+        }) => {
+            const response = await axios.patch(
+                `${backendUrl}/api/profile/${employeeId}/update/`,
+                payload,
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    }
+                }
+            );
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ 
+                queryKey: ['employee-salaries'] 
+            });
+            setIsEditing(false);
+        },
+        onError: (error: any) => {
+            alert(error?.response?.data?.detail || 'An error occurred while saving.');
+        }
+    });
 
     const handleEditToggle = () => {
         setIsEditing(!isEditing);
@@ -38,36 +71,16 @@ const PayrollInformation = ({
         }));
     };
 
-
-    const handleSave = async () => {
-        setIsLoading(true);
-        try {
-            const payload = {
-                base_salary: editData.baseSalary,
-                bonus_payment: editData.bonusPayment,
-                year_end_bonus: editData.yearEndBonus,
-                transportation_allowance: editData.transportationAllowance,
-                ...(userRole === 'SALESMAN' && { commission: editData.commission })
-            };
-
-            await axios.patch(
-                `${backendUrl}/api/profile/${employeeId}/update/`,
-                payload,
-                {
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json',
-                    }
-                }
-            );
-            setIsEditing(false);
-        } catch (error: any) {
-            alert(error?.response?.data?.detail || 'An error occurred while saving.');
-        } finally {
-            setIsLoading(false);
-        }
+    const handleSave = () => {
+        const payload = {
+            base_salary: editData.baseSalary,
+            bonus_payment: editData.bonusPayment,
+            year_end_bonus: editData.yearEndBonus,
+            transportation_allowance: editData.transportationAllowance,
+            ...(userRole === 'SALESMAN' && { commission: editData.commission })
+        };
+        updateSalary(payload);
     };
-
 
     const handleCancel = () => {
         setEditData({
@@ -117,9 +130,10 @@ const PayrollInformation = ({
                     <div className="space-x-2">
                         <button 
                             onClick={handleSave}
-                            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 items-center justify-center min-w-[100px]"
+                            disabled={isUpdating}
+                            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 items-center justify-center min-w-[100px] disabled:bg-green-300"
                         >
-                            {isLoading ? (
+                            {isUpdating ? (
                                 <div className="flex items-center">
                                     <svg className="animate-spin h-3 w-3 mr-2 relative top-[1px]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
@@ -144,21 +158,10 @@ const PayrollInformation = ({
                     <h2 className="text-lg font-semibold text-gray-700 mb-3">Salary Details</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {renderEditableField("Base salary", "baseSalary", editData.baseSalary)}
-                        
-                        {
-                            renderEditableField("Bonus", "bonusPayment", editData.bonusPayment)
-                        }
-                        {
-                            renderEditableField("Year End Bonus", "yearEndBonus", editData.yearEndBonus)
-                        }
-                        
-                        
-                        {
-                            renderEditableField("Transportation allowance", "transportationAllowance", editData.transportationAllowance)
-                        }
-                        
+                        {renderEditableField("Bonus", "bonusPayment", editData.bonusPayment)}
+                        {renderEditableField("Year End Bonus", "yearEndBonus", editData.yearEndBonus)}
+                        {renderEditableField("Transportation allowance", "transportationAllowance", editData.transportationAllowance)}
                         {(userRole === "SALESMAN") && (renderEditableField("Commission", "commission", editData.commission, false))}
-                        
                     </div>
                 </div>
 

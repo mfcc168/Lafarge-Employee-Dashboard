@@ -1,15 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
-import { EmployeeProfile } from "interfaces/index";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useAuth } from "@context/AuthContext";
 import { apiUrl, backendUrl } from "@configs/DotEnv";
-
+import { EmployeeProfile } from "interfaces/index";
 
 export const useAllEmployeePayroll = () => {
-  const [profiles, setProfiles] = useState<EmployeeProfile[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [commissions, setCommissions] = useState<Record<string, number>>({});
-  const [isLoading, setIsLoading] = useState(true);
   const { user, accessToken } = useAuth();
 
   const [year, month, prevYear, prevMonth] = useMemo(() => {
@@ -17,7 +14,6 @@ export const useAllEmployeePayroll = () => {
     const day = today.getDate();
     const y = today.getFullYear();
     const m = today.getMonth() + 1; // 1-based
-  
 
     const isBeforeSalaryDay = day < 10;
     const payrollMonth = isBeforeSalaryDay ? (m === 1 ? 12 : m - 1) : m;
@@ -34,90 +30,87 @@ export const useAllEmployeePayroll = () => {
     return [payrollYear, payrollMonth, commissionYear, commissionMonth];
   }, []);
 
-  useEffect(() => {
-    const fetchPayroll = async () => {
-      try {
-        // Fetch all employee salaries
-        const res = await axios.get<EmployeeProfile[]>(
-          `${backendUrl}/api/salaries/`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
+  // Fetch employee salaries
+  const { 
+    data: profiles = [], 
+    isLoading: isLoadingProfiles 
+  } = useQuery<EmployeeProfile[]>({
+    queryKey: ['employee-salaries', accessToken],
+    queryFn: async () => {
+      const res = await axios.get(`${backendUrl}/api/salaries/`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!accessToken,
+  });
+
+  // Fetch commissions
+  const { 
+    data: commissions = {}, 
+    isLoading: isLoadingCommissions 
+  } = useQuery<Record<string, number>>({
+    queryKey: ['sales-commissions', prevYear, prevMonth, accessToken],
+    queryFn: async () => {
+      const nameToUsernameMap: Record<string, string> = {
+        "Dominic So": "dominic",
+        "Alex Cheung": "alex",
+        "Matthew Mak": "matthew",
+      };
+
+      const res = await axios.get(
+        `${apiUrl}/salesmen/commissions/${prevYear}/${prevMonth}/`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      const commissionMap: Record<string, number> = {};
+      res.data.forEach(
+        (entry: { salesman: string; commission: number }) => {
+          const username = nameToUsernameMap[entry.salesman];
+          if (username) {
+            commissionMap[username] = entry.commission;
           }
-        );
-
-        setProfiles(res.data);
-
-        // Fetch all commissions from backend
-        const commissionRes = await axios.get(
-          `${apiUrl}/salesmen/commissions/${prevYear}/${prevMonth}/`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        );
-
-        const nameToUsernameMap: Record<string, string> = {
-          "Dominic So": "dominic",
-          "Alex Cheung": "alex",
-          "Matthew Mak": "matthew",
-        };
-
-        const commissionMap: Record<string, number> = {};
-        commissionRes.data.forEach(
-          (entry: { salesman: string; commission: number }) => {
-            const username = nameToUsernameMap[entry.salesman];
-            if (username) {
-              commissionMap[username] = entry.commission;
-            }
-          }
-        );
-
-        setCommissions(commissionMap);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Failed to load payroll or commissions", error);
-        setIsLoading(false);
-      }
-    };
-
-    fetchPayroll();
-  }, [accessToken, year, month]);
+        }
+      );
+      return commissionMap;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!accessToken && !!prevYear && !!prevMonth,
+  });
 
   const toggleExpand = (id: number) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
-const handleViewPayrollPDF = async () => {
-  try {
-    const response = await axios.post(
-      `${backendUrl}/api/payroll/pdf/`,
-      { profiles,commissions,year,month },
-      {
-        responseType: "blob",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+  const handleViewPayrollPDF = async () => {
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/payroll/pdf/`,
+        { profiles, commissions, year, month },
+        {
+          responseType: "blob",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
-
-    // Open PDF in new tab
-    window.open(url);
-  } catch (error) {
-    console.error("Failed to load PDF:", error);
-  }
-};
-
-
-
-
+      const url = window.URL.createObjectURL(
+        new Blob([response.data], { type: "application/pdf" })
+      );
+      window.open(url);
+    } catch (error) {
+      console.error("Failed to load PDF:", error);
+    }
+  };
 
   return {
     user,
     profiles,
     expandedId,
-    isLoading,
+    isLoading: isLoadingProfiles || isLoadingCommissions,
     year,
     month,
     commissions,
