@@ -1,13 +1,10 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
 import { apiUrl } from "@configs/DotEnv";
 import { Invoice, SalesmanMonthlyReportData, SalesmanMonthlyReportProps } from "@interfaces/index";
 
-
 export const useSalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => {
-  const [data, setData] = useState<SalesmanMonthlyReportData | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [sharedExpanded, setSharedExpanded] = useState<boolean>(false);
@@ -49,29 +46,25 @@ export const useSalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReport
   const year = currentDate.year;
   const month = currentDate.month;
 
+  const fetchData = async () => {
+    const response = await axios.get<SalesmanMonthlyReportData>(
+      `${apiUrl}/salesman/${salesmanName}/monthly/${year}/${month}/`
+    );
+    return response.data;
+  };
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await axios.get<SalesmanMonthlyReportData>(
-        `${apiUrl}/salesman/${salesmanName}/monthly/${year}/${month}/`
-      );
-      setData(response.data);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['salesmanMonthlyReport', salesmanName, year, month],
+    queryFn: fetchData,
+  });
+
+  // Reset expanded week and current page when data changes
+  useEffect(() => {
+    if (data) {
       setExpandedWeek(null);
       setCurrentPage(1);
-    } catch (err: any) {
-      console.error("Fetch error:", err.response || err.message || err);
-      setError("Error fetching data");
-      setData(null);
-    } finally {
-      setIsLoading(false);
     }
-  }, [salesmanName, year, month]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  }, [data]);
 
   const weekRef = useRef<HTMLDivElement>(null);
   const sharedRef = useRef<HTMLDivElement>(null);
@@ -112,14 +105,10 @@ export const useSalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReport
     setExpandedWeek(expandedWeek === weekNumber ? null : weekNumber);
   }, [expandedWeek]);
 
-
-
-
-
   return {
     data,
     isLoading,
-    error,
+    error: error?.message || null,
     expandedWeek,
     currentPage,
     invoicesPerPage,
@@ -136,6 +125,6 @@ export const useSalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReport
     handleNextPage,
     handlePrevPage,
     handleExpandWeek,
-    refetch: fetchData
+    refetch
   };
 };

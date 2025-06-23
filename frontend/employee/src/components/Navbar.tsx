@@ -1,6 +1,6 @@
 import { useAuth } from "@context/AuthContext";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { LogOut, Lock, LogIn, Home, BarChart3, ClipboardPaste } from "lucide-react"; // Added icons
+import { LogOut, Lock, LogIn, Home, BarChart3, ClipboardPaste, ChartNoAxesCombined } from "lucide-react"; // Added icons
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -29,6 +29,7 @@ const Navbar = () => {
 
   if (user?.role === "SALESMAN") {
     navItems.push({ label: "Report", icon: <BarChart3 size={16} />, path: "/report" });
+    navItems.push({ label: "Sales", icon: <ChartNoAxesCombined size={16} />, path: "/sales" });
   }
 
   return (
