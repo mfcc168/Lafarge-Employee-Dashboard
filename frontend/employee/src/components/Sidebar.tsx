@@ -5,7 +5,8 @@ import {
   Wallet,
   BarChart3,
   ClipboardPaste,
-  ChartNoAxesCombined
+  ChartNoAxesCombined,
+  CircleUser
 } from "lucide-react";
 import { useMemo } from "react";
 
@@ -25,6 +26,9 @@ const Sidebar = () => {
     const baseItems = [...navItems];
     if (user?.role === "SALESMAN") {
       baseItems.push({ label: "Report", icon: <BarChart3 size={20} />, path: "/report" });
+    }
+    if (user?.role === "DIRECTOR" || user?.role === "ADMIN" || user?.role === "SALESMAN") {
+      baseItems.push({ label: "Client", icon: <CircleUser size={20} />, path: "/client" });
     }
     if (user?.role === "DIRECTOR" || user?.role === "ADMIN") {
       baseItems.push({ label: "Payroll", icon: <Wallet size={20} />, path: "/payroll" });

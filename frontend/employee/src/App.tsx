@@ -8,6 +8,7 @@ import Payroll from "@pages/Payroll";
 import ChangePassword from "@pages/ChangePassword";
 import Vacation from "@pages/Vacation";
 import Sales from "@pages/Sales";
+import Client from "@pages/Client";
 
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
           <Route index element={<RequireAuth><Home /></RequireAuth>}/>
           <Route path="/login" element={<Login />}/>
           <Route path="/change-password" element={<ChangePassword />}/>
+          <Route path="/client" element={<RequireAuth><Client /></RequireAuth>}/>
           <Route path="/payroll" element={<RequireAuth><Payroll /></RequireAuth>}/>
           <Route path="/report" element={<RequireAuth><Report /></RequireAuth>}/>
           <Route path="/vacation" element={<RequireAuth><Vacation /></RequireAuth>}/>
