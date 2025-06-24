@@ -1,15 +1,41 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 import ReportEntryList from "@components/ReportEntryList";
 import WeeklyNewClientOrder from "@components/WeeklyNewClientOrder";
 import WeeklySamplesSummary from "@components/WeeklySamplesSummary";
+import { backendUrl } from "@configs/DotEnv";
 import { useAuth } from "@context/AuthContext";
-import { useGetAllReportEntries } from "@hooks/useGetAllReportEntries";
 import { Loader2 } from "lucide-react";
 
 const Home = () => {
+  const { accessToken } = useAuth();
+  const [allEntries, setAllEntries] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
 
-  const { user } = useAuth();
+  useEffect(() => {
+    if (!accessToken) return;
 
-  const { data: allEntries = [], isLoading, isError } = useGetAllReportEntries();
+    const fetchData = async () => {
+      setIsLoading(true);
+      setIsError(false);
+      try {
+        const response = await axios.get(`${backendUrl}/api/all-report-entries/`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        setAllEntries(response.data);
+      } catch (error) {
+        console.error("Error fetching report entries:", error);
+        setIsError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [accessToken]);
 
   if (isLoading) {
     return (
@@ -24,17 +50,12 @@ const Home = () => {
   }
 
   return (
-    
     <div className="min-h-screen p-6">
-        <ReportEntryList allEntries={allEntries} />
-        {(user?.role !== "SALESMAN") && (
-          <>
-          <WeeklySamplesSummary entries={allEntries} />
-          <WeeklyNewClientOrder entries={allEntries} />
-          </>
-        )}
+      <ReportEntryList allEntries={allEntries} />
+      <WeeklySamplesSummary entries={allEntries} />
+      <WeeklyNewClientOrder entries={allEntries} />
     </div>
   );
-}
+};
 
 export default Home;
