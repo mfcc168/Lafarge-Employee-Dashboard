@@ -7,8 +7,6 @@ import { useEffect, useRef } from "react";
 const ReportEntryForm = ({
   entries,
   submitting,
-  submittingAll,
-  deleting,
   currentPage,
   sortedDates,
   doctorNameSuggestions,
@@ -63,8 +61,6 @@ const ReportEntryForm = ({
   const handleFocus = (index: number) => {
     focusedEntryIndex.current = index;
   };
-
-  const isBusy = submitting || submittingAll || deleting;
 
   return (
     <div className="space-y-6" ref={entriesRef}>
@@ -247,7 +243,7 @@ const ReportEntryForm = ({
             <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
               <button
                 onClick={() => handleSubmitEntry(index)}
-                disabled={isBusy}
+                disabled={submitting}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white ${entry.id ? "bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-400" : "bg-green-600 hover:bg-green-700 focus:ring-green-500"} shadow-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50`}>
                 <Save size={15} />
                 {submitting
@@ -260,13 +256,11 @@ const ReportEntryForm = ({
               </button>
               <button
                 onClick={() => handleDelete(index)}
-                disabled={isBusy}
+                disabled={submitting}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
               >
                 <Trash2 size={15} />
-                {deleting
-                  ? "Deleting..."
-                  : "Delete"}
+                Delete
               </button>
             </div>
           </div>
@@ -297,11 +291,11 @@ const ReportEntryForm = ({
       <div className="flex flex-wrap gap-4 mt-4">
         <button
           onClick={handleSubmitAllEntries}
-          disabled={isBusy}
+          disabled={submitting}
           className="inline-flex items-center gap-2 px-5 py-3 bg-green-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 transition"
         >
           <SaveAll size={15} />
-          {submittingAll ? "Saving All..." : "Save All"}
+          {submitting ? "Saving All..." : "Save All"}
         </button>
       </div>
     </div>
