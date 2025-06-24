@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@context/AuthContext';
 import {  ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/index';
@@ -62,27 +62,7 @@ const ReportEntryList = ({ allEntries }: ReportEntryListProps) => {
     }
   }, [currentDate, salesmen, selectedSalesman]);
 
-  const startOfRangeToMinutes = (range?: string) => {
-    if (!range) return 0;
-    const [start]   = range.split('-');
-    const hours     = parseInt(start.slice(0, 2), 10);
-    const minutes   = parseInt(start.slice(2), 10);
-    return hours * 60 + minutes;
-  };
-
-
   const salesmanEntries = filteredEntries.filter((entry) => entry.salesman_name === selectedSalesman);
-
-  const sortedEntries = useMemo(
-    () =>
-      [...salesmanEntries].sort(
-        (a, b) =>
-          startOfRangeToMinutes(a.time_range) -
-          startOfRangeToMinutes(b.time_range)
-      ),
-    [salesmanEntries]
-  );
-
 
   const currentIndex = availableDates.indexOf(currentDate);
   const hasPrevious = currentIndex < availableDates.length - 1;
@@ -147,8 +127,8 @@ const ReportEntryList = ({ allEntries }: ReportEntryListProps) => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
                   {(isLimitedView
-                    ? sortedEntries.filter((entry) => entry.orders || entry.samples || entry.tel_orders)
-                    : sortedEntries
+                    ? salesmanEntries.filter((entry) => entry.orders || entry.samples || entry.tel_orders)
+                    : salesmanEntries
                   ).map((entry, idx) => (
                     <tr
                       key={entry.id ?? `${entry.salesman_name}-${entry.date}-${idx}`}
@@ -181,7 +161,7 @@ const ReportEntryList = ({ allEntries }: ReportEntryListProps) => {
                       {!isLimitedView && (
                         <td className="px-4 py-2 text-xs">
                           {entry.new_product_intro && (
-                            <div><strong>Intro:</strong> {entry.new_product_intro}</div>
+                            <div><strong>New:</strong> {entry.new_product_intro}</div>
                           )}
                           {entry.old_product_followup && (
                             <div><strong>Follow-up:</strong> {entry.old_product_followup}</div>

@@ -3,8 +3,6 @@ import { ReportEntry } from "./index";
 export interface ReportEntryFormProps {
   entries: ReportEntry[];
   submitting: boolean;
-  submittingAll: boolean;
-  deleting: boolean;
   isLoading: boolean;
   pagedDate: string;
   currentPage: number;

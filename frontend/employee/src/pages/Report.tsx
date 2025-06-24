@@ -7,8 +7,6 @@ const Report = () => {
     entries,
     isLoading,
     submitting,
-    submittingAll,
-    deleting,
     pagedDate,
     currentPage,
     sortedDates,
@@ -33,8 +31,6 @@ const Report = () => {
           entries={entries}
           isLoading={isLoading}
           submitting={submitting}
-          submittingAll={submittingAll}
-          deleting={deleting}
           pagedDate={pagedDate}
           sortedDates={sortedDates}
           timeRangeSuggestions={timeRangeSuggestions}

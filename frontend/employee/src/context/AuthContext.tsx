@@ -1,121 +1,146 @@
-import { createContext, useState, useEffect, useContext, useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createContext, useState, useEffect, useContext } from "react";
+import { User, AuthContextType } from "@interfaces/index";
 import axios from "axios";
 import { backendUrl } from "@configs/DotEnv";
-import { User, AuthContextType } from "@interfaces/index";
+
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  
+  // Retrieve tokens from localStorage on initial load
   const [accessToken, setAccessToken] = useState<string | null>(localStorage.getItem("accessToken"));
   const [refreshToken, setRefreshToken] = useState<string | null>(localStorage.getItem("refreshToken"));
-  const queryClient = useQueryClient();
+  
 
-  // Fetch user data with React Query
-  const { refetch: fetchUser } = useQuery({
-    queryKey: ['auth-user', accessToken],
-    queryFn: async () => {
-      if (!accessToken) {
-        setIsAuthenticated(false);
-        setUser(null);
-        return null;
-      }
-
-      try {
-        const response = await axios.get(`${backendUrl}/api/protected-endpoint/`, {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        });
-        
-        setIsAuthenticated(true);
-        setUser(response.data);
-        return response.data;
-      } catch (error) {
-        setIsAuthenticated(false);
-        setUser(null);
-        throw error;
-      }
-    },
-    enabled: false, // Disable automatic fetching
-    retry: false,
-    staleTime: 5 * 60 * 1000 // 5 minutes
-  });
-
-  // Initial fetch on mount and when accessToken changes
-  useEffect(() => {
-    fetchUser();
-  }, [accessToken, fetchUser]);
-
-  // Token refresh function
-  const refreshAccessToken = useCallback(async () => {
-    if (!refreshToken) return;
+  const fetchUser = async () => {
+    if (!accessToken) {
+      return; // If there's no access token, skip fetching user
+    }
 
     try {
-      const response = await axios.post(`${backendUrl}/api/token/refresh/`, {
-        refresh: refreshToken
+      const res = await fetch(`${backendUrl}/api/protected-endpoint/`, {
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${accessToken}`, // Include token in Authorization header
+        },
       });
-      
-      localStorage.setItem("accessToken", response.data.access);
-      setAccessToken(response.data.access);
-      return response.data.access;
-    } catch (error) {
-      console.error("Token refresh failed", error);
-      logout();
-      throw error;
+
+
+      if (res.ok) {
+        const data = await res.json();
+        setIsAuthenticated(true);
+        setUser({ 
+          username: data.username, 
+          firstname: data.firstname, 
+          lastname: data.lastname, 
+          email: data.email, 
+          role:data.role, 
+          annual_leave_days:data.annual_leave_days  
+        });
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    } catch (err) {
+      console.error("Error fetching user:", err);
+      setIsAuthenticated(false);
+      setUser(null);
     }
-  }, [refreshToken]);
-
-  // Setup token refresh interval
-  useEffect(() => {
-    if (!refreshToken) return;
-
-    const interval = setInterval(() => {
-      refreshAccessToken();
-    }, 30 * 60 * 1000); // 30 minutes
-
-    return () => clearInterval(interval);
-  }, [refreshToken, refreshAccessToken]);
-
-  const login = async (username: string, password: string) => {
-    const response = await axios.post(`${backendUrl}/api/token/`, {
-      username,
-      password
-    });
-
-    localStorage.setItem("accessToken", response.data.access);
-    localStorage.setItem("refreshToken", response.data.refresh);
-    setAccessToken(response.data.access);
-    setRefreshToken(response.data.refresh);
-    await fetchUser();
   };
 
-  const logout = () => {
+  useEffect(() => {
+    fetchUser(); // Fetch user on mount if there's a valid access token
+  }, [accessToken]); // Re-run the effect when the access token changes
+
+
+  useEffect(() => {
+    const refreshAccessToken = async () => {
+      if (!refreshToken) return;
+  
+      try {
+        const res = await fetch(`${backendUrl}/api/token/refresh/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh: refreshToken }),
+        });
+  
+        if (res.ok) {
+          const data = await res.json();
+          console.log("Token refreshed successfully:", data);
+  
+          localStorage.setItem("accessToken", data.access);
+          setAccessToken(data.access); // This will re-trigger fetchUser()
+        } else {
+          console.warn("Failed to refresh token, logging out");
+          logout();
+        }
+      } catch (err) {
+        console.error("Error refreshing token:", err);
+        logout();
+      }
+    };
+  
+    const interval = setInterval(() => {
+      refreshAccessToken();
+    }, 30 * 60 * 1000); // Refresh every 30 minutes
+  
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, [refreshToken]);
+  
+
+
+  const login = async (username: string, password: string) => {
+
+    const res = await fetch(`${backendUrl}/api/token/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+
+
+    if (!res.ok) {
+      throw new Error("Login failed");
+    }
+
+    const data = await res.json();
+
+    // Store tokens in localStorage
+    localStorage.setItem("accessToken", data.access);
+    localStorage.setItem("refreshToken", data.refresh);
+
+    setAccessToken(data.access); // Store the access token in state
+    setRefreshToken(data.refresh); // Store the refresh token in state
+
+    await fetchUser(); // Make sure user state is updated
+  };
+
+  const logout = async () => {
+
+    // Remove tokens from localStorage
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
-    setAccessToken(null);
-    setRefreshToken(null);
+
+    setAccessToken(null); // Clear access token in state
+    setRefreshToken(null); // Clear refresh token in state
     setIsAuthenticated(false);
     setUser(null);
-    queryClient.removeQueries({ queryKey: ['auth-user'] });
   };
 
   const refreshUser = async () => {
-    await fetchUser();
-  };
-
-  const value = {
-    isAuthenticated,
-    user,
-    accessToken,
-    refreshToken,
-    login,
-    logout,
-    refreshUser
+    const res = await axios.get(`${backendUrl}/api/protected-endpoint/`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    setUser(res.data);
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ isAuthenticated, accessToken, refreshToken, user, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
