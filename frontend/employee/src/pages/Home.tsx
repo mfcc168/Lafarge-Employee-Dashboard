@@ -9,13 +9,21 @@ import { Loader2 } from "lucide-react";
 import { startOfISOWeek, endOfISOWeek, format } from "date-fns";
 
 const Home = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, isAuthenticated, user } = useAuth();
   const [weekEntries, setWeekEntries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    if (!accessToken) return;
+    // Only proceed if we're authenticated and have a user
+    if (isAuthenticated && user) {
+      setAuthChecked(true);
+    }
+  }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    if (!authChecked || !accessToken) return;
 
     const fetchData = async () => {
       setIsLoading(true);
@@ -44,7 +52,15 @@ const Home = () => {
     };
 
     fetchData();
-  }, [accessToken]);
+  }, [accessToken, authChecked]);
+
+  if (!authChecked) {
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
