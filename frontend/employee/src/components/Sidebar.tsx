@@ -14,7 +14,7 @@ import { useMemo } from "react";
 
 const navItems = [
   { label: "Home", icon: <Home size={20} />, path: "/" },
-  { label: "Vacation", icon: <ClipboardPaste size={16} />, path: "/vacation" },
+  { label: "Vacation", icon: <ClipboardPaste size={20} />, path: "/vacation" },
 ];
 
 
