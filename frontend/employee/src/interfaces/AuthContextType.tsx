@@ -11,6 +11,7 @@ export type AuthContextType = {
     accessToken: string | null;
     refreshToken: string | null;
     isAuthenticated: boolean;
+    initialCheckComplete: boolean;
     user: User | null;
     refreshUser:() => Promise<void>;
     login: (username: string, password: string) => void;

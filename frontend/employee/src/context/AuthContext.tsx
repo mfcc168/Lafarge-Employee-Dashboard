@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const queryClient = useQueryClient();
   const [accessToken, setAccessToken] = useState<string | null>(localStorage.getItem("accessToken"));
   const [refreshToken, setRefreshToken] = useState<string | null>(localStorage.getItem("refreshToken"));
+  const [initialCheckComplete, setInitialCheckComplete] = useState(false);
 
   // Axios interceptor setup
   useEffect(() => {
@@ -67,7 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         annual_leave_days: res.data.annual_leave_days,
       } as User;
     },
-    enabled: !!accessToken,
+    enabled: !!accessToken && initialCheckComplete,
     staleTime: 1000 * 60 * 30, // 30 minutes
     retry: (failureCount, error) => {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
@@ -76,6 +77,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return failureCount < 3;
     },
   });
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (accessToken) {
+        try {
+          await queryClient.prefetchQuery({
+            queryKey: ['user'],
+            queryFn: async () => {
+              const res = await authAxios.get('/api/protected-endpoint/');
+              return res.data;
+            },
+          });
+        } catch (error) {
+          logout();
+        }
+      }
+      setInitialCheckComplete(true);
+    };
+
+    checkAuth();
+  }, [accessToken]);
+
 
   // Login function that matches the interface
   const login = async (username: string, password: string) => {
