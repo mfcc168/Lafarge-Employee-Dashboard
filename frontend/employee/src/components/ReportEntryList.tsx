@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@context/AuthContext';
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/index';
 import { useNameAlias } from '@hooks/useNameAlias';
 import { useQuery } from '@tanstack/react-query';
