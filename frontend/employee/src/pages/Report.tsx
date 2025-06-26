@@ -6,6 +6,8 @@ const Report = () => {
   const {
     entries,
     isLoading,
+    isLoadingDates,
+    isLoadingEntries,
     submitting,
     pagedDate,
     currentPage,
@@ -30,6 +32,8 @@ const Report = () => {
         <ReportEntryForm 
           entries={entries}
           isLoading={isLoading}
+          isLoadingDates={isLoadingDates}
+          isLoadingEntries={isLoadingEntries}
           submitting={submitting}
           pagedDate={pagedDate}
           sortedDates={sortedDates}
