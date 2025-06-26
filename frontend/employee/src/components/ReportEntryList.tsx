@@ -146,7 +146,9 @@ const ReportEntryList = ({ allEntries: initialEntries, currentDate: initialDate 
           </nav>
         </div>
       )}
-
+      {filteredEntries.length === 0 && !isLoading ? (
+        <p className="text-center text-gray-500 py-10">No daily report for today.</p>
+      ) : (
       <div className="overflow-x-auto rounded-xl shadow-sm">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-700">
@@ -200,6 +202,7 @@ const ReportEntryList = ({ allEntries: initialEntries, currentDate: initialDate 
           </tbody>
         </table>
       </div>
+    )}
     </div>
   );
 };
