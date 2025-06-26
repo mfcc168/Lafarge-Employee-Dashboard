@@ -35,13 +35,6 @@ const Login = () => {
     }
   };
 
-  if (!initialCheckComplete) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-gray-500">Checking authentication...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
