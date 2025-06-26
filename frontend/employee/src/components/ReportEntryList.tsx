@@ -101,13 +101,6 @@ const ReportEntryList = ({ allEntries: initialEntries, currentDate: initialDate 
   const today = format(new Date(), 'yyyy-MM-dd');
   const hasNext = currentDate < today;
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-10">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 bg-white rounded-3xl shadow-2xl mt-12">
