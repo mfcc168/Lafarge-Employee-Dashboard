@@ -3,10 +3,10 @@ import { JSX } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
 const RequireAuth = ({ children }: { children: JSX.Element }) => {
-  const { accessToken, initialCheckComplete, isAuthenticated, user } = useAuth();
+  const { accessToken, isAuthenticated } = useAuth();
   const location = useLocation();
 
-  if (!accessToken || !initialCheckComplete || !isAuthenticated || !user ) {
+  if (!accessToken || !isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
