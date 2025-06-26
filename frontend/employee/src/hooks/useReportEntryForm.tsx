@@ -103,9 +103,6 @@ export const useReportEntryForm = () => {
     setEntries(prevEntries => [...prevEntries, newEntry]);
   }, [pagedDate, user?.username]);
 
-  const getGlobalIndex = (localIndex: number): number => {
-    return localIndex; // Since we're now showing only one day's entries, local index matches global
-  };
 
   const handleChange = useCallback(<T extends keyof ReportEntry>(
     index: number,
