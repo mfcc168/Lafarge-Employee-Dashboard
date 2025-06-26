@@ -13,7 +13,7 @@ export type AuthContextType = {
     isAuthenticated: boolean;
     user: User | null;
     refreshUser:() => Promise<void>;
-    login: (username: string, password: string) => Promise<void>;
+    login: (username: string, password: string) => void;
     logout: () => void;
   };
   

@@ -1,4 +1,6 @@
-import { createContext, useState, useEffect, useContext } from "react";
+// AuthContext.tsx
+import { createContext, useContext, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { User, AuthContextType } from "@interfaces/index";
 import { backendUrl } from "@configs/DotEnv";
@@ -9,14 +11,12 @@ const authAxios = axios.create({
   baseURL: backendUrl,
 });
 
-
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const queryClient = useQueryClient();
   const [accessToken, setAccessToken] = useState<string | null>(localStorage.getItem("accessToken"));
   const [refreshToken, setRefreshToken] = useState<string | null>(localStorage.getItem("refreshToken"));
 
-  // Axios interceptor for adding the token to requests
+  // Axios interceptor setup
   useEffect(() => {
     const requestInterceptor = authAxios.interceptors.request.use((config) => {
       if (accessToken) {
@@ -29,27 +29,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
-
-        // Token expired
         if (error.response?.status === 401 && !originalRequest._retry && refreshToken) {
           originalRequest._retry = true;
-
           try {
-            const res = await axios.post(`${backendUrl}/api/token/refresh/`, {
+            const { data } = await axios.post(`${backendUrl}/api/token/refresh/`, {
               refresh: refreshToken,
             });
-
-            const newAccess = res.data.access;
-            localStorage.setItem("accessToken", newAccess);
-            setAccessToken(newAccess);
-
-            originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+            localStorage.setItem("accessToken", data.access);
+            setAccessToken(data.access);
+            originalRequest.headers.Authorization = `Bearer ${data.access}`;
             return authAxios(originalRequest);
           } catch (err) {
-            logout(); // auto-logout on refresh failure
+            logout();
           }
         }
-
         return Promise.reject(error);
       }
     );
@@ -60,43 +53,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [accessToken, refreshToken]);
 
-  const fetchUser = async (tokenOverride?: string) => {
-    try {
-      const res = await axios.get(`${backendUrl}/api/protected-endpoint/`, {
-        headers: {
-          Authorization: `Bearer ${tokenOverride || accessToken}`,
-        },
-      });
+  // User query
+  const userQuery = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const res = await authAxios.get('/api/protected-endpoint/');
+      return {
+        username: res.data.username,
+        firstname: res.data.firstname,
+        lastname: res.data.lastname,
+        email: res.data.email,
+        role: res.data.role,
+        annual_leave_days: res.data.annual_leave_days,
+      } as User;
+    },
+    enabled: !!accessToken,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    retry: (failureCount, error) => {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+  });
 
-      const data = res.data;
-      setIsAuthenticated(true);
-      setUser({
-        username: data.username,
-        firstname: data.firstname,
-        lastname: data.lastname,
-        email: data.email,
-        role: data.role,
-        annual_leave_days: data.annual_leave_days,
-      });
-    } catch (err) {
-      console.error("Failed to fetch user:", err);
-      setIsAuthenticated(false);
-      setUser(null);
+  // Login function that matches the interface
+  const login = async (username: string, password: string) => {
+    try {
+      const res = await axios.post(`${backendUrl}/api/token/`, { username, password });
+      localStorage.setItem("accessToken", res.data.access);
+      localStorage.setItem("refreshToken", res.data.refresh);
+      setAccessToken(res.data.access);
+      setRefreshToken(res.data.refresh);
+      await queryClient.invalidateQueries({ queryKey: ['user'] });
+    } catch (error) {
+      throw error;
     }
   };
 
-  const login = async (username: string, password: string) => {
-    const res = await axios.post(`${backendUrl}/api/token/`, {
-      username,
-      password,
-    });
-
-    const data = res.data;
-    localStorage.setItem("accessToken", data.access);
-    localStorage.setItem("refreshToken", data.refresh);
-    setAccessToken(data.access);
-    setRefreshToken(data.refresh);
-    await fetchUser(data.access); // use token directly to avoid race
+  const refreshUser = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['user'] });
   };
 
   const logout = () => {
@@ -104,49 +100,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("refreshToken");
     setAccessToken(null);
     setRefreshToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
+    queryClient.removeQueries({ queryKey: ['user'] });
   };
 
-  const refreshUser = async () => {
-    try {
-      const res = await authAxios.get(`/api/protected-endpoint/`);
-      setUser(res.data);
-    } catch (err) {
-      console.error("Failed to refresh user:", err);
-    }
-  };
-
-  // Refresh token every 30 minutes
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      if (!refreshToken) return;
-
-      try {
-        const res = await axios.post(`${backendUrl}/api/token/refresh/`, {
-          refresh: refreshToken,
-        });
-        const newAccess = res.data.access;
-        localStorage.setItem("accessToken", newAccess);
-        setAccessToken(newAccess);
-      } catch (err) {
-        console.error("Failed to refresh token:", err);
-        logout();
-      }
-    }, 30 * 60 * 1000); // 30 minutes
-
-    return () => clearInterval(interval);
-  }, [refreshToken]);
-
-  useEffect(() => {
-    if (accessToken) {
-      fetchUser(accessToken);
-    }
-  }, [accessToken]);
+  const isAuthenticated = !!accessToken && !userQuery.isError;
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, accessToken, refreshToken, user, login, logout, refreshUser }}
+      value={{
+        isAuthenticated,
+        accessToken,
+        refreshToken,
+        user: userQuery.data || null,
+        refreshUser,
+        login,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>
