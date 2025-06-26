@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { format, startOfISOWeek, endOfISOWeek, subWeeks, addWeeks } from 'date-fns';
 import { useAuth } from '@context/AuthContext';
 import { useNameAlias } from '@hooks/useNameAlias';
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/ReportEntryType';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
