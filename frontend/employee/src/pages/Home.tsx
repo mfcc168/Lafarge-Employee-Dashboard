@@ -55,13 +55,6 @@ const Home = () => {
     }
   }, [isAuthenticated, user]);
 
-  if (!authChecked) {
-    return (
-      <div className="flex justify-center py-10">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen p-6">
