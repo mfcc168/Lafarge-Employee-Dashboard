@@ -4,6 +4,8 @@ export interface ReportEntryFormProps {
   entries: ReportEntry[];
   submitting: boolean;
   isLoading: boolean;
+  isLoadingDates: boolean; 
+  isLoadingEntries: boolean;
   pagedDate: string;
   currentPage: number;
   sortedDates: string[];
