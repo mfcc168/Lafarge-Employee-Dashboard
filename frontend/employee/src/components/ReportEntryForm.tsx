@@ -3,12 +3,10 @@ import { ChevronLeft, ChevronRight, Plus, SaveAll, Save, Trash2 } from "lucide-r
 import AutocompleteInput from "@components/AutoCompleteInput";
 import { useEffect, useRef } from "react";
 import { useReportEntryForm } from "@hooks/useReportEntryForm";
-import LoadingSpinner from "./LoadingSpinner";
 
 const ReportEntryForm = () => {
     const {
     entries,
-    isLoadingDates,
     isLoadingEntries,
     submitting,
     currentPage,
