@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { LogOut, Lock, LogIn, Home, BarChart3, ClipboardPaste, ChartNoAxesCombined, CircleUser } from "lucide-react"; // Added icons
 
 const Navbar = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, initialCheckComplete } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isReportRoute = location.pathname === "/report";
@@ -64,7 +64,7 @@ const Navbar = () => {
 
       {/* Right side: auth actions (unchanged) */}
       <div className="flex items-center space-x-3">
-        {isAuthenticated && user ? (
+        {isAuthenticated && initialCheckComplete ? (
           <>
             <button
               onClick={handleChangePassword}
