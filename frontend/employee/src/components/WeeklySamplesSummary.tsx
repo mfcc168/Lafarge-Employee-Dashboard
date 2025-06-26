@@ -113,7 +113,7 @@ const WeeklySamplesSummary = ({ entries: initialEntries}: WeeklyNewClientOrderPr
         </div>
       )}
 
-      {filteredEntries.length === 0 ? (
+      {filteredEntries.length === 0 && !isLoading ? (
         <p className="text-center text-gray-500 py-10">No samples for this week.</p>
       ) : (
         <div className="overflow-x-auto rounded-xl shadow-sm">
