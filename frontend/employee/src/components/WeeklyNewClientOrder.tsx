@@ -8,8 +8,11 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { backendUrl } from '@configs/DotEnv';
 
+interface WeeklyNewClientOrderProps {
+  entries: ReportEntry[];
+}
 
-const WeeklyNewClientOrder = ({ entries: initialEntries }: ReportEntry[]) => {
+const WeeklyNewClientOrder = ({ entries: initialEntries }: WeeklyNewClientOrderProps) => {
   const { user, accessToken } = useAuth();
   const userRole = user?.role;
   const isSalesman = userRole === 'SALESMAN';
@@ -64,7 +67,7 @@ const WeeklyNewClientOrder = ({ entries: initialEntries }: ReportEntry[]) => {
   const weekRange = `${format(currentWeekStart, 'yyyy-MM-dd')} → ${format(endOfISOWeek(currentWeekStart), 'yyyy-MM-dd')}`;
   const filteredEntries = newClientEntries.filter((e: ReportEntry) => e.salesman_name === selectedSalesman);
 
-  
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 bg-white rounded-3xl shadow-2xl mt-12">
       <div className="flex justify-between items-center mb-4">
