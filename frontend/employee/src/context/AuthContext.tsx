@@ -134,6 +134,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isAuthenticated,
         accessToken,
         refreshToken,
+        initialCheckComplete,
         user: userQuery.data || null,
         refreshUser,
         login,
