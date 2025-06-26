@@ -4,87 +4,67 @@ import { useAuth } from '@context/AuthContext';
 import { useNameAlias } from '@hooks/useNameAlias';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { ReportEntry } from '@interfaces/ReportEntryType';
+import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { backendUrl } from '@configs/DotEnv';
 
-interface WeeklyNewClientOrderProps {
-  entries: ReportEntry[];
-}
 
-const WeeklyNewClientOrder = ({ entries: initialEntries }: WeeklyNewClientOrderProps) => {
+const WeeklyNewClientOrder = ({ entries: initialEntries }: ReportEntry[]) => {
   const { user, accessToken } = useAuth();
   const userRole = user?.role;
   const isSalesman = userRole === 'SALESMAN';
   const userFullname = `${user?.firstname} ${user?.lastname}`;
 
-  const [entries, setEntries] = useState<ReportEntry[]>(initialEntries);
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfISOWeek(new Date()));
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedSalesman, setSelectedSalesman] = useState<string | null>(null);
 
-  // Filter for new clients only
+  const { data: entries, isLoading } = useQuery({
+    queryKey: ['weeklyNewClients', currentWeekStart],
+    queryFn: async () => {
+      const startDate = format(currentWeekStart, 'yyyy-MM-dd');
+      const endDate = format(endOfISOWeek(currentWeekStart), 'yyyy-MM-dd');
+      
+      const response = await axios.get(`${backendUrl}/api/report-entries-by-date/`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        params: { start_date: startDate, end_date: endDate }
+      });
+      return response.data;
+    },
+    initialData: currentWeekStart.getTime() === startOfISOWeek(new Date()).getTime() ? initialEntries : undefined,
+    staleTime: 1000 * 60 * 5, // 5 minutes stale time
+  });
+
   const newClientEntries = useMemo(
-    () => entries.filter((e) => e.new_client === true),
+    () => (entries || []).filter((e: ReportEntry) => e.new_client === true),
     [entries]
   );
 
-  // Fetch data for a specific week
-  const fetchWeekData = async (weekStart: Date) => {
-    setIsLoading(true);
-    try {
-      const startDate = format(weekStart, 'yyyy-MM-dd');
-      const endDate = format(endOfISOWeek(weekStart), 'yyyy-MM-dd');
-      
-      const response = await axios.get(`${backendUrl}/api/report-entries-by-date/`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        params: {
-          start_date: startDate,
-          end_date: endDate
-        }
-      });
-      
-      setEntries(response.data);
-      setCurrentWeekStart(weekStart);
-    } catch (error) {
-      console.error("Error fetching weekly data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle previous week
   const handlePreviousWeek = () => {
-    const prevWeekStart = subWeeks(currentWeekStart, 1);
-    fetchWeekData(prevWeekStart);
+    setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   };
 
-  // Handle next week
   const handleNextWeek = () => {
     const nextWeekStart = addWeeks(currentWeekStart, 1);
-    // Don't allow fetching future weeks
     if (nextWeekStart <= new Date()) {
-      fetchWeekData(nextWeekStart);
+      setCurrentWeekStart(nextWeekStart);
     }
   };
 
   const salesmen = useMemo(() => 
-    Array.from(new Set(newClientEntries.map((e) => e.salesman_name))).sort(), 
+    Array.from(new Set(newClientEntries.map((e: ReportEntry) => e.salesman_name))).sort(), 
     [newClientEntries]
   );
 
-  const [selectedSalesman, setSelectedSalesman] = useState<string | null>(
-    isSalesman ? userFullname : salesmen[0] || null
-  );
-
   useEffect(() => {
-    if (!selectedSalesman && salesmen.length) setSelectedSalesman(salesmen[0]);
-  }, [salesmen, selectedSalesman]);
+    if (!selectedSalesman && salesmen.length) {
+      setSelectedSalesman(isSalesman as boolean ? userFullname as string : salesmen[0] as string);
+    }
+  }, [salesmen, selectedSalesman, isSalesman, userFullname]);
 
   const weekRange = `${format(currentWeekStart, 'yyyy-MM-dd')} → ${format(endOfISOWeek(currentWeekStart), 'yyyy-MM-dd')}`;
-  const filteredEntries = newClientEntries.filter((e) => e.salesman_name === selectedSalesman);
+  const filteredEntries = newClientEntries.filter((e: ReportEntry) => e.salesman_name === selectedSalesman);
 
-
+  
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 bg-white rounded-3xl shadow-2xl mt-12">
       <div className="flex justify-between items-center mb-4">
@@ -111,11 +91,11 @@ const WeeklyNewClientOrder = ({ entries: initialEntries }: WeeklyNewClientOrderP
         <div className="mb-6 border-b border-gray-200">
           <nav className="-mb-px flex space-x-6" aria-label="Salesman tabs">
             {salesmen.map((salesman) => {
-              const alias = useNameAlias(salesman);
+              const alias = useNameAlias(salesman as string);
               return (
                 <button
-                  key={salesman}
-                  onClick={() => setSelectedSalesman(salesman)}
+                  key={salesman as string}
+                  onClick={() => setSelectedSalesman(salesman as string)}
                   className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
                     salesman === selectedSalesman
                       ? 'border-blue-600 text-blue-600'
@@ -144,7 +124,7 @@ const WeeklyNewClientOrder = ({ entries: initialEntries }: WeeklyNewClientOrderP
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
-              {filteredEntries.map((e) => (
+              {filteredEntries.map((e: ReportEntry) => (
                 <tr key={e.id}>
                   <td className="px-4 py-2">{e.date}</td>
                   <td className="px-4 py-2">
