@@ -65,7 +65,7 @@ const Navbar = () => {
 
       {/* Right side: auth actions (unchanged) */}
       <div className="flex items-center space-x-3">
-        {isAuthenticated && initialCheckComplete ? (
+        {isAuthenticated || initialCheckComplete ? (
           <>
             <button
               onClick={handleChangePassword}
