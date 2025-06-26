@@ -13,6 +13,9 @@ const Home = () => {
   const { accessToken, isAuthenticated, user } = useAuth();
   const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [authChecked, setAuthChecked] = useState(false);
+  const now = new Date();
+  const startDate = format(startOfISOWeek(now), 'yyyy-MM-dd');
+  const endDate = format(endOfISOWeek(now), 'yyyy-MM-dd');
 
   // Fetch today's entries
   const { data: dayEntries, isLoading: dailyLoading, isError: dailyError } = useQuery({
@@ -35,9 +38,6 @@ const Home = () => {
   const { data: weekEntries, isLoading: weeklyLoading, isError: weeklyError } = useQuery({
     queryKey: ['weekEntries'],
     queryFn: async () => {
-      const now = new Date();
-      const startDate = format(startOfISOWeek(now), 'yyyy-MM-dd');
-      const endDate = format(endOfISOWeek(now), 'yyyy-MM-dd');
       
       const response = await axios.get(`${backendUrl}/api/report-entries-by-date/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -76,8 +76,8 @@ const Home = () => {
         <div className="text-center text-red-500 py-10">Failed to load weekly report entries.</div>
       ) : (
         <>
-          <WeeklySamplesSummary entries={weekEntries || []} />
-          <WeeklyNewClientOrder entries={weekEntries || []} />
+          <WeeklySamplesSummary entries={weekEntries || []} weekStart={startDate} />
+          <WeeklyNewClientOrder entries={weekEntries || []} weekStart={startDate} />
         </>
       )}
     </div>
