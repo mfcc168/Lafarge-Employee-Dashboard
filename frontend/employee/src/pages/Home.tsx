@@ -6,34 +6,90 @@ import WeeklySamplesSummary from "@components/WeeklySamplesSummary";
 import { backendUrl } from "@configs/DotEnv";
 import { useAuth } from "@context/AuthContext";
 import { Loader2 } from "lucide-react";
-import { startOfISOWeek, endOfISOWeek, format } from "date-fns";
+import { format, startOfISOWeek, endOfISOWeek, subDays } from "date-fns";
 
 const Home = () => {
   const { accessToken, isAuthenticated, user } = useAuth();
+  const [dayEntries, setDayEntries] = useState([]);
   const [weekEntries, setWeekEntries] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
+  const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [loadingStates, setLoadingStates] = useState({
+    daily: true,
+    weekly: true,
+    auth: true
+  });
+  const [isError, setIsError] = useState({
+    daily: false,
+    weekly: false
+  });
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    // Only proceed if we're authenticated and have a user
     if (isAuthenticated && user) {
       setAuthChecked(true);
+      setLoadingStates(prev => ({ ...prev, auth: false }));
     }
   }, [isAuthenticated, user]);
 
   useEffect(() => {
     if (!authChecked || !accessToken) return;
 
-    const fetchData = async () => {
-      setIsLoading(true);
-      setIsError(false);
+    // Fetch today's entries and yesterday's entries
+    const fetchDailyData = async () => {
+      try {
+        const today = format(new Date(), 'yyyy-MM-dd');
+        const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+        
+        // Fetch both today and yesterday's data
+        const [todayResponse, yesterdayResponse] = await Promise.all([
+          axios.get(`${backendUrl}/api/all-report-entries/`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+            params: {
+              date: today
+            }
+          }),
+          axios.get(`${backendUrl}/api/all-report-entries/`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+            params: {
+              date: yesterday
+            }
+          })
+        ]);
+
+        // If today has entries, use today's data
+        if (todayResponse.data.length > 0) {
+          setDayEntries(todayResponse.data);
+          setCurrentDate(today);
+        } 
+        // Otherwise use yesterday's data if available
+        else if (yesterdayResponse.data.length > 0) {
+          setDayEntries(yesterdayResponse.data);
+          setCurrentDate(yesterday);
+        } 
+        // If neither has data, just use empty array
+        else {
+          setDayEntries([]);
+          setCurrentDate(today);
+        }
+      } catch (error) {
+        console.error("Error fetching daily report entries:", error);
+        setIsError(prev => ({ ...prev, daily: true }));
+      } finally {
+        setLoadingStates(prev => ({ ...prev, daily: false }));
+      }
+    };
+
+    // Fetch weekly entries
+    const fetchWeeklyData = async () => {
       try {
         const now = new Date();
         const startDate = format(startOfISOWeek(now), 'yyyy-MM-dd');
         const endDate = format(endOfISOWeek(now), 'yyyy-MM-dd');
-        
-        const response = await axios.get(`${backendUrl}/api/report-entries-by-date/`, {
+        const weeklyResponse = await axios.get(`${backendUrl}/api/report-entries-by-date/`, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
@@ -42,43 +98,51 @@ const Home = () => {
             end_date: endDate
           }
         });
-        setWeekEntries(response.data);
+        setWeekEntries(weeklyResponse.data);
       } catch (error) {
-        console.error("Error fetching report entries:", error);
-        setIsError(true);
+        console.error("Error fetching weekly report entries:", error);
+        setIsError(prev => ({ ...prev, weekly: true }));
       } finally {
-        setIsLoading(false);
+        setLoadingStates(prev => ({ ...prev, weekly: false }));
       }
     };
 
-    fetchData();
+    // Fetch both in parallel
+    Promise.all([fetchDailyData(), fetchWeeklyData()]);
   }, [accessToken, authChecked]);
 
-  if (!authChecked) {
+  if (loadingStates.auth) {
     return (
       <div className="flex justify-center py-10">
         <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
       </div>
     );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-10">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-      </div>
-    );
-  }
-
-  if (isError) {
-    return <div className="text-center text-red-500 py-10">Failed to load report entries.</div>;
   }
 
   return (
     <div className="min-h-screen p-6">
-      <ReportEntryList allEntries={weekEntries} />
-      <WeeklySamplesSummary entries={weekEntries} />
-      <WeeklyNewClientOrder entries={weekEntries} />
+      {loadingStates.daily ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+        </div>
+      ) : isError.daily ? (
+        <div className="text-center text-red-500 py-10">Failed to load daily report entries.</div>
+      ) : (
+        <ReportEntryList allEntries={dayEntries}/>
+      )}
+
+      {loadingStates.weekly ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+        </div>
+      ) : isError.weekly ? (
+        <div className="text-center text-red-500 py-10">Failed to load weekly report entries.</div>
+      ) : (
+        <>
+          <WeeklySamplesSummary entries={weekEntries} />
+          <WeeklyNewClientOrder entries={weekEntries} />
+        </>
+      )}
     </div>
   );
 };

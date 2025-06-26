@@ -41,7 +41,7 @@ const Report = () => {
           currentPage={currentPage}
           handleChange={handleChange}
           handleSubmitEntry={handleSubmitEntry}
-          handleSubmitAllEntries= {handleSubmitAllEntries}
+          handleSubmitAllEntries={handleSubmitAllEntries}
           handleDelete={handleDelete}
           addEmptyEntry={addEmptyEntry}
         />

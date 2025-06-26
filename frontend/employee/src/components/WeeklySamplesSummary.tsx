@@ -1,55 +1,77 @@
 import { useState, useEffect, useMemo } from 'react';
-import { parseISO, format, getISOWeek, startOfISOWeek, endOfISOWeek } from 'date-fns';
+import { format, startOfISOWeek, endOfISOWeek, subWeeks, addWeeks } from 'date-fns';
 import { useAuth } from '@context/AuthContext';
 import { useNameAlias } from '@hooks/useNameAlias';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { ReportEntry } from '@interfaces/ReportEntryType';
+import axios from 'axios';
+import { backendUrl } from '@configs/DotEnv';
 
 interface WeeklySampleSummaryProps {
   entries: ReportEntry[];
 }
 
-const WeeklySampleSummary = ({ entries }: WeeklySampleSummaryProps) => {
-  const { user } = useAuth();
+const WeeklySamplesSummary = ({ entries: initialEntries }: WeeklySampleSummaryProps) => {
+  const { user, accessToken } = useAuth();
   const userRole = user?.role;
   const isSalesman = userRole === 'SALESMAN';
   const userFullname = `${user?.firstname} ${user?.lastname}`;
 
+  const [entries, setEntries] = useState<ReportEntry[]>(initialEntries);
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfISOWeek(new Date()));
+  const [isLoading, setIsLoading] = useState(false);
 
   const sampleEntries = useMemo(
     () => entries.filter((e) => e.samples && e.samples.trim() !== ''),
     [entries]
   );
 
-
-  const groupedByWeek = useMemo(() => {
-    const map: Record<string, ReportEntry[]> = {};
-    sampleEntries.forEach((entry) => {
-      const date = parseISO(entry.date);
-      const key = `${format(date, 'yyyy')}-W${getISOWeek(date).toString().padStart(2, '0')}`;
-      (map[key] ??= []).push(entry);
-    });
-    return map;
-  }, [sampleEntries]);
-
-
-  const sortedWeeks = useMemo(() => Object.keys(groupedByWeek).sort().reverse(), [groupedByWeek]);
-  const [currentWeekKey, setCurrentWeekKey] = useState<string>(sortedWeeks[0] || '');
-
-
-  useEffect(() => {
-    if (!sortedWeeks.length) return;
-    if (!currentWeekKey || !sortedWeeks.includes(currentWeekKey)) {
-      setCurrentWeekKey(sortedWeeks[0]); // default to latest week
+  // Fetch data for a specific week
+  const fetchWeekData = async (weekStart: Date) => {
+    setIsLoading(true);
+    try {
+      const startDate = format(weekStart, 'yyyy-MM-dd');
+      const endDate = format(endOfISOWeek(weekStart), 'yyyy-MM-dd');
+      
+      const response = await axios.get(`${backendUrl}/api/report-entries-by-date/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        params: {
+          start_date: startDate,
+          end_date: endDate
+        }
+      });
+      
+      setEntries(response.data);
+      setCurrentWeekStart(weekStart);
+    } catch (error) {
+      console.error("Error fetching weekly data:", error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [sortedWeeks, currentWeekKey]);
+  };
 
-  const currentIndex = sortedWeeks.indexOf(currentWeekKey);
-  const hasPrevious = currentIndex < sortedWeeks.length - 1;
-  const hasNext = currentIndex > 0;
+  // Handle previous week
+  const handlePreviousWeek = () => {
+    const prevWeekStart = subWeeks(currentWeekStart, 1);
+    fetchWeekData(prevWeekStart);
+  };
 
+  // Handle next week
+  const handleNextWeek = () => {
+    const nextWeekStart = addWeeks(currentWeekStart, 1);
+    // Don't allow fetching future weeks
+    if (nextWeekStart <= new Date()) {
+      fetchWeekData(nextWeekStart);
+    }
+  };
 
-  const salesmen = useMemo(() => Array.from(new Set(sampleEntries.map((e) => e.salesman_name))).sort(), [sampleEntries]);
+  const salesmen = useMemo(() => 
+    Array.from(new Set(sampleEntries.map((e) => e.salesman_name))).sort(), 
+    [sampleEntries]
+  );
+
   const [selectedSalesman, setSelectedSalesman] = useState<string | null>(
     isSalesman ? userFullname : salesmen[0] || null
   );
@@ -58,32 +80,25 @@ const WeeklySampleSummary = ({ entries }: WeeklySampleSummaryProps) => {
     if (!selectedSalesman && salesmen.length) setSelectedSalesman(salesmen[0]);
   }, [salesmen, selectedSalesman]);
 
-  if (!sampleEntries.length)
-    return <p className="text-center text-gray-500 py-10">No sample entries to display.</p>;
+  const weekRange = `${format(currentWeekStart, 'yyyy-MM-dd')} → ${format(endOfISOWeek(currentWeekStart), 'yyyy-MM-dd')}`;
+  const filteredEntries = sampleEntries.filter((e) => e.salesman_name === selectedSalesman);
 
-
-  const anyDate = currentWeekKey ? parseISO(groupedByWeek[currentWeekKey][0].date) : new Date();
-  const weekRange = `${format(startOfISOWeek(anyDate), 'yyyy-MM-dd')} → ${format(endOfISOWeek(anyDate), 'yyyy-MM-dd')}`;
-
-  const weekEntries = groupedByWeek[currentWeekKey] || [];
-  const filteredEntries = weekEntries.filter((e) => e.salesman_name === selectedSalesman);
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 bg-white rounded-3xl shadow-2xl mt-12">
-      
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-semibold text-gray-800">Weekly Samples ({weekRange})</h2>
         <div className="flex items-center space-x-2">
           <button
-            onClick={() => hasPrevious && setCurrentWeekKey(sortedWeeks[currentIndex + 1])}
-            disabled={!hasPrevious}
+            onClick={handlePreviousWeek}
+            disabled={isLoading}
             className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30"
           >
             <ArrowLeft />
           </button>
           <button
-            onClick={() => hasNext && setCurrentWeekKey(sortedWeeks[currentIndex - 1])}
-            disabled={!hasNext}
+            onClick={handleNextWeek}
+            disabled={isLoading || currentWeekStart >= startOfISOWeek(new Date())}
             className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30"
           >
             <ArrowRight />
@@ -156,4 +171,4 @@ const WeeklySampleSummary = ({ entries }: WeeklySampleSummaryProps) => {
   );
 };
 
-export default WeeklySampleSummary;
+export default WeeklySamplesSummary;

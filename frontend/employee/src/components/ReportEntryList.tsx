@@ -1,23 +1,33 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@context/AuthContext';
-import {  ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/index';
 import { useNameAlias } from '@hooks/useNameAlias';
+import axios from 'axios';
+import { backendUrl } from '@configs/DotEnv';
+import { format, addDays, parseISO } from 'date-fns';
 
 interface ReportEntryListProps {
   allEntries: ReportEntry[];
 }
 
 const ReportEntryList = ({ allEntries }: ReportEntryListProps) => {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const userRole = user?.role;
   const isLimitedView = userRole === 'CLERK' || userRole === 'DELIVERYMAN';
   const isSalesman = userRole === 'SALESMAN';
   const userFullname = user?.firstname + ' ' + user?.lastname;
 
-  const [currentDate, setCurrentDate] = useState<string>('');
+  const [currentDate, setCurrentDate] = useState<string>(() => {
+    if (allEntries.length > 0) {
+      return allEntries[0].date;
+    }
+    return format(new Date(), 'yyyy-MM-dd');
+  });
+  const [entries, setEntries] = useState<ReportEntry[]>(allEntries);
   const [selectedSalesman, setSelectedSalesman] = useState<string | null>(null);
   const [crossedRows, setCrossedRows] = useState<Set<number>>(new Set());
+  const [isLoading, setIsLoading] = useState(false);
 
   const toggleRowCross = (id: number) => {
     if (!isLimitedView) return;
@@ -28,20 +38,43 @@ const ReportEntryList = ({ allEntries }: ReportEntryListProps) => {
     });
   };
 
-
-  // Extract available dates from all entries
-  const availableDates = Array.from(new Set(allEntries.map((e) => e.date))).sort().reverse();
-
-  // Set initial currentDate on data load
-  useEffect(() => {
-    if (availableDates.length === 0) return;
-    if (!currentDate || !availableDates.includes(currentDate)) {
-      setCurrentDate(availableDates[0]);
+  // Fetch entries for a specific date
+  const fetchEntriesForDate = async (date: string) => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`${backendUrl}/api/all-report-entries/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        params: {
+          date: date
+        }
+      });
+      setEntries(response.data);
+      setCurrentDate(date);
+    } catch (error) {
+      console.error("Error fetching entries for date:", error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [availableDates, currentDate]);
+  };
 
-  // Filter entries by currentDate
-  const entries = allEntries.filter((e) => e.date === currentDate);
+  // Handle previous day
+  const handlePreviousDay = () => {
+    const date = parseISO(currentDate);
+    const prevDate = addDays(date, -1);
+    fetchEntriesForDate(format(prevDate, 'yyyy-MM-dd'));
+  };
+
+  // Handle next day
+  const handleNextDay = () => {
+    const date = parseISO(currentDate);
+    const nextDate = addDays(date, 1);
+    // Don't allow fetching future dates
+    if (nextDate <= new Date()) {
+      fetchEntriesForDate(format(nextDate, 'yyyy-MM-dd'));
+    }
+  };
 
   // Filter entries by user role
   const filteredEntries = entries.filter((entry) =>
@@ -64,12 +97,11 @@ const ReportEntryList = ({ allEntries }: ReportEntryListProps) => {
 
   const startOfRangeToMinutes = (range?: string) => {
     if (!range) return 0;
-    const [start]   = range.split('-');
-    const hours     = parseInt(start.slice(0, 2), 10);
-    const minutes   = parseInt(start.slice(2), 10);
+    const [start] = range.split('-');
+    const hours = parseInt(start.slice(0, 2), 10);
+    const minutes = parseInt(start.slice(2), 10);
     return hours * 60 + minutes;
   };
-
 
   const salesmanEntries = filteredEntries.filter((entry) => entry.salesman_name === selectedSalesman);
 
@@ -83,10 +115,9 @@ const ReportEntryList = ({ allEntries }: ReportEntryListProps) => {
     [salesmanEntries]
   );
 
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const hasNext = currentDate < today; // Only allow next if not today
 
-  const currentIndex = availableDates.indexOf(currentDate);
-  const hasPrevious = currentIndex < availableDates.length - 1;
-  const hasNext = currentIndex > 0;
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 bg-white rounded-3xl shadow-2xl mt-12">
@@ -94,110 +125,110 @@ const ReportEntryList = ({ allEntries }: ReportEntryListProps) => {
         <h2 className="text-2xl font-semibold text-gray-800">Daily Reports ({currentDate})</h2>
         <div className="flex items-center space-x-2">
           <button
-            onClick={() => hasPrevious && setCurrentDate(availableDates[currentIndex + 1])}
-            disabled={!hasPrevious}
+            onClick={handlePreviousDay}
+            disabled={isLoading}
             className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30"
           >
             <ArrowLeft />
           </button>
           <button
-            onClick={() => hasNext && setCurrentDate(availableDates[currentIndex - 1])}
-            disabled={!hasNext}
+            onClick={handleNextDay}
+            disabled={!hasNext || isLoading}
             className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30"
           >
             <ArrowRight />
           </button>
         </div>
       </div>
-        <>
-          {!isSalesman && (
-            <div className="mb-6 border-b border-gray-200">
-              <nav className="-mb-px flex space-x-6" aria-label="Salesman tabs">
-                {salesmen.map((salesman) => {
-                  const alias = useNameAlias(salesman);
-                  return (
-                    <button
-                      key={salesman}
-                      onClick={() => setSelectedSalesman(salesman)}
-                      className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-                        salesman === selectedSalesman
-                          ? 'border-blue-600 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      {alias}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-          )}
+      <>
+        {!isSalesman && (
+          <div className="mb-6 border-b border-gray-200">
+            <nav className="-mb-px flex space-x-6" aria-label="Salesman tabs">
+              {salesmen.map((salesman) => {
+                const alias = useNameAlias(salesman);
+                return (
+                  <button
+                    key={salesman}
+                    onClick={() => setSelectedSalesman(salesman)}
+                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                      salesman === selectedSalesman
+                        ? 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    {alias}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        )}
 
-          <div>
-            <h3 className="text-lg font-medium text-gray-700 mb-3"></h3>
-            <div className="overflow-x-auto rounded-xl shadow-sm">
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-700">
-                  <tr>
-                    <th className="px-4 py-2">Time Range</th>
-                    <th className="px-4 py-2">Client Info</th>
-                    <th className="px-4 py-2">Order Info</th>
-                    {!isLimitedView && <th className="px-4 py-2">Product Discussion</th>}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
-                  {(isLimitedView
-                    ? sortedEntries.filter((entry) => entry.orders || entry.samples || entry.tel_orders)
-                    : sortedEntries
-                  ).map((entry, idx) => (
-                    <tr
-                      key={entry.id ?? `${entry.salesman_name}-${entry.date}-${idx}`}
-                      onClick={() => entry.id && toggleRowCross(Number(entry.id))}
-                      className={`cursor-pointer ${
-                        isLimitedView && crossedRows.has(Number(entry.id)) ? 'line-through text-gray-400' : ''
-                      }`}
-                    >
-                      <td className="px-4 py-2">
-                        <div>
-                          <strong>{entry.district}:</strong> {entry.time_range}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2">
-                        <strong>{entry.client_type.toUpperCase()}:</strong> {entry.doctor_name}{' '}
-                        {entry.new_client && (
-                          <span className="ml-2 inline-flex items-center px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full shadow-sm">
-                            <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            New
-                          </span>
+        <div>
+          <h3 className="text-lg font-medium text-gray-700 mb-3"></h3>
+          <div className="overflow-x-auto rounded-xl shadow-sm">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-700">
+                <tr>
+                  <th className="px-4 py-2">Time Range</th>
+                  <th className="px-4 py-2">Client Info</th>
+                  <th className="px-4 py-2">Order Info</th>
+                  {!isLimitedView && <th className="px-4 py-2">Product Discussion</th>}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-100">
+                {(isLimitedView
+                  ? sortedEntries.filter((entry) => entry.orders || entry.samples || entry.tel_orders)
+                  : sortedEntries
+                ).map((entry, idx) => (
+                  <tr
+                    key={entry.id ?? `${entry.salesman_name}-${entry.date}-${idx}`}
+                    onClick={() => entry.id && toggleRowCross(Number(entry.id))}
+                    className={`cursor-pointer ${
+                      isLimitedView && crossedRows.has(Number(entry.id)) ? 'line-through text-gray-400' : ''
+                    }`}
+                  >
+                    <td className="px-4 py-2">
+                      <div>
+                        <strong>{entry.district}:</strong> {entry.time_range}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2">
+                      <strong>{entry.client_type.toUpperCase()}:</strong> {entry.doctor_name}{' '}
+                      {entry.new_client && (
+                        <span className="ml-2 inline-flex items-center px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full shadow-sm">
+                          <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                          New
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-xs">
+                      {entry.orders && <div><strong>Orders:</strong> {entry.orders}</div>}
+                      {entry.tel_orders && <div><strong>Tel Orders:</strong> {entry.tel_orders}</div>}
+                      {entry.samples && <div><strong>Samples:</strong> {entry.samples}</div>}
+                    </td>
+                    {!isLimitedView && (
+                      <td className="px-4 py-2 text-xs">
+                        {entry.new_product_intro && (
+                          <div><strong>Intro:</strong> {entry.new_product_intro}</div>
+                        )}
+                        {entry.old_product_followup && (
+                          <div><strong>Follow-up:</strong> {entry.old_product_followup}</div>
+                        )}
+                        {entry.delivery_time_update && (
+                          <div><strong>Delivery:</strong> {entry.delivery_time_update}</div>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-xs">
-                        {entry.orders && <div><strong>Orders:</strong> {entry.orders}</div>}
-                        {entry.tel_orders && <div><strong>Tel Orders:</strong> {entry.tel_orders}</div>}
-                        {entry.samples && <div><strong>Samples:</strong> {entry.samples}</div>}
-                      </td>
-                      {!isLimitedView && (
-                        <td className="px-4 py-2 text-xs">
-                          {entry.new_product_intro && (
-                            <div><strong>Intro:</strong> {entry.new_product_intro}</div>
-                          )}
-                          {entry.old_product_followup && (
-                            <div><strong>Follow-up:</strong> {entry.old_product_followup}</div>
-                          )}
-                          {entry.delivery_time_update && (
-                            <div><strong>Delivery:</strong> {entry.delivery_time_update}</div>
-                          )}
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </>
+        </div>
+      </>
     </div>
   );
 };
