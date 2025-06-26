@@ -21,12 +21,13 @@ const Navbar = () => {
     navigate("/login");
   };
 
-  // Navigation items (same logic as Sidebar)
-  const navItems = [
-    { label: "Home", icon: <Home size={16} />, path: "/" },
-    { label: "Vacation", icon: <ClipboardPaste size={16} />, path: "/vacation" },
-  ];
-
+  const navItems = [];
+  if (isAuthenticated) {
+    navItems.push(
+      { label: "Home", icon: <Home size={20} />, path: "/" },
+      { label: "Vacation", icon: <ClipboardPaste size={20} />, path: "/vacation" }
+    );
+  }
   if (user?.role === "SALESMAN") {
     navItems.push({ label: "Report", icon: <BarChart3 size={16} />, path: "/report" });
     navItems.push({ label: "Client", icon: <CircleUser size={16} />, path: "/client" });

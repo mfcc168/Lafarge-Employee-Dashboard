@@ -11,19 +11,18 @@ import {
 import { useMemo } from "react";
 
 
-
-const navItems = [
-  { label: "Home", icon: <Home size={20} />, path: "/" },
-  { label: "Vacation", icon: <ClipboardPaste size={20} />, path: "/vacation" },
-];
-
-
 const Sidebar = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   
   const items = useMemo(() => {
-    const baseItems = [...navItems];
+    const baseItems = [];
+    if (isAuthenticated) {
+      baseItems.push(
+        { label: "Home", icon: <Home size={20} />, path: "/" },
+        { label: "Vacation", icon: <ClipboardPaste size={20} />, path: "/vacation" }
+      );
+    }
     if (user?.role === "SALESMAN") {
       baseItems.push({ label: "Report", icon: <BarChart3 size={20} />, path: "/report" });
     }
