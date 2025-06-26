@@ -65,11 +65,6 @@ const ReportEntryForm = () => {
     focusedEntryIndex.current = index;
   };
 
-  if (isLoadingDates) {
-    return (
-      <LoadingSpinner />
-    );
-  }
 
   return (
     <div className="space-y-6" ref={entriesRef}>
