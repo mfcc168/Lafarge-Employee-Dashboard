@@ -3,39 +3,29 @@ import { useAuth } from '@context/AuthContext';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/index';
 import { useNameAlias } from '@hooks/useNameAlias';
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import { backendUrl } from '@configs/DotEnv';
 import { format, addDays, parseISO } from 'date-fns';
 
 interface ReportEntryListProps {
   allEntries: ReportEntry[];
   currentDate: string;
+  onDateChange: (date: string) => void;
+  isLoading: boolean;
 }
 
-const ReportEntryList = ({ allEntries: initialEntries, currentDate: initialDate }: ReportEntryListProps) => {
-  const { user, accessToken } = useAuth();
+const ReportEntryList = ({ 
+  allEntries: entries, 
+  currentDate, 
+  onDateChange,
+  isLoading 
+}: ReportEntryListProps) => {
+  const { user } = useAuth();
   const userRole = user?.role;
   const isLimitedView = userRole === 'CLERK' || userRole === 'DELIVERYMAN';
   const isSalesman = userRole === 'SALESMAN';
   const userFullname = `${user?.firstname} ${user?.lastname}`;
 
-  const [currentDate, setCurrentDate] = useState(initialDate);
   const [selectedSalesman, setSelectedSalesman] = useState<string | null>(null);
   const [crossedRows, setCrossedRows] = useState<Set<number>>(new Set());
-
-  const { data: entries, isLoading } = useQuery({
-    queryKey: ['dailyEntries', currentDate],
-    queryFn: async () => {
-      const response = await axios.get(`${backendUrl}/api/all-report-entries/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        params: { date: currentDate }
-      });
-      return response.data;
-    },
-    initialData: currentDate === initialDate ? initialEntries : undefined,
-    staleTime: 1000 * 60 * 5, // 5 minutes stale time
-  });
 
   const toggleRowCross = (id: number) => {
     if (!isLimitedView) return;
@@ -49,14 +39,14 @@ const ReportEntryList = ({ allEntries: initialEntries, currentDate: initialDate 
   const handlePreviousDay = () => {
     const date = parseISO(currentDate);
     const prevDate = addDays(date, -1);
-    setCurrentDate(format(prevDate, 'yyyy-MM-dd'));
+    onDateChange(format(prevDate, 'yyyy-MM-dd'));
   };
 
   const handleNextDay = () => {
     const date = parseISO(currentDate);
     const nextDate = addDays(date, 1);
     if (nextDate <= new Date()) {
-      setCurrentDate(format(nextDate, 'yyyy-MM-dd'));
+      onDateChange(format(nextDate, 'yyyy-MM-dd'));
     }
   };
 
@@ -100,7 +90,6 @@ const ReportEntryList = ({ allEntries: initialEntries, currentDate: initialDate 
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const hasNext = currentDate < today;
-
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 bg-white rounded-3xl shadow-2xl mt-12">

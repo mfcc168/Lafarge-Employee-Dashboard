@@ -1,42 +1,24 @@
 import { useState, useEffect, useMemo } from 'react';
-import { format, startOfISOWeek, endOfISOWeek, subWeeks, addWeeks } from 'date-fns';
+import { format, startOfISOWeek, endOfISOWeek, addDays, parseISO } from 'date-fns';
 import { useAuth } from '@context/AuthContext';
 import { useNameAlias } from '@hooks/useNameAlias';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/ReportEntryType';
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import { backendUrl } from '@configs/DotEnv';
 
 interface WeeklyNewClientOrderProps {
   entries: ReportEntry[];
-  weekStart: string
+  weekStart: string;
+  onWeekChange: (newStartDate: string) => void;
+  isLoading: boolean;
 }
 
-const WeeklyNewClientOrder = ({ entries: initialEntries, weekStart }: WeeklyNewClientOrderProps) => {
-  const { user, accessToken } = useAuth();
+const WeeklyNewClientOrder = ({ entries, weekStart, onWeekChange, isLoading }: WeeklyNewClientOrderProps) => {
+  const { user } = useAuth();
   const userRole = user?.role;
   const isSalesman = userRole === 'SALESMAN';
   const userFullname = `${user?.firstname} ${user?.lastname}`;
 
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date(weekStart));
   const [selectedSalesman, setSelectedSalesman] = useState<string | null>(null);
-
-  const { data: entries, isLoading } = useQuery({
-    queryKey: ['weekEntries', currentWeekStart],
-    queryFn: async () => {
-      const startDate = format(currentWeekStart, 'yyyy-MM-dd');
-      const endDate = format(endOfISOWeek(currentWeekStart), 'yyyy-MM-dd');
-      
-      const response = await axios.get(`${backendUrl}/api/report-entries-by-date/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        params: { start_date: startDate, end_date: endDate }
-      });
-      return response.data;
-    },
-    initialData: currentWeekStart.getTime() === startOfISOWeek(new Date()).getTime() ? initialEntries : undefined,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
 
   const newClientEntries = useMemo(
     () => (entries || []).filter((e: ReportEntry) => e.new_client === true),
@@ -44,13 +26,14 @@ const WeeklyNewClientOrder = ({ entries: initialEntries, weekStart }: WeeklyNewC
   );
 
   const handlePreviousWeek = () => {
-    setCurrentWeekStart(subWeeks(currentWeekStart, 1));
+    const newStart = format(addDays(parseISO(weekStart), -7), 'yyyy-MM-dd');
+    onWeekChange(newStart);
   };
 
   const handleNextWeek = () => {
-    const nextWeekStart = addWeeks(currentWeekStart, 1);
-    if (nextWeekStart <= new Date()) {
-      setCurrentWeekStart(nextWeekStart);
+    const newStart = format(addDays(parseISO(weekStart), 7), 'yyyy-MM-dd');
+    if (parseISO(newStart) <= new Date()) {
+      onWeekChange(newStart);
     }
   };
 
@@ -65,7 +48,7 @@ const WeeklyNewClientOrder = ({ entries: initialEntries, weekStart }: WeeklyNewC
     }
   }, [salesmen, selectedSalesman, isSalesman, userFullname]);
 
-  const weekRange = `${format(currentWeekStart, 'yyyy-MM-dd')} → ${format(endOfISOWeek(currentWeekStart), 'yyyy-MM-dd')}`;
+  const weekRange = `${format(weekStart, 'yyyy-MM-dd')} → ${format(endOfISOWeek(weekStart), 'yyyy-MM-dd')}`;
   const filteredEntries = newClientEntries.filter((e: ReportEntry) => e.salesman_name === selectedSalesman);
 
 
@@ -83,7 +66,7 @@ const WeeklyNewClientOrder = ({ entries: initialEntries, weekStart }: WeeklyNewC
           </button>
           <button
             onClick={handleNextWeek}
-            disabled={isLoading || currentWeekStart >= startOfISOWeek(new Date())}
+            disabled={isLoading || parseISO(weekStart) >= startOfISOWeek(new Date())}
             className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30"
           >
             <ArrowRight />

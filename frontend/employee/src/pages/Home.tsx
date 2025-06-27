@@ -3,8 +3,7 @@ import ReportEntryList from "@components/ReportEntryList";
 import WeeklyNewClientOrder from "@components/WeeklyNewClientOrder";
 import WeeklySamplesSummary from "@components/WeeklySamplesSummary";
 import { useAuth } from "@context/AuthContext";
-import { Loader2 } from "lucide-react";
-import { format, startOfISOWeek, endOfISOWeek } from "date-fns";
+import { format, startOfISOWeek, endOfISOWeek, parseISO, addDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { backendUrl } from "@configs/DotEnv";
@@ -16,37 +15,37 @@ const Home = () => {
   const now = new Date();
   const startDate = format(startOfISOWeek(now), 'yyyy-MM-dd');
   const endDate = format(endOfISOWeek(now), 'yyyy-MM-dd');
+  const [currentWeekStart, setCurrentWeekStart] = useState<string>(startDate);
+  const [currentWeekEnd, setCurrentWeekEnd] = useState<string>(endDate);
 
-  // Fetch today's entries
-  const { data: dayEntries, isLoading: dailyLoading, isError: dailyError } = useQuery({
+  // Fetch entries for the current date
+  const { data: dayEntries, isLoading: dailyLoading, refetch: refetchDaily } = useQuery({
     queryKey: ['dailyEntries', currentDate],
     queryFn: async () => {
-      const today = format(new Date(), 'yyyy-MM-dd');
       const response = await axios.get(`${backendUrl}/api/all-report-entries/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
-        params: { date: today }
+        params: { date: currentDate }
       });
-      
-      setCurrentDate(today);
       return response.data;
     },
     enabled: authChecked && !!accessToken,
-    staleTime: 0, // Always stale to force refetch on mount
+    staleTime: 1000 * 30, // 30 seconds
+    refetchOnWindowFocus: true,
   });
 
   // Fetch current week entries
-  const { data: weekEntries, isLoading: weeklyLoading, isError: weeklyError } = useQuery({
-    queryKey: ['weekEntries'],
+  const { data: weekEntries, isLoading: weeklyLoading, refetch: refetchWeekly } = useQuery({
+    queryKey: ['weekEntries', currentWeekStart],
     queryFn: async () => {
-      
       const response = await axios.get(`${backendUrl}/api/report-entries-by-date/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
-        params: { start_date: startDate, end_date: endDate }
+        params: { start_date: currentWeekStart, end_date: currentWeekEnd }
       });
       return response.data;
     },
     enabled: authChecked && !!accessToken,
-    staleTime: 0, // Always stale to force refetch on mount
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: true,
   });
 
   useEffect(() => {
@@ -55,31 +54,30 @@ const Home = () => {
     }
   }, [isAuthenticated, user]);
 
+  const handleDateChange = (newDate: string) => {
+    setCurrentDate(newDate);
+    refetchDaily();
+  };
+
+  const handleWeekChange = (newDate: string) => {
+    setCurrentWeekStart(newDate);
+    const newEnd = format(addDays(parseISO(newDate), 6), 'yyyy-MM-dd');
+    setCurrentWeekEnd(newEnd);
+    refetchWeekly();
+  };
 
   return (
     <div className="min-h-screen p-6">
-      {dailyLoading ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-        </div>
-      ) : dailyError ? (
-        <div className="text-center text-red-500 py-10">Failed to load daily report entries.</div>
-      ) : (
-        <ReportEntryList allEntries={dayEntries || []} currentDate={currentDate} />
-      )}
 
-      {weeklyLoading ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-        </div>
-      ) : weeklyError ? (
-        <div className="text-center text-red-500 py-10">Failed to load weekly report entries.</div>
-      ) : (
-        <>
-          <WeeklySamplesSummary entries={weekEntries || []} weekStart={startDate} />
-          <WeeklyNewClientOrder entries={weekEntries || []} weekStart={startDate} />
-        </>
-      )}
+        <ReportEntryList 
+          allEntries={dayEntries || []} 
+          currentDate={currentDate}
+          onDateChange={handleDateChange}
+          isLoading={dailyLoading}
+        />
+        <WeeklySamplesSummary entries={weekEntries || []} weekStart={currentWeekStart} onWeekChange={handleWeekChange} isLoading={weeklyLoading}/>
+        <WeeklyNewClientOrder entries={weekEntries || []} weekStart={currentWeekStart} onWeekChange={handleWeekChange} isLoading={weeklyLoading}/>
+
     </div>
   );
 };
