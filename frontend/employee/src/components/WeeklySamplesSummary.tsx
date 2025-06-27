@@ -10,19 +10,20 @@ import { backendUrl } from '@configs/DotEnv';
 
 interface WeeklyNewClientOrderProps {
   entries: ReportEntry[];
+  weekStart: string
 }
 
-const WeeklySamplesSummary = ({ entries: initialEntries}: WeeklyNewClientOrderProps) => {
+const WeeklySamplesSummary = ({ entries: initialEntries, weekStart}: WeeklyNewClientOrderProps) => {
   const { user, accessToken } = useAuth();
   const userRole = user?.role;
   const isSalesman = userRole === 'SALESMAN';
   const userFullname = `${user?.firstname} ${user?.lastname}`;
 
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfISOWeek(new Date()));
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date(weekStart));
   const [selectedSalesman, setSelectedSalesman] = useState<string | null>(null);
 
   const { data: entries, isLoading } = useQuery({
-    queryKey: ['weeklySamples', currentWeekStart],
+    queryKey: ['weekEntries', currentWeekStart],
     queryFn: async () => {
       const startDate = format(currentWeekStart, 'yyyy-MM-dd');
       const endDate = format(endOfISOWeek(currentWeekStart), 'yyyy-MM-dd');
@@ -34,7 +35,7 @@ const WeeklySamplesSummary = ({ entries: initialEntries}: WeeklyNewClientOrderPr
       return response.data;
     },
     initialData: currentWeekStart.getTime() === startOfISOWeek(new Date()).getTime() ? initialEntries : undefined,
-    staleTime: 1000 * 60 * 5, // 5 minutes stale time
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   const sampleEntries = useMemo(
