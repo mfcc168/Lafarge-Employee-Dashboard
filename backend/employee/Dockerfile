@@ -6,7 +6,10 @@ WORKDIR /app
 ENV PYTHONPATH=/app \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DJANGO_SETTINGS_MODULE=core.settings
+    DJANGO_SETTINGS_MODULE=core.settings \
+    GUNICORN_WORKERS=5 \
+    GUNICORN_THREADS=2 \
+    GUNICORN_TIMEOUT=120
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -28,4 +31,10 @@ RUN mkdir -p /app/staticfiles \
 
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--pythonpath", "/app", "core.wsgi:application"]
+CMD ["sh", "-c", \
+    "gunicorn --bind 0.0.0.0:8000 \
+    --workers ${GUNICORN_WORKERS} \
+    --threads ${GUNICORN_THREADS} \
+    --timeout ${GUNICORN_TIMEOUT} \
+    --pythonpath /app \
+    core.wsgi:application"]
