@@ -4,15 +4,19 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-# Build with Vite
-RUN npm run build && ls -la /app/dist  # Debug output
+RUN npm run build
 
 # Production stage
 FROM nginx:alpine
-# Create directory first to ensure proper permissions
-RUN mkdir -p /usr/share/nginx/html
-# Copy from Vite's dist directory
+
+# Remove default Nginx content
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy built assets
 COPY --from=build /app/dist /usr/share/nginx/html
+
+# Copy Nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
