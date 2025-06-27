@@ -13,13 +13,16 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+    networks:
+          - app-network
 
   backend:
     build: ./backend/employee
-    command: bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --pythonpath /app core.wsgi:application"
-    volumes:
-      - ./backend/employee:/app
+    command: bash -c "
+      python manage.py migrate &&
+      gunicorn --bind 0.0.0.0:8000 --workers 4 core.wsgi:application
+      "
     ports:
       - "8000:8000"
     env_file:
@@ -28,16 +31,22 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - app-network
 
   frontend:
     build: ./frontend/employee
-    volumes:
-    - ./backend/employee/staticfiles:/app/staticfiles:ro
     ports:
       - "80:80"
     depends_on:
       - backend
     restart: unless-stopped
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
