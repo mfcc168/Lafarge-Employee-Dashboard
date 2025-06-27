@@ -78,22 +78,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
+
   useEffect(() => {
     const checkAuth = async () => {
-      if (accessToken) {
+      if (accessToken && initialCheckComplete === false) {
         try {
-          await queryClient.prefetchQuery({
-            queryKey: ['user'],
-            queryFn: async () => {
-              const res = await authAxios.get('/api/protected-endpoint/');
-              return res.data;
-            },
-          });
+          await userQuery.refetch();
         } catch (error) {
           logout();
+        } finally {
+          setInitialCheckComplete(true);
         }
+      } else {
+        setInitialCheckComplete(true);
       }
-      setInitialCheckComplete(true);
     };
 
     checkAuth();
