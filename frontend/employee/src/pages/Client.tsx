@@ -2,6 +2,7 @@ import { useGetAllReportEntries } from "@hooks/useGetAllReportEntries";
 import { ReportEntry } from "@interfaces/index";
 import { useAuth } from '@context/AuthContext';
 import { useMemo, useState } from "react";
+import { useNameAlias } from "@hooks/useNameAlias";
 
 const Client = () => {
   const { data: entries = [], isLoading, isError } = useGetAllReportEntries();
@@ -119,7 +120,7 @@ const Client = () => {
               <option value="all">All Salesmen</option>
               {salesmanList.map((name: string) => (
                 <option key={name} value={name}>
-                  {name}
+                  {useNameAlias(name)}
                 </option>
               ))}
             </select>
@@ -156,11 +157,6 @@ const Client = () => {
                   <div className="flex flex-wrap gap-6 text-gray-700 text-base items-center">
                     <span>District: <strong>{entries[0].district}</strong></span>
                     <span>Visits: <strong>{entries.length}</strong></span>
-                    {entries.some((e) => e.new_client) && (
-                      <span className="bg-yellow-100 text-yellow-900 px-4 py-1 rounded-full font-semibold select-none">
-                        New Client
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -192,19 +188,19 @@ const Client = () => {
                       </div>
                       <div className="text-right flex-shrink-0">
                         <span className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-4 py-1 rounded-full select-none">
-                          {entry.salesman_name}
+                          {useNameAlias(entry.salesman_name)}
                         </span>
                       </div>
 
                       <div className="flex flex-wrap gap-3 sm:justify-end max-w-xs">
                         {entry.new_product_intro && (
                           <span className="bg-green-100 text-green-800 text-xs px-4 py-1 rounded-full font-semibold select-none">
-                            New Product: {entry.new_product_intro}
+                            Product Intro: {entry.new_product_intro}
                           </span>
                         )}
                         {entry.old_product_followup && (
                           <span className="bg-purple-100 text-purple-800 text-xs px-4 py-1 rounded-full font-semibold select-none">
-                            Follow-up: {entry.old_product_followup}
+                            Follow up: {entry.old_product_followup}
                           </span>
                         )}
                         {entry.delivery_time_update && (
