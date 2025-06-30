@@ -35,7 +35,7 @@ def draw_payslip_page(pdf: Canvas, employee: dict, commission: float, year: int 
     mpf_deduction_rate = 0 if mpf_exempt else 0.05
 
     gross_payment = base_salary + bonus_payment + transportation_allowance + commission + year_end_bonus
-    mpf_deduction_amount = gross_payment * mpf_deduction_rate
+    mpf_deduction_amount = min(1500, gross_payment * mpf_deduction_rate)
     net_payment = gross_payment - mpf_deduction_amount
 
     # Section positioning

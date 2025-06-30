@@ -82,7 +82,7 @@ const AllEmployeePayroll = () => {
           (salaryData.transportationAllowance || 0) +
           (salaryData.commission || 0);
 
-        const mpfDeductionAmount = grossPayment * salaryData.mpfDeduction;
+        const mpfDeductionAmount = Math.min(1500, grossPayment * salaryData.mpfDeduction);
         const netPayment = grossPayment - mpfDeductionAmount;
 
         const isExpanded = expandedId === profile.id;
