@@ -1,24 +1,27 @@
 import { useAuth } from "@context/AuthContext";
-import { ReportEntryFormProps } from "@interfaces/index";
 import { ChevronLeft, ChevronRight, Plus, SaveAll, Save, Trash2 } from "lucide-react";
 import AutocompleteInput from "@components/AutoCompleteInput";
 import { useEffect, useRef } from "react";
+import { useReportEntryForm } from "@hooks/useReportEntryForm";
+import LoadingSpinner from "./LoadingSpinner";
 
-const ReportEntryForm = ({
-  entries,
-  submitting,
-  currentPage,
-  sortedDates,
-  doctorNameSuggestions,
-  districtSuggestions,
-  getTelOrderSuggestions,
-  setCurrentPage,
-  handleSubmitAllEntries,
-  handleChange,
-  handleSubmitEntry,
-  handleDelete,
-  addEmptyEntry
-}: ReportEntryFormProps) => {
+const ReportEntryForm = () => {
+  const {
+    entries,
+    isLoading,
+    submitting,
+    currentPage,
+    sortedDates,
+    doctorNameSuggestions,
+    districtSuggestions,
+    getTelOrderSuggestions,
+    setCurrentPage,
+    handleChange,
+    handleSubmitEntry,
+    handleSubmitAllEntries,
+    handleDelete,
+    addEmptyEntry,
+  } = useReportEntryForm();
   const { user } = useAuth();
   const entriesRef = useRef<HTMLDivElement>(null);
   const focusedEntryIndex = useRef<number | null>(null);
@@ -62,6 +65,12 @@ const ReportEntryForm = ({
     focusedEntryIndex.current = index;
   };
 
+  if (isLoading) {
+    return (
+      <LoadingSpinner />
+    )
+  }
+  
   return (
     <div className="space-y-6" ref={entriesRef}>
       {/* Pagination Controls */}

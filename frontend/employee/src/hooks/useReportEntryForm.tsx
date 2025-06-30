@@ -3,15 +3,25 @@ import { ReportEntry } from '@interfaces/index';
 import axios from 'axios';
 import { useAuth } from '@context/AuthContext';
 import { backendUrl } from '@configs/DotEnv';
+import { useQuery } from '@tanstack/react-query';
 
 export const useReportEntryForm = () => {
+  // State declarations
   const [entries, setEntries] = useState<ReportEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const { accessToken } = useAuth();
   const today = new Date().toISOString().split('T')[0];
+  const unsavedEntriesRef = useRef<ReportEntry[]>([]);
+  const accessTokenRef = useRef(accessToken);
 
+  // Update access token ref
+  useEffect(() => {
+    accessTokenRef.current = accessToken;
+  }, [accessToken]);
+
+  // Memoized calculations
   const groupedEntriesByDate = useMemo(() => {
     const groups: { [date: string]: ReportEntry[] } = {};
     for (const entry of entries) {
@@ -38,30 +48,47 @@ export const useReportEntryForm = () => {
     return Array.from(allDates).sort((a, b) => b.localeCompare(a));
   }, [groupedEntriesByDate]);
 
-
   const pagedDate = sortedDates[currentPage] || today;
-
   const entriesForCurrentPage = useMemo(() => {
     return groupedEntriesByDate[pagedDate] || [];
   }, [groupedEntriesByDate, pagedDate]);
 
-  const accessTokenRef = useRef(accessToken);
-
-  useEffect(() => {
-    accessTokenRef.current = accessToken;
-  }, [accessToken]);
   
-  const fetchEntries = useCallback(async () => {
+  const { data: allEntriesData = [], isLoading: isLoadingSuggestions } = useQuery({
+      queryKey: ['report-entries', 'all'],
+      queryFn: async () => {
+        if (!accessToken) throw new Error('No token');
+        const response = await axios.get(`${backendUrl}/api/report-entries/`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        return response.data as ReportEntry[];
+      },
+      enabled: !!accessToken, // only run when token is available
+      staleTime: 1000 * 60 * 5, // 5 minutes cache
+      gcTime: 1000 * 60 * 10, // 10 minutes total cache time
+    });
+
+
+
+
+  const fetchEntries = useCallback(async (date: string) => {
     const token = accessTokenRef.current;
     if (!token) return;
+    
     try {
       setIsLoading(true);
       const response = await axios.get(`${backendUrl}/api/report-entries/`, {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${token}`,
         },
+        params: { date }
       });
-      setEntries(response.data);
+
+      // Merge with unsaved entries for this date
+      const unsavedForDate = unsavedEntriesRef.current.filter(e => e.date === date);
+      const mergedEntries = [...response.data, ...unsavedForDate];
+      setEntries(mergedEntries);
+
     } catch (error) {
       console.error('Error fetching entries:', error);
     } finally {
@@ -69,11 +96,12 @@ export const useReportEntryForm = () => {
     }
   }, []);
 
+  // Load data when date changes
   useEffect(() => {
-    fetchEntries();
-  }, []);
+    fetchEntries(pagedDate);
+  }, [pagedDate, fetchEntries]);
 
-
+  // Entry manipulation functions
   const addEmptyEntry = useCallback(() => {
     const newEntry: ReportEntry = {
       date: pagedDate,
@@ -91,16 +119,13 @@ export const useReportEntryForm = () => {
       salesman_name: '',
     };
 
-    setEntries(prevEntries => {
-      const updated = [...prevEntries, newEntry];
-      return updated;
-    });
+    setEntries(prev => [...prev, newEntry]);
+    unsavedEntriesRef.current = [...unsavedEntriesRef.current, newEntry];
 
     if (!sortedDates.includes(pagedDate)) {
       setCurrentPage(0);
     }
   }, [pagedDate, sortedDates]);
-
 
   const getGlobalIndex = (localIndex: number): number => {
     const entry = entriesForCurrentPage[localIndex];
@@ -114,17 +139,22 @@ export const useReportEntryForm = () => {
   ) => {
     setEntries(prevEntries => {
       const updatedEntries = [...prevEntries];
-      const globalIndex = getGlobalIndex(index);
-      if (globalIndex !== -1) {
-        updatedEntries[globalIndex] = {
-          ...updatedEntries[globalIndex],
-          [field]: value,
-        };
-      }
+      const updatedEntry = {
+        ...updatedEntries[index],
+        [field]: value
+      };
+      updatedEntries[index] = updatedEntry;
+
+      // Update unsaved entries
+      unsavedEntriesRef.current = unsavedEntriesRef.current.map(entry => 
+        entry === prevEntries[index] ? updatedEntry : entry
+      );
+
       return updatedEntries;
     });
-  }, [entries, entriesForCurrentPage]);
+  }, []);
 
+  // CRUD operations
   const handleSubmitEntry = useCallback(async (index: number) => {
     const globalIndex = getGlobalIndex(index);
     const entry = entries[globalIndex];
@@ -142,27 +172,31 @@ export const useReportEntryForm = () => {
         method,
         url,
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessTokenRef.current}`,
         },
         data: entry,
       });
 
-
-    if (!entry.id && response.data?.id) {
-      const updatedEntry = { ...entry, id: response.data.id };
-      setEntries(prevEntries => {
-        const updatedEntries = [...prevEntries];
-        updatedEntries[globalIndex] = updatedEntry;
-        return updatedEntries;
-      });
-    }
+      if (!entry.id && response.data?.id) {
+        const updatedEntry = { ...entry, id: response.data.id };
+        setEntries(prev => {
+          const updated = [...prev];
+          updated[globalIndex] = updatedEntry;
+          return updated;
+        });
+        
+        // Remove from unsaved entries
+        unsavedEntriesRef.current = unsavedEntriesRef.current.filter(
+          e => e !== entry
+        );
+      }
     } catch (error) {
       console.error('Error submitting entry:', error);
       alert('Failed to submit entry. Please try again.');
     } finally {
       setSubmitting(false);
     }
-  }, [entries, entriesForCurrentPage, accessToken]);
+  }, [entries, entriesForCurrentPage]);
 
   const handleDelete = useCallback(async (index: number) => {
     const globalIndex = getGlobalIndex(index);
@@ -170,7 +204,10 @@ export const useReportEntryForm = () => {
     if (!entry) return;
 
     if (!entry.id) {
-      setEntries(prevEntries => prevEntries.filter((_, i) => i !== globalIndex));
+      setEntries(prev => prev.filter((_, i) => i !== globalIndex));
+      unsavedEntriesRef.current = unsavedEntriesRef.current.filter(
+        e => e !== entry
+      );
       return;
     }
 
@@ -178,90 +215,66 @@ export const useReportEntryForm = () => {
       setSubmitting(true);
       await axios.delete(`${backendUrl}/api/report-entries/${entry.id}/`, {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessTokenRef.current}`,
         },
       });
 
-      setEntries(prevEntries => prevEntries.filter((_, i) => i !== globalIndex));
+      setEntries(prev => prev.filter((_, i) => i !== globalIndex));
+      unsavedEntriesRef.current = unsavedEntriesRef.current.filter(
+        e => e.id !== entry.id
+      );
     } catch (error) {
       console.error('Error deleting entry:', error);
       alert('Failed to delete entry. Please try again.');
     } finally {
       setSubmitting(false);
     }
-  }, [entries, entriesForCurrentPage, accessToken]);
+  }, [entries, entriesForCurrentPage]);
 
-const handleSubmitAllEntries = useCallback(async () => {
-if (entriesForCurrentPage.length === 0) {
-alert("No entries to submit on this page.");
-return;
-}
+  const handleSubmitAllEntries = useCallback(async () => {
+    if (entriesForCurrentPage.length === 0) {
+      alert("No entries to submit on this page.");
+      return;
+    }
 
-setSubmitting(true);
+    setSubmitting(true);
+    try {
+      await Promise.all(entriesForCurrentPage.map(async (_, index) => {
+        await handleSubmitEntry(index);
+      }));
+    } catch (error) {
+      console.error("Error submitting entries:", error);
+      alert("Failed to submit some entries.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [entriesForCurrentPage, handleSubmitEntry]);
 
-try {
-const requests = entriesForCurrentPage.map(async (entry, index) => {
-  const globalIndex = getGlobalIndex(index);
-  const isUpdate = !!entry.id;
-  const url = isUpdate
-    ? `${backendUrl}/api/report-entries/${entry.id}/`
-    : `${backendUrl}/api/report-entries/`;
-  const method = isUpdate ? 'PUT' : 'POST';
+  // Suggestion functions
+  const getUniqueSuggestions = useCallback((field: keyof ReportEntry): string[] => {
+    const values = allEntriesData
+      .map(entry => entry[field])
+      .filter(v => typeof v === 'string' && v.trim() !== '') as string[];
+    return Array.from(new Set(values));
+  }, [allEntriesData]);
 
-  const response = await axios({
-    method,
-    url,
-    headers: {
-      Authorization: `Bearer ${accessTokenRef.current}`,
-    },
-    data: entry,
-  });
+  const getTelOrderSuggestions = (doctorName: string): string[] => {
+    const matches = allEntriesData.length > 0 
+      ? allEntriesData.filter(e => e.doctor_name === doctorName && e.tel_orders?.trim())
+      : entries.filter(e => e.doctor_name === doctorName && e.tel_orders?.trim());
+    
+    return [...new Set(matches.map(e => e.tel_orders.trim()))];
+  };
 
-  if (!entry.id && response.data?.id) {
-    const updatedEntry = { ...entry, id: response.data.id };
-    setEntries(prevEntries => {
-      const updatedEntries = [...prevEntries];
-      updatedEntries[globalIndex] = updatedEntry;
-      return updatedEntries;
-    });
-  }
-});
-
-await Promise.all(requests);
-} catch (error) {
-console.error("Error submitting entries:", error);
-alert("Failed to submit some entries.");
-} finally {
-setSubmitting(false);
-}
-}, [entriesForCurrentPage, getGlobalIndex]);
-
-
-const getUniqueSuggestions = useCallback((field: keyof ReportEntry): string[] => {
-const values = entries
-  .map(entry => entry[field])
-  .filter(v => typeof v === 'string' && v.trim() !== '') as string[];
-return Array.from(new Set(values));
-}, [entries]);
-
-const getTelOrderSuggestions = (doctorName: string): string[] => {
-const matchingEntries = entries.filter(entry => entry.doctor_name === doctorName && entry.doctor_name !== null);
-const telOrders = matchingEntries
-  .map(entry => entry.tel_orders.trim())
-  .filter(order => order !== '');
-
-return Array.from(new Set(telOrders)); // remove duplicates
-};
-
-
-const timeRangeSuggestions = useMemo(() => getUniqueSuggestions('time_range'), [getUniqueSuggestions]);
-const doctorNameSuggestions = useMemo(() => getUniqueSuggestions('doctor_name'), [getUniqueSuggestions]);
-const districtSuggestions = useMemo(() => getUniqueSuggestions('district'), [getUniqueSuggestions]);
-
+  // Memoized suggestions
+  const timeRangeSuggestions = useMemo(() => getUniqueSuggestions('time_range'), [getUniqueSuggestions]);
+  const doctorNameSuggestions = useMemo(() => getUniqueSuggestions('doctor_name'), [getUniqueSuggestions]);
+  const districtSuggestions = useMemo(() => getUniqueSuggestions('district'), [getUniqueSuggestions]);
 
   return {
     entries: entriesForCurrentPage,
     isLoading,
+    isLoadingSuggestions,
     submitting,
     currentPage,
     sortedDates,
@@ -278,4 +291,4 @@ const districtSuggestions = useMemo(() => getUniqueSuggestions('district'), [get
     setCurrentPage,
     totalPages: sortedDates.length,
   };
-}
+};

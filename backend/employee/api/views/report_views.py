@@ -10,13 +10,28 @@ from django.utils.dateparse import parse_date
 from rest_framework.exceptions import ValidationError
 from datetime import timedelta
 
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets
+from django.utils.dateparse import parse_date
+from report.models import ReportEntry
+from report.serializers import ReportEntrySerializer
+
 class ReportEntryViewSet(viewsets.ModelViewSet):
     queryset = ReportEntry.objects.all().order_by('-date')
     serializer_class = ReportEntrySerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return ReportEntry.objects.filter(salesman=self.request.user)
+        queryset = ReportEntry.objects.filter(salesman=self.request.user)
+        
+        # Add date filtering if date parameter is provided
+        date_param = self.request.query_params.get('date')
+        if date_param:
+            date = parse_date(date_param)
+            if date:
+                queryset = queryset.filter(date=date)
+        
+        return queryset.order_by('-date')
 
     def perform_create(self, serializer):
         serializer.save(salesman=self.request.user)
