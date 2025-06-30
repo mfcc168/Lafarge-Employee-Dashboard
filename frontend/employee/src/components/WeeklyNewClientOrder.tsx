@@ -4,6 +4,7 @@ import { useAuth } from '@context/AuthContext';
 import { useNameAlias } from '@hooks/useNameAlias';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/ReportEntryType';
+import { SkeletonRow } from './SkeletonRow';
 
 interface WeeklyNewClientOrderProps {
   entries: ReportEntry[];
@@ -111,7 +112,12 @@ const WeeklyNewClientOrder = ({ entries, weekStart, onWeekChange, isLoading }: W
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
-              {filteredEntries.map((e: ReportEntry) => (
+            {isLoading ? (
+              [...Array(5)].map((_, i) => (
+                <SkeletonRow key={i} columns={4} />
+              ))
+            ) : (
+              filteredEntries.map((e: ReportEntry) => (
                 <tr key={e.id}>
                   <td className="px-4 py-2">{e.date}</td>
                   <td className="px-4 py-2">
@@ -132,7 +138,7 @@ const WeeklyNewClientOrder = ({ entries, weekStart, onWeekChange, isLoading }: W
                     {e.samples && <div><strong>Samples:</strong> {e.samples}</div>}
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

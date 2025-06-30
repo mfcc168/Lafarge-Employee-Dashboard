@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/index';
 import { useNameAlias } from '@hooks/useNameAlias';
 import { format, addDays, parseISO } from 'date-fns';
+import { SkeletonRow } from '@components/SkeletonRow';
 
 interface ReportEntryListProps {
   allEntries: ReportEntry[];
@@ -149,17 +150,22 @@ const ReportEntryList = ({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-100">
-            {(isLimitedView
-              ? sortedEntries.filter((entry) => entry.orders || entry.samples || entry.tel_orders)
-              : sortedEntries
-            ).map((entry, idx) => (
-              <tr
-                key={entry.id ?? `${entry.salesman_name}-${entry.date}-${idx}`}
-                onClick={() => entry.id && toggleRowCross(Number(entry.id))}
-                className={`cursor-pointer ${
-                  isLimitedView && crossedRows.has(Number(entry.id)) ? 'line-through text-gray-400' : ''
-                }`}
-              >
+            {isLoading ? (
+              [...Array(5)].map((_, i) => (
+                <SkeletonRow key={i} columns={isLimitedView ? 3 : 4} />
+              ))
+            ) : (
+              (isLimitedView
+                ? sortedEntries.filter((entry) => entry.orders || entry.samples || entry.tel_orders)
+                : sortedEntries
+              ).map((entry, idx) => (
+                <tr
+                  key={entry.id ?? `${entry.salesman_name}-${entry.date}-${idx}`}
+                  onClick={() => entry.id && toggleRowCross(Number(entry.id))}
+                  className={`cursor-pointer ${
+                    isLimitedView && crossedRows.has(Number(entry.id)) ? 'line-through text-gray-400' : ''
+                  }`}
+                >
                 <td className="px-4 py-2">
                   <div><strong>{entry.district}:</strong> {entry.time_range}</div>
                 </td>
@@ -187,7 +193,8 @@ const ReportEntryList = ({
                   </td>
                 )}
               </tr>
-            ))}
+              ))
+            )}
           </tbody>
         </table>
       </div>
