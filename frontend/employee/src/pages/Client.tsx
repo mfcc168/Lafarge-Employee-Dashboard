@@ -4,7 +4,7 @@ import { useAuth } from '@context/AuthContext';
 import { useMemo, useState } from "react";
 
 const Client = () => {
-  const { entries, isLoading, isError } = useGetAllReportEntries();
+  const { data: entries = [], isLoading, isError } = useGetAllReportEntries();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSalesman, setSelectedSalesman] = useState<string>("all");

@@ -26,7 +26,7 @@ const Sidebar = () => {
     if (user?.role === "SALESMAN") {
       baseItems.push({ label: "Report", icon: <BarChart3 size={20} />, path: "/report" });
     }
-    if (user?.role === "DIRECTOR" || user?.role === "ADMIN" || user?.role === "SALESMAN") {
+    if (user?.role === "DIRECTOR" || user?.role === "ADMIN" || user?.role === "SALESMAN" || user?.role === "CEO") {
       baseItems.push({ label: "Client", icon: <CircleUser size={20} />, path: "/client" });
     }
     if (user?.role === "DIRECTOR" || user?.role === "ADMIN") {

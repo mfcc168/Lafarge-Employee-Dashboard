@@ -1,42 +1,23 @@
-import { useState, useEffect } from "react";
+import { useQuery } from '@tanstack/react-query';
 import axios from "axios";
 import { useAuth } from "@context/AuthContext";
 import { backendUrl } from "@configs/DotEnv";
+import { ReportEntry } from '@interfaces/index';
+
 
 export const useGetAllReportEntries = () => {
   const { accessToken } = useAuth();
-
-  const [entries, setEntries] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
-
-  useEffect(() => {
-    if (!accessToken) return;
-
-    const fetchData = async () => {
-      setIsLoading(true);
-      setIsError(false);
-      try {
-        const res = await axios.get(`${backendUrl}/api/all-report-entries/`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-        setEntries(res.data);
-      } catch (error) {
-        console.error("Failed to fetch report entries:", error);
-        setIsError(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [accessToken]);
-
-  return {
-    entries,
-    isLoading,
-    isError,
-  };
+  return useQuery({
+    queryKey: ['report-entries', 'all'],
+    queryFn: async () => {
+      if (!accessToken) throw new Error('No token');
+      const response = await axios.get(`${backendUrl}/api/report-entries/`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return response.data as ReportEntry[];
+    },
+    enabled: !!accessToken, // only run when token is available
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+    gcTime: 1000 * 60 * 10, // 10 minutes total cache time
+  });
 };

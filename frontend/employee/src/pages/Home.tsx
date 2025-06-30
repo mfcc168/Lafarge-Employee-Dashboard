@@ -20,7 +20,7 @@ const Home = () => {
 
   // Fetch entries for the current date
   const { data: dayEntries, isLoading: dailyLoading, refetch: refetchDaily } = useQuery({
-    queryKey: ['dailyEntries', currentDate],
+    queryKey: ['report-entries', currentDate],
     queryFn: async () => {
       const response = await axios.get(`${backendUrl}/api/all-report-entries/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -35,7 +35,7 @@ const Home = () => {
 
   // Fetch current week entries
   const { data: weekEntries, isLoading: weeklyLoading, refetch: refetchWeekly } = useQuery({
-    queryKey: ['weekEntries', currentWeekStart],
+    queryKey: ['report-entries', currentWeekStart, currentWeekEnd],
     queryFn: async () => {
       const response = await axios.get(`${backendUrl}/api/report-entries-by-date/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
