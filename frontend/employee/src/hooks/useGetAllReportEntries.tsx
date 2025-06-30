@@ -8,10 +8,10 @@ import { ReportEntry } from '@interfaces/index';
 export const useGetAllReportEntries = () => {
   const { accessToken } = useAuth();
   return useQuery({
-    queryKey: ['report-entries', 'all'],
+    queryKey: ['report-entries', 'all-entries'],
     queryFn: async () => {
       if (!accessToken) throw new Error('No token');
-      const response = await axios.get(`${backendUrl}/api/report-entries/`, {
+      const response = await axios.get(`${backendUrl}/api/all-report-entries/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       return response.data as ReportEntry[];

@@ -11,7 +11,7 @@ export const useReportEntryForm = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
-  const { accessToken } = useAuth();
+  const { user, accessToken } = useAuth();
   const today = new Date().toISOString().split('T')[0];
   const unsavedEntriesRef = useRef<ReportEntry[]>([]);
   const accessTokenRef = useRef(accessToken);
@@ -55,7 +55,7 @@ export const useReportEntryForm = () => {
 
   
   const { data: allEntriesData = [], isLoading: isLoadingSuggestions } = useQuery({
-      queryKey: ['report-entries', 'all'],
+      queryKey: ['report-entries', user?.username],
       queryFn: async () => {
         if (!accessToken) throw new Error('No token');
         const response = await axios.get(`${backendUrl}/api/report-entries/`, {
