@@ -25,7 +25,7 @@ def draw_payslip_page(pdf: Canvas, employee: dict, commission: float, year: int 
 
     info_top = margin_top - 25
     pdf.drawString(margin_left, info_top, f"{full_name}")
-
+    pdf.drawString(margin_left + 275, info_top, f"Period: {payroll_period}")
     # Financial details
     base_salary = float(employee.get("base_salary") or 0)
     bonus_payment = float(employee.get("bonus_payment") or 0)
