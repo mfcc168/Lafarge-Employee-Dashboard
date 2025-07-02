@@ -9,6 +9,7 @@ const ReportEntryForm = () => {
   const {
     entries,
     unsavedEntriesRef,
+    newestEntryIndex,
     isLoading,
     submitting,
     currentPage,
@@ -63,6 +64,10 @@ const ReportEntryForm = () => {
   }, [entries]);
 
   const handleFocus = async (index: number) => {
+    if (index === newestEntryIndex) {
+      addEmptyEntry();
+    }
+    
     const prevIndex = focusedEntryIndex.current;
 
     if (prevIndex !== null && prevIndex !== index) {

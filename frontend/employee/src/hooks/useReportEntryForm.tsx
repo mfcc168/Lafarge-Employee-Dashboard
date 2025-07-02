@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 export const useReportEntryForm = () => {
   // State declarations
   const [entries, setEntries] = useState<ReportEntry[]>([]);
+  const [newestEntryIndex, setNewestEntryIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -121,7 +122,7 @@ export const useReportEntryForm = () => {
 
     setEntries(prev => [...prev, newEntry]);
     unsavedEntriesRef.current = [...unsavedEntriesRef.current, newEntry];
-
+    setNewestEntryIndex(entries.length);
     if (!sortedDates.includes(pagedDate)) {
       setCurrentPage(0);
     }
@@ -274,6 +275,7 @@ export const useReportEntryForm = () => {
   return {
     unsavedEntriesRef,
     entries: entriesForCurrentPage,
+    newestEntryIndex,
     isLoading,
     isLoadingSuggestions,
     submitting,
