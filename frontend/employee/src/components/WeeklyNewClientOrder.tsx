@@ -4,7 +4,7 @@ import { useAuth } from '@context/AuthContext';
 import { useNameAlias } from '@hooks/useNameAlias';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/ReportEntryType';
-import { SkeletonRow } from './SkeletonRow';
+import { SkeletonRow } from '@components/SkeletonRow';
 
 interface WeeklyNewClientOrderProps {
   entries: ReportEntry[];

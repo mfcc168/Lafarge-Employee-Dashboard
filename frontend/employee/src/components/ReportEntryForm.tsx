@@ -8,6 +8,7 @@ import LoadingSpinner from "./LoadingSpinner";
 const ReportEntryForm = () => {
   const {
     entries,
+    unsavedEntriesRef,
     isLoading,
     submitting,
     currentPage,
@@ -61,9 +62,22 @@ const ReportEntryForm = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [entries]);
 
-  const handleFocus = (index: number) => {
+  const handleFocus = async (index: number) => {
+    const prevIndex = focusedEntryIndex.current;
+
+    if (prevIndex !== null && prevIndex !== index) {
+      const prevEntry = entries[prevIndex];
+
+      const isUnsaved = !prevEntry?.id && unsavedEntriesRef.current.includes(prevEntry);
+
+      if (isUnsaved) {
+        await handleSubmitEntry(prevIndex);
+      }
+    }
+
     focusedEntryIndex.current = index;
   };
+
 
   if (isLoading) {
     return (

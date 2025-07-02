@@ -272,6 +272,7 @@ export const useReportEntryForm = () => {
   const districtSuggestions = useMemo(() => getUniqueSuggestions('district'), [getUniqueSuggestions]);
 
   return {
+    unsavedEntriesRef,
     entries: entriesForCurrentPage,
     isLoading,
     isLoadingSuggestions,
