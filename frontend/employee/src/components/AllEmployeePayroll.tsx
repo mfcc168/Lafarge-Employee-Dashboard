@@ -3,6 +3,10 @@ import { useAllEmployeePayroll } from "@hooks/useAllEmployeePayroll";
 import { ChevronDown, ChevronUp, Printer } from "lucide-react";
 import LoadingSpinner from "@components/LoadingSpinner";
 
+/**
+ * Component to display and manage all employee payroll information
+ * for authorized users (MANAGER, ADMIN, CEO, DIRECTOR)
+ */
 const AllEmployeePayroll = () => {
   const {
     user,
@@ -17,7 +21,7 @@ const AllEmployeePayroll = () => {
   } = useAllEmployeePayroll();
 
 
-
+  // Check if user is unauthorized (not manager, admin, CEO, or director)
   if (!user || (user.role !== "MANAGER" && user.role !== "ADMIN" && user.role !== "CEO" && user.role !== "DIRECTOR")) {
     return (
       <div className="max-w-md mx-auto mt-6 text-red-600 font-semibold">
@@ -26,13 +30,16 @@ const AllEmployeePayroll = () => {
     );
   }
 
+  // Show loading spinner while data is being fetched
   if (isLoading) {
     return <LoadingSpinner />;
   }
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Page title */}
       <h1 className="text-2xl font-bold text-gray-800">All Employee Payrolls</h1>
+      {/* Print button (fixed position) */}
       <button
         onClick={() => handleViewPayrollPDF()}
         className="
@@ -63,18 +70,21 @@ const AllEmployeePayroll = () => {
         <Printer size={24} />
       </button>
 
+      {/* Map through each employee profile to create payroll cards */}
       {profiles.map((profile) => {
+        // Get commission for current employee or default to 0
         const commission = commissions[profile.user.username] || 0;
-
+        // Structure salary data for calculations
         const salaryData = {
           baseSalary: parseFloat(profile.base_salary),
           bonusPayment: parseFloat(profile.bonus_payment),
           yearEndBonus: parseFloat(profile.year_end_bonus),
           transportationAllowance: parseFloat(profile.transportation_allowance),
           commission,
-          mpfDeduction: profile.is_mpf_exempt ? 0 : 0.05,
+          mpfDeduction: profile.is_mpf_exempt ? 0 : 0.05,  // 5% MPF deduction if not exempt
         };
 
+        // Calculate gross payment (sum of all earnings)
         const grossPayment =
           salaryData.baseSalary +
           salaryData.bonusPayment +
@@ -82,16 +92,22 @@ const AllEmployeePayroll = () => {
           (salaryData.transportationAllowance || 0) +
           (salaryData.commission || 0);
 
+        // Calculate MPF deduction (capped at 1500)
         const mpfDeductionAmount = Math.min(1500, grossPayment * salaryData.mpfDeduction);
+
+        // Calculate net payment after deductions
         const netPayment = grossPayment - mpfDeductionAmount;
 
+        // Check if current profile is expanded
         const isExpanded = expandedId === profile.id;
 
         return (
+          // Employee payroll card container
           <div
             key={profile.id}
             className="bg-white rounded-lg shadow-md overflow-hidden"
           >
+            {/* Clickable header to expand/collapse payroll details */}
             <button
               onClick={() => toggleExpand(profile.id)}
               className="flex items-center justify-between w-full px-6 py-4 text-left bg-gray-50 hover:bg-gray-100"
@@ -106,7 +122,8 @@ const AllEmployeePayroll = () => {
                 {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
               </div>
             </button>
-
+            
+            {/* Expanded payroll details (shown when profile is expanded) */}
             {isExpanded && (
               <div className="p-6 bg-white border-t border-gray-200">
                 <PayrollInformation

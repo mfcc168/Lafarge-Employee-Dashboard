@@ -3,8 +3,24 @@ import { ChevronLeft, ChevronRight, Plus, SaveAll, Save, Trash2 } from "lucide-r
 import AutocompleteInput from "@components/AutoCompleteInput";
 import { useEffect, useRef } from "react";
 import { useReportEntryForm } from "@hooks/useReportEntryForm";
-import LoadingSpinner from "./LoadingSpinner";
+import LoadingSpinner from "@components/LoadingSpinner";
 
+/**
+ * ReportEntryForm Component
+ * 
+ * A complex form for managing daily sales report entries with:
+ * - Pagination by date
+ * - Dynamic form fields with autocomplete
+ * - Keyboard navigation
+ * - Bulk and individual save operations
+ * - Responsive table layout
+ * 
+ * Features:
+ * - Automatic saving when navigating between entries
+ * - Textarea auto-resizing
+ * - Role-based field suggestions
+ * - Visual indicators for saved/unsaved entries
+ */
 const ReportEntryForm = () => {
   const {
     entries,
@@ -24,10 +40,16 @@ const ReportEntryForm = () => {
     handleDelete,
     addEmptyEntry,
   } = useReportEntryForm();
+
   const { user } = useAuth();
+
   const entriesRef = useRef<HTMLDivElement>(null);
   const focusedEntryIndex = useRef<number | null>(null);
 
+    /**
+   * Adjusts textarea height based on content
+   * @param {React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>} e - The change event
+   */
   const adjustTextareaHeight = (
     e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
   ) => {
@@ -38,7 +60,7 @@ const ReportEntryForm = () => {
     }
   };
 
-  // Handle arrow key navigation
+  // Keyboard navigation effect
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -63,11 +85,17 @@ const ReportEntryForm = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [entries]);
 
+  /**
+   * Handles focus events on form fields
+   * @param {number} index - The index of the focused entry
+   */
   const handleFocus = async (index: number) => {
+    // Add new entry if focusing on the newest row
     if (index === newestEntryIndex) {
       addEmptyEntry();
     }
     
+    // Save previous entry if it was modified
     const prevIndex = focusedEntryIndex.current;
 
     if (prevIndex !== null && prevIndex !== index) {
@@ -83,7 +111,7 @@ const ReportEntryForm = () => {
     focusedEntryIndex.current = index;
   };
 
-
+  // Loading state
   if (isLoading) {
     return (
       <LoadingSpinner />

@@ -29,10 +29,10 @@ const Sales = () => {
             <SalesmanMonthlyReport
               salesmanName="dominic"
             />
-            <br></br>
+            {/* <br></br>
             <SalesmanMonthlyReport
               salesmanName="alex"
-            />
+            /> */}
             <br></br>
              <SalesmanMonthlyReport
               salesmanName="matthew"

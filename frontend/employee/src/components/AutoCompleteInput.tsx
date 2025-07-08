@@ -30,6 +30,10 @@ type AutocompleteInputProps =
   | AutocompleteInputPropsInput
   | AutocompleteInputPropsTextarea;
 
+/**
+ * A versatile autocomplete component that works as either an input or textarea,
+ * showing suggestions based on user input.
+ */
 const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
   const {
     value,
@@ -39,16 +43,20 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
     isTextarea = false,
     openOnFocus = false, 
   } = props;
-
+  // State for filtered suggestions and visibility
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Ref for the container to handle click-outside events
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Function to open suggestions dropdown
   const openSuggestions = () => {
     setFilteredSuggestions(suggestions);
     setShowSuggestions(suggestions.length > 0);
   };
 
+  // Effect to filter suggestions based on input value
   useEffect(() => {
     if (value.trim() === "") {
       setFilteredSuggestions(
@@ -66,6 +74,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
     setShowSuggestions(filtered.length > 0);
   }, [value, suggestions]);
 
+  // Effect to handle click-outside events
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -79,7 +88,10 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // You must cast the synthetic event to the correct type explicitly
+  /**
+   * Handles suggestion selection by creating a synthetic change event
+   * and passing it to the onChange handler
+   */
   const handleSuggestionClick = (suggestion: string) => {
     if (isTextarea) {
       const syntheticEvent = {
@@ -97,6 +109,8 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
 
   return (
     <div className="relative" ref={containerRef}>
+      
+      {/* Conditional rendering of either textarea or input */}
       {isTextarea ? (
         <textarea
           value={value}
@@ -119,6 +133,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
         />
       )}
 
+      {/* Suggestions dropdown */}
       {showSuggestions && (
         <ul className="absolute z-10 w-full max-h-40 overflow-auto rounded border border-gray-300 bg-white shadow-lg text-sm">
           {filteredSuggestions.map((suggestion, idx) => (

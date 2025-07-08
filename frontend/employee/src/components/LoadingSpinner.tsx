@@ -1,4 +1,14 @@
 
+/**
+ * LoadingSpinner Component
+ * 
+ * Displays a centered animated loading spinner with:
+ * - Gray border for the base
+ * - Blue accent for the spinning animation
+ * - Full viewport height centering
+ * 
+ * returns a spinning loader indicator
+ */
 const LoadingSpinner = () => {
   return (
     <div className="flex justify-center items-center h-screen">

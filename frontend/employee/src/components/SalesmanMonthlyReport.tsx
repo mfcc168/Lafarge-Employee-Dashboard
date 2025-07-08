@@ -2,8 +2,17 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import LoadingSpinner from "@components/LoadingSpinner";
 import ErrorMessage from "@components/ErrorMessage";
 import { useSalesmanMonthlyReport } from "@hooks/useSalesmanMonthlyReport";
-import { Invoice, SalesmanMonthlyReportProps} from "@interfaces/index";
+import { Invoice, SalesmanMonthlyReportProps } from "@interfaces/index";
 
+/**
+ * SalesmanMonthlyReport Component
+ * 
+ * Displays a comprehensive monthly sales report for a salesman with:
+ * - Month navigation controls
+ * - Summary statistics (total sales, commission, etc.)
+ * - Weekly breakdown with expandable invoice details
+ * - Pagination for invoice lists
+ */
 const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => {
   const {
     data,
@@ -26,24 +35,29 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
     handleExpandWeek
   } = useSalesmanMonthlyReport({ salesmanName });
 
+  // Date information
   const year = currentDate.year;
   const month = currentDate.month;
 
+  // Month names for display
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
   
+  // Loading state
   if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl shadow-2xl">
+      {/* Error handling */}
       {error ? (
         <ErrorMessage message={`Oops! ${error}`} type="error" />
       ) : !data ? (
         <ErrorMessage message="No data available." type="no-data" />
       ) : (
         <>
+          {/* Month navigation header */}
           <div className="flex justify-center items-center mb-6">
             <div className="flex items-center space-x-4 text-center">
               {canGoPrevious && (
@@ -78,17 +92,16 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
             </div>
           </div>
 
-
-
-
+          {/* Report header and summary stats */}
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
               Sales Performance Report
             </h1>
             <h2 className="text-xl font-semibold text-indigo-600 mb-1">
-              {data.salesman} - {new Date(year, month - 1).toLocaleString('default', { month: 'long' })} {year}
+              {data.salesman} - {monthNames[month - 1]} {year}
             </h2>
             
+            {/* Summary cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
               <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500">
                 <h3 className="text-sm font-medium text-gray-500 uppercase">Monthly Total</h3>
@@ -96,7 +109,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
               </div>
               <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500">
                 <h3 className="text-sm font-medium text-gray-500 uppercase">Incentive</h3>
-                <p className="text-2xl font-bold text-gray-800">{data.incentive_percentage*100}%</p>
+                <p className="text-2xl font-bold text-gray-800">{data.incentive_percentage * 100}%</p>
               </div>
               <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500">
                 <h3 className="text-sm font-medium text-gray-500 uppercase">Bonus</h3>
@@ -109,17 +122,22 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
             </div>
           </div>
 
+          {/* Weekly breakdown */}
           <div className="space-y-6">
             {data.weeks &&
               Object.keys(data.weeks).map((weekNum) => {
                 const weekNumber = Number(weekNum);
                 return (
-                  <div key={weekNumber} 
-                  ref={expandedWeek === weekNumber ? weekRef : null}
-                  className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300">
+                  <div 
+                    key={weekNumber} 
+                    ref={expandedWeek === weekNumber ? weekRef : null}
+                    className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300"
+                  >
+                    {/* Week summary header */}
                     <button
                       onClick={() => handleExpandWeek(weekNumber)}
                       className="w-full flex justify-between items-center px-6 py-4 hover:bg-gray-50 transition-colors duration-200"
+                      aria-expanded={expandedWeek === weekNumber}
                     >
                       <div className="flex items-center space-x-4">
                         <div className="text-left">
@@ -141,6 +159,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                       </div>
                     </button>
 
+                    {/* Expanded week details */}
                     {expandedWeek === weekNumber && (
                       <div className="border-t border-gray-200">
                         <ul className="divide-y divide-gray-200">
@@ -169,7 +188,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                                 </div>
                               </div>
                               
-                              {/* Items section */}
+                              {/* Invoice items */}
                               <div className="mt-3">
                                 <h5 className="text-sm font-medium text-gray-700 mb-1">Items:</h5>
                                 <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
@@ -178,9 +197,6 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                                       key={itemIndex}
                                       className="bg-gray-50 px-3 py-2 rounded text-sm text-gray-700 flex items-center"
                                     >
-                                      {/* <span className="w-5 h-5 bg-indigo-100 text-indigo-800 rounded-full flex items-center justify-center text-xs mr-2">
-                                        {itemIndex + 1}
-                                      </span> */}
                                       {item}
                                     </li>
                                   ))}
@@ -190,6 +206,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                           ))}
                         </ul>
 
+                        {/* Pagination controls */}
                         <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
                           <button
                             onClick={handlePrevPage}
@@ -211,12 +228,16 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                   </div>
                 );
               })}
+
+            {/* Shared sales section */}
             <div 
-            ref={sharedExpanded ? sharedRef : null}
-            className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300">
+              ref={sharedExpanded ? sharedRef : null}
+              className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300"
+            >
               <button
                 onClick={toggleSharedExpanded}
                 className="w-full flex justify-between items-center px-6 py-4 hover:bg-gray-50 transition-colors duration-200"
+                aria-expanded={sharedExpanded}
               >
                 <div className="flex items-center space-x-4">
                   <div className="text-left">
@@ -263,7 +284,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                           </div>
                         </div>
 
-                        {/* Items */}
+                        {/* Shared invoice items */}
                         <div className="mt-3">
                           <h5 className="text-sm font-medium text-gray-700 mb-1">Items:</h5>
                           <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
@@ -283,8 +304,6 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                 </div>
               )}
             </div>
-
-
           </div>
         </>
       )}

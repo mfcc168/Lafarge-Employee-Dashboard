@@ -3,13 +3,32 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { backendUrl } from '@configs/DotEnv';
 import { useAuth } from '@context/AuthContext';
-import { Loader2 } from 'lucide-react';
 import { DateItem, VacationRequest } from '@interfaces/index';
+import LoadingSpinner from '@components/LoadingSpinner';
+import ErrorMessage from '@components/ErrorMessage';
 
+/**
+ * MyVacationRequestList Component
+ * 
+ * Displays a user's vacation requests with:
+ * - Tabbed interface for pending vs approved/rejected requests
+ * - Responsive grid layout for requests
+ * - Loading and error states
+ * - Detailed date formatting
+ * 
+ * returns Vacation request management interface
+ */
 const MyVacationRequestList = () => {
+  // Authentication context
   const { accessToken } = useAuth();
+  
+  // State for active tab selection
   const [activeTab, setActiveTab] = useState<'pending' | 'approvedOrRejected'>('pending');
 
+  /**
+   * Fetches the current user's vacation requests from the API
+   * @returns {Promise<VacationRequest[]>} Array of vacation requests
+   */
   const fetchMyVacationRequests = async () => {
     const res = await axios.get<VacationRequest[]>(`${backendUrl}/api/vacations/me/`, {
       headers: {
@@ -19,6 +38,7 @@ const MyVacationRequestList = () => {
     return res.data;
   };
 
+  // React Query for data fetching
   const {
     data: requests,
     isLoading,
@@ -26,15 +46,21 @@ const MyVacationRequestList = () => {
   } = useQuery({
     queryKey: ['myVacationRequests'],
     queryFn: fetchMyVacationRequests,
-    enabled: !!accessToken,
+    enabled: !!accessToken, // Only fetch when accessToken is available
   });
 
+  /**
+   * Formats date items for display based on their type
+   * @param {DateItem} item - The date item to format
+   * returns {string} Formatted date string
+   */
   const formatDateItem = (item: DateItem) => {
     if (item.type === 'half') return `Half Day - ${item.single_date} ${item.half_day_period}`;
     if (item.type === 'full') return `Full Day - ${item.from_date} → ${item.to_date}`;
     return '';
   };
 
+  // Filter requests based on active tab
   const filteredRequests = requests?.filter((req) => {
     if (activeTab === 'pending') {
       return req.status === 'pending';
@@ -45,9 +71,7 @@ const MyVacationRequestList = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8 bg-white rounded-3xl shadow-2xl mt-12">
-    
-
-      {/* Tabs */}
+      {/* Tab Navigation */}
       <div className="flex justify-center mb-8">
         <div className="inline-flex rounded-xl bg-gray-100 p-1">
           <button
@@ -73,18 +97,27 @@ const MyVacationRequestList = () => {
         </div>
       </div>
 
+      {/* Content Area */}
       {isLoading ? (
+        // Loading state
         <div className="flex justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <LoadingSpinner />
         </div>
       ) : isError ? (
-        <p className="text-center text-red-600">Failed to fetch vacation requests.</p>
+        // Error state
+        <ErrorMessage message="Failed to fetch vacation requests." type="error"/>
       ) : filteredRequests && filteredRequests.length === 0 ? (
+        // Empty state
         <p className="text-center text-gray-500">No vacation requests found for this tab.</p>
       ) : (
+        // Success state - Request cards grid
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {filteredRequests?.map((req) => (
-            <div key={req.id} className="bg-white border border-gray-200 rounded-2xl p-6 shadow hover:shadow-md transition">
+            <div 
+              key={req.id} 
+              className="bg-white border border-gray-200 rounded-2xl p-6 shadow hover:shadow-md transition"
+            >
+              {/* Request Details */}
               <div className="mb-3">
                 <p className="text-lg font-semibold text-gray-800">Request</p>
                 <ul className="list-disc list-inside text-sm text-gray-600 mt-2 space-y-1">
@@ -94,6 +127,7 @@ const MyVacationRequestList = () => {
                 </ul>
               </div>
 
+              {/* Status Indicator */}
               <p
                 className={`text-xs font-semibold uppercase tracking-wide ${
                   req.status === 'approved'
