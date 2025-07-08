@@ -13,6 +13,7 @@ class VacationItemSerializer(serializers.ModelSerializer):
             'to_date',
             'single_date',
             'half_day_period',
+            'leave_type'
         ]
 
 

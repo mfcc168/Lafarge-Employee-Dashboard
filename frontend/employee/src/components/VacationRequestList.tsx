@@ -102,8 +102,8 @@ const VacationRequestList = () => {
    * @returns {string} Formatted date string
    */
   const formatDateItem = (item: DateItem) => {
-    if (item.type === 'half') return `Half Day - ${item.single_date} ${item.half_day_period}`;
-    if (item.type === 'full') return `Full Day - ${item.from_date} → ${item.to_date}`;
+    if (item.type === 'half') return `Half Day - ${item.single_date} ${item.half_day_period} (${item.leave_type})`;
+    if (item.type === 'full') return `Full Day - ${item.from_date} → ${item.to_date} (${item.leave_type})`;
     return '';
   };
 

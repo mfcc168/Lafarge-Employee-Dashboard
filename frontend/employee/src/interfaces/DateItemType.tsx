@@ -4,4 +4,5 @@ export type DateItem = {
   to_date?: string;
   single_date?: string;
   half_day_period?: 'AM' | 'PM';
+  leave_type?: 'Annual Leave' | 'Sick Leave';
 };

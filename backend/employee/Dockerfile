@@ -24,10 +24,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . .
 
-# Create staticfiles directory
-# Create staticfiles directory and collect static files
+# Create staticfiles directory and migrate and collect static files
 RUN mkdir -p /app/staticfiles \
-    && python manage.py collectstatic --noinput
+    && python manage.py makemigrations && python manage.py migrate && python manage.py collectstatic --noinput
 
 EXPOSE 8000
 

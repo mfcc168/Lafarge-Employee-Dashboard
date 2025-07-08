@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '@context/AuthContext';
 import { DateItem } from '@interfaces/index';
 import { backendUrl } from '@configs/DotEnv';
 
 export const useVacationRequestForm = () => {
+  const queryClient = useQueryClient();
   const [dateItems, setDateItems] = useState<DateItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const { user, accessToken, refreshUser } = useAuth();
@@ -25,6 +27,9 @@ export const useVacationRequestForm = () => {
 
   const getTotalVacationDay = useMemo(() => {
     return dateItems.reduce((total, item) => {
+      if (item.leave_type === 'Sick Leave') {
+        return total;
+      }
       if (item.type === 'half' && item.single_date && item.half_day_period) {
         return total + 0.5;
       } else if (item.type === 'full' && item.from_date && item.to_date) {
@@ -79,6 +84,9 @@ export const useVacationRequestForm = () => {
           },
         }
       );
+      await queryClient.invalidateQueries({
+        queryKey: ['vacationRequests']
+      });
       await refreshUser();
       setDateItems([]);
       return true;

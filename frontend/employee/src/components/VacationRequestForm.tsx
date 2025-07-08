@@ -61,6 +61,21 @@ const VacationRequestForm = () => {
                   <option value="full">Full Day</option>
                   <option value="half">Half Day</option>
                 </select>
+
+                <select
+                  value={item.leave_type}
+                  onChange={(e) => {
+                    updateItem(index, {
+                      ...item,
+                      leave_type: e.target.value as 'Annual Leave' | 'Sick Leave'
+                    })
+                  }}
+                  className="bg-white border border-gray-300 rounded px-3 py-1 text-sm"
+                  aria-label="Vacation type"
+                >
+                  <option value="Annual Leave">Annual Leave</option>
+                  <option value="Sick Leave">Sick Leave</option>
+                </select>
               </div>
 
               {/* Full Day Vacation Inputs */}

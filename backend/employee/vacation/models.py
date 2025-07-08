@@ -17,6 +17,8 @@ class VacationRequest(models.Model):
     def get_total_days(self):
         total = 0
         for item in self.date_items.all():
+            if item.leave_type == 'Sick Leave':
+                continue
             if item.type == 'half' and item.single_date:
                 total += 0.5
             elif item.type == 'full' and item.from_date and item.to_date:
@@ -32,6 +34,10 @@ class VacationItem(models.Model):
         ('AM', 'Morning'),
         ('PM', 'Afternoon'),
     ]
+    LEAVE_CHOICES = [
+        ('Annual Leave', 'Annual Leave'),
+        ('Sick Leave', 'Sick Leave'),
+    ]
     # For full-day vacation
     from_date = models.DateField(null=True, blank=True)
     to_date = models.DateField(null=True, blank=True)
@@ -39,3 +45,4 @@ class VacationItem(models.Model):
     # For half-day vacation
     single_date = models.DateField(null=True, blank=True)
     half_day_period = models.CharField(max_length=2, choices=HALF_DAY_PERIOD_CHOICES, null=True, blank=True)
+    leave_type = models.CharField(max_length=20, choices=LEAVE_CHOICES, null=True, blank=True, default='Annual Leave',)

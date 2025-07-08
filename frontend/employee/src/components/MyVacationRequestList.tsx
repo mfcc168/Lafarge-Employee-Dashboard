@@ -20,7 +20,7 @@ import ErrorMessage from '@components/ErrorMessage';
  */
 const MyVacationRequestList = () => {
   // Authentication context
-  const { accessToken } = useAuth();
+  const { user, accessToken } = useAuth();
   
   // State for active tab selection
   const [activeTab, setActiveTab] = useState<'pending' | 'approvedOrRejected'>('pending');
@@ -44,7 +44,7 @@ const MyVacationRequestList = () => {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['myVacationRequests'],
+    queryKey: ['vacationRequests', user?.username],
     queryFn: fetchMyVacationRequests,
     enabled: !!accessToken, // Only fetch when accessToken is available
   });
@@ -55,8 +55,8 @@ const MyVacationRequestList = () => {
    * returns {string} Formatted date string
    */
   const formatDateItem = (item: DateItem) => {
-    if (item.type === 'half') return `Half Day - ${item.single_date} ${item.half_day_period}`;
-    if (item.type === 'full') return `Full Day - ${item.from_date} → ${item.to_date}`;
+    if (item.type === 'half') return `Half Day - ${item.single_date} ${item.half_day_period}  (${item.leave_type})`;
+    if (item.type === 'full') return `Full Day - ${item.from_date} → ${item.to_date}  (${item.leave_type})`;
     return '';
   };
 
