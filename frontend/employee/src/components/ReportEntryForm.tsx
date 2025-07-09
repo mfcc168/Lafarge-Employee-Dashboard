@@ -32,7 +32,7 @@ const ReportEntryForm = () => {
     sortedDates,
     doctorNameSuggestions,
     districtSuggestions,
-    getTelOrderSuggestions,
+    // getTelOrderSuggestions,
     setCurrentPage,
     handleChange,
     handleSubmitEntry,
@@ -226,7 +226,14 @@ const ReportEntryForm = () => {
                       />
                     </td>
                     <td className="px-1 py-4">
-                      <AutocompleteInput
+                      <textarea
+                        value={entry.tel_orders}
+                        onChange={(e) => {handleChange(index, 'tel_orders', e.target.value);adjustTextareaHeight(e);}}
+                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        rows={2}
+                        onFocus={() => handleFocus(index)}
+                      />
+                      {/* <AutocompleteInput
                         value={entry.tel_orders}
                         onChange={(e) => {handleChange(index, "tel_orders", e.target.value);adjustTextareaHeight(e);}}
                         suggestions={getTelOrderSuggestions(entry.doctor_name)}
@@ -236,7 +243,7 @@ const ReportEntryForm = () => {
                         textareaProps={{
                           onFocus: () => handleFocus(index)
                         }}
-                      />
+                      /> */}
                     </td>
                     <td className="px-1 py-4">
                       <textarea
