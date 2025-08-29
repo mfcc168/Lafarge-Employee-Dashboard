@@ -27,6 +27,15 @@ class ReportEntry(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-date', '-created_at']  # Default ordering
+        indexes = [
+            models.Index(fields=['date'], name='report_date_idx'),
+            models.Index(fields=['salesman'], name='report_salesman_idx'),
+            models.Index(fields=['salesman', 'date'], name='report_salesman_date_idx'),
+            models.Index(fields=['-date', '-created_at'], name='report_date_created_idx'),
+        ]
 
     def __str__(self):
         return f"Report Entry for {self.doctor_name} on {self.date}"

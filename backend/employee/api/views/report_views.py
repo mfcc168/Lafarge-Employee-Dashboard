@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from django.utils.dateparse import parse_date
 from rest_framework.exceptions import ValidationError
 from datetime import timedelta
+from api.pagination import OptimizedPageNumberPagination, DailyReportPagination
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
@@ -17,12 +18,12 @@ from report.models import ReportEntry
 from report.serializers import ReportEntrySerializer
 
 class ReportEntryViewSet(viewsets.ModelViewSet):
-    queryset = ReportEntry.objects.all().order_by('-date')
+    queryset = ReportEntry.objects.select_related('salesman').all().order_by('-date')
     serializer_class = ReportEntrySerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        queryset = ReportEntry.objects.filter(salesman=self.request.user)
+        queryset = ReportEntry.objects.select_related('salesman').filter(salesman=self.request.user)
         
         # Add date filtering if date parameter is provided
         date_param = self.request.query_params.get('date')
@@ -41,12 +42,15 @@ class AllReportEntriesView(generics.ListAPIView):
     """
     GET /api/all-report-entries/?date=YYYY-MM-DD[&salesman=<id|full name>]
     Returns **all** entries for that calendar date (one day, midnight‑to‑midnight).
+    
+    Optional pagination: Add ?paginate=true to enable pagination
     """
     serializer_class = ReportEntrySerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None  # No pagination by default for backwards compatibility
 
     def get_queryset(self):
-        qs = ReportEntry.objects.all().order_by("-date")
+        qs = ReportEntry.objects.select_related('salesman').all().order_by("-date")
 
         # filter by single calendar date
         date_param = self.request.query_params.get("date")
@@ -58,9 +62,21 @@ class AllReportEntriesView(generics.ListAPIView):
         # optional: also allow ?salesman=<full name>
         salesman_param = self.request.query_params.get("salesman_name")
         if salesman_param:
-            qs = qs.filter(salesman_name=salesman_param)
+            # Filter by salesman's full name through the User model
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(salesman__first_name__icontains=salesman_param) |
+                Q(salesman__last_name__icontains=salesman_param) |
+                Q(salesman__username=salesman_param)
+            )
 
         return qs
+    
+    def get(self, request, *args, **kwargs):
+        """Override to conditionally apply pagination"""
+        if request.query_params.get('paginate') == 'true':
+            self.pagination_class = DailyReportPagination()
+        return super().get(request, *args, **kwargs)
 
     
 class ReportEntryDatesView(APIView):
@@ -85,7 +101,7 @@ class ReportEntriesByDateView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = ReportEntry.objects.all().order_by("-date")
+        qs = ReportEntry.objects.select_related('salesman').all().order_by("-date")
 
         # Get and validate date parameters
         start_date_param = self.request.query_params.get("start_date")

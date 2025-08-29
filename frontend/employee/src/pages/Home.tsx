@@ -18,6 +18,28 @@ const Home = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState<string>(startDate);
   const [currentWeekEnd, setCurrentWeekEnd] = useState<string>(endDate);
 
+  // Calculate if the date is recent (within last 7 days)
+  const isRecentDate = (date: string) => {
+    const dateObj = parseISO(date);
+    const daysDiff = Math.floor((new Date().getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
+    return daysDiff <= 7;
+  };
+
+  // Dynamic cache time based on date recency
+  const getDailyCacheTime = (date: string) => {
+    if (isRecentDate(date)) {
+      return 1000 * 30; // 30 seconds for recent data
+    }
+    return 1000 * 60 * 10; // 10 minutes for older data
+  };
+
+  const getWeeklyCacheTime = (weekStart: string) => {
+    if (isRecentDate(weekStart)) {
+      return 1000 * 60 * 2; // 2 minutes for recent weeks
+    }
+    return 1000 * 60 * 15; // 15 minutes for older weeks
+  };
+
   // Fetch entries for the current date
   const { data: dayEntries, isLoading: dailyLoading, refetch: refetchDaily } = useQuery({
     queryKey: ['report-entries', currentDate],
@@ -29,8 +51,9 @@ const Home = () => {
       return response.data;
     },
     enabled: authChecked && !!accessToken,
-    staleTime: 1000 * 30, // 30 seconds
-    refetchOnWindowFocus: true,
+    staleTime: getDailyCacheTime(currentDate),
+    gcTime: getDailyCacheTime(currentDate) * 10, // Keep in cache 10x longer than stale time
+    refetchOnWindowFocus: isRecentDate(currentDate), // Only refetch on focus for recent dates
   });
 
   // Fetch current week entries
@@ -44,8 +67,9 @@ const Home = () => {
       return response.data;
     },
     enabled: authChecked && !!accessToken,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: true,
+    staleTime: getWeeklyCacheTime(currentWeekStart),
+    gcTime: getWeeklyCacheTime(currentWeekStart) * 10, // Keep in cache 10x longer than stale time
+    refetchOnWindowFocus: isRecentDate(currentWeekStart), // Only refetch on focus for recent weeks
   });
 
   useEffect(() => {
