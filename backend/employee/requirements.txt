@@ -1,8 +1,36 @@
 psycopg[binary]
-djangorestframework-simplejwt
+djangorestframework-simplejwt[blacklist]
 djangorestframework
 django-cors-headers
 gunicorn
 whitenoise
 python-dotenv
 reportlab
+django-ratelimit
+django-csp
+argon2-cffi
+bleach
+django-environ
+
+# Caching
+redis
+django-redis
+
+# Background Tasks
+celery[redis]
+django-celery-beat
+django-celery-results
+
+# Email
+django-anymail
+
+# Testing
+pytest
+pytest-django
+pytest-cov
+factory-boy
+faker
+
+# Development
+django-debug-toolbar
+ipython
