@@ -27,6 +27,16 @@ const Home = () => {
 
   // Dynamic cache time based on date recency
   const getDailyCacheTime = (date: string) => {
+    const dateObj = parseISO(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dateObj.setHours(0, 0, 0, 0);
+    
+    // If it's today's date, no cache
+    if (dateObj.getTime() === today.getTime()) {
+      return 0; // No cache for today - always fetch fresh data
+    }
+    
     if (isRecentDate(date)) {
       return 1000 * 30; // 30 seconds for recent data
     }

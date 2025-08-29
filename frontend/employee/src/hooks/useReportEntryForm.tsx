@@ -3,7 +3,7 @@ import { ReportEntry } from '@interfaces/index';
 import axios from 'axios';
 import { useAuth } from '@context/AuthContext';
 import { backendUrl } from '@configs/DotEnv';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const useReportEntryForm = () => {
   // State declarations
@@ -16,6 +16,7 @@ export const useReportEntryForm = () => {
   const today = new Date().toISOString().split('T')[0];
   const unsavedEntriesRef = useRef<ReportEntry[]>([]);
   const accessTokenRef = useRef(accessToken);
+  const queryClient = useQueryClient();
 
   // Update access token ref
   useEffect(() => {
@@ -191,6 +192,12 @@ export const useReportEntryForm = () => {
           e => e !== entry
         );
       }
+      
+      // Invalidate cache for report entries to ensure fresh data
+      // This will update the home page and any other views showing report data
+      await queryClient.invalidateQueries({ 
+        queryKey: ['report-entries'] 
+      });
     } catch (error) {
       console.error('Error submitting entry:', error);
       alert('Failed to submit entry. Please try again.');
@@ -224,6 +231,11 @@ export const useReportEntryForm = () => {
       unsavedEntriesRef.current = unsavedEntriesRef.current.filter(
         e => e.id !== entry.id
       );
+      
+      // Invalidate cache after deletion
+      await queryClient.invalidateQueries({ 
+        queryKey: ['report-entries'] 
+      });
     } catch (error) {
       console.error('Error deleting entry:', error);
       alert('Failed to delete entry. Please try again.');
