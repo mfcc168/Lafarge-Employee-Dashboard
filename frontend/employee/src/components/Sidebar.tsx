@@ -8,7 +8,8 @@ import {
   ChartNoAxesCombined,
   CircleUser
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, memo, useCallback } from "react";
+import { useHoverPreload } from '@utils/preloader';
 
 /**
  * Sidebar Component
@@ -20,9 +21,14 @@ import { useMemo } from "react";
  * - Active route highlighting
  */
 const Sidebar = () => {
-
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
+  const { handleMouseEnter } = useHoverPreload();
+  
+  // Memoize the mouse enter handler to prevent re-renders
+  const handleItemHover = useCallback((path: string) => {
+    handleMouseEnter(path);
+  }, [handleMouseEnter]);
   
   /**
    * Generates navigation items based on user role and authentication
@@ -69,6 +75,7 @@ const Sidebar = () => {
             <li key={label}>
               <Link
                 to={path}
+                onMouseEnter={() => handleItemHover(path)}
                 className={`flex items-center gap-4 px-3 py-2 rounded-lg transition-colors ${
                   location.pathname === path
                     ? "bg-gray-700 text-white"  // Active route styling
@@ -93,6 +100,7 @@ const Sidebar = () => {
           <Link
             key={label}
             to={path}
+            onMouseEnter={() => handleMouseEnter(path)}
             className={`flex flex-col items-center text-xs ${
               location.pathname === path
                 ? "text-gray-300 hover:text-white"  // Active route styling
@@ -109,4 +117,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar;
+export default memo(Sidebar);

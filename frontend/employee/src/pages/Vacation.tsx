@@ -1,4 +1,4 @@
-import VacationRequestForm from '@components/VacationRequestForm';
+import { LazyVacationRequestForm as VacationRequestForm } from '@components/LazyComponents';
 import MyVacationRequestList from '@components/MyVacationRequestList';
 import { useAuth } from '@context/AuthContext';
 import VacationRequestList from '@components/VacationRequestList';

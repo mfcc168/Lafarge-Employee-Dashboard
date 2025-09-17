@@ -13,7 +13,7 @@
  * @param {number} [props.columns=3] - Number of skeleton columns to display
  * returns A table row with skeleton loading placeholders
  */
-export const SkeletonRow = ({ columns = 3 }: { columns?: number }) => {
+const SkeletonRow = ({ columns = 3 }: { columns?: number }) => {
   // Width distribution for different column configurations
   const widths = columns === 4
     ? ['30%', '40%', '50%', '45%']  // Widths for 4-column layout
@@ -44,3 +44,5 @@ export const SkeletonRow = ({ columns = 3 }: { columns?: number }) => {
     </tr>
   );
 };
+
+export default SkeletonRow;

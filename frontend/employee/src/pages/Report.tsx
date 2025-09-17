@@ -1,4 +1,4 @@
-import ReportEntryForm from '@components/ReportEntryForm';
+import { LazyReportEntryForm as ReportEntryForm } from '@components/LazyComponents';
 
 const Report = () => {
 

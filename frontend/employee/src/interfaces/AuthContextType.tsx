@@ -13,7 +13,7 @@ export type AuthContextType = {
     isAuthenticated: boolean;
     initialCheckComplete: boolean;
     user: User | null;
-    refreshUser:() => Promise<void>;
+    refreshUser: () => Promise<void>;
     login: (username: string, password: string) => void;
     logout: () => void;
   };

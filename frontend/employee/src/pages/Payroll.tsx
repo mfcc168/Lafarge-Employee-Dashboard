@@ -1,4 +1,4 @@
-import AllEmployeePayroll from '@components/AllEmployeePayroll';
+import { LazyAllEmployeePayroll as AllEmployeePayroll } from '@components/LazyComponents';
 import { useAuth } from '@context/AuthContext';
 
 const Payroll = () => {

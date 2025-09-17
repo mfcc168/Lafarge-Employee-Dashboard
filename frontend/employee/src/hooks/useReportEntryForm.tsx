@@ -129,10 +129,10 @@ export const useReportEntryForm = () => {
     }
   }, [pagedDate, sortedDates]);
 
-  const getGlobalIndex = (localIndex: number): number => {
+  const getGlobalIndex = useCallback((localIndex: number): number => {
     const entry = entriesForCurrentPage[localIndex];
     return entries.findIndex(e => e === entry);
-  };
+  }, [entriesForCurrentPage, entries]);
 
   const handleChange = useCallback(<T extends keyof ReportEntry>(
     index: number,
@@ -157,8 +157,8 @@ export const useReportEntryForm = () => {
   }, []);
 
   // CRUD operations
-  // Helper function to check if entry is blank
-  const isBlankEntry = (entry: ReportEntry) => {
+  // Memoized helper function to check if entry is blank
+  const isBlankEntry = useCallback((entry: ReportEntry) => {
     return (
       !entry.time_range?.trim() &&
       !entry.doctor_name?.trim() &&
@@ -170,7 +170,7 @@ export const useReportEntryForm = () => {
       !entry.old_product_followup?.trim() &&
       !entry.delivery_time_update?.trim()
     );
-  };
+  }, []);
 
   const handleSubmitEntry = useCallback(async (index: number, skipBlankCheck = false) => {
     const globalIndex = getGlobalIndex(index);

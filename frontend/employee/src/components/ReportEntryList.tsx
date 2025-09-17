@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/index';
 import { useNameAlias } from '@hooks/useNameAlias';
 import { format, addDays, parseISO } from 'date-fns';
-import { SkeletonRow } from '@components/SkeletonRow';
+import SkeletonRow from '@components/SkeletonRow';
 
 interface ReportEntryListProps {
   allEntries: ReportEntry[];

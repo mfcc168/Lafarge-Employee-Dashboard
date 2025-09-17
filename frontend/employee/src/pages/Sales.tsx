@@ -1,5 +1,5 @@
 import { useAuth } from "@context/AuthContext";
-import SalesmanMonthlyReport from "@components/SalesmanMonthlyReport";
+import { LazySalesmanMonthlyReport as SalesmanMonthlyReport } from "@components/LazyComponents";
 import LoadingSpinner from "@components/LoadingSpinner";
 
 const Sales = () => {

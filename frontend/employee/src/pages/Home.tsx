@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import ReportEntryList from "@components/ReportEntryList";
-import WeeklyNewClientOrder from "@components/WeeklyNewClientOrder";
-import WeeklySamplesSummary from "@components/WeeklySamplesSummary";
+import { 
+  LazyReportEntryList as ReportEntryList,
+  LazyWeeklyNewClientOrder as WeeklyNewClientOrder,
+  LazyWeeklySamplesSummary as WeeklySamplesSummary
+} from "@components/LazyComponents";
 import { useAuth } from "@context/AuthContext";
 import { format, startOfISOWeek, endOfISOWeek, parseISO, addDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";

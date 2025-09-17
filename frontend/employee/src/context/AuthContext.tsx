@@ -1,5 +1,5 @@
 // AuthContext.tsx
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { User, AuthContextType } from "@interfaces/index";
@@ -140,12 +140,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [accessToken]);
 
   /**
-   * Login function
+   * Login function - Memoized to prevent re-renders
    * @param {string} username - User's username
    * @param {string} password - User's password
    * @throws {Error} When authentication fails
    */
-  const login = async (username: string, password: string) => {
+  const login = useCallback(async (username: string, password: string) => {
     try {
       const res = await axios.post(`${backendUrl}/api/token/`, { 
         username, 
@@ -163,33 +163,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       throw error;
     }
-  };
+  }, [queryClient]);
 
   /**
-   * Refresh user data
+   * Refresh user data - Memoized to prevent re-renders
    * Forces a refetch of the current user's data
    */
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['user'] });
-  };
+  }, [queryClient]);
 
   /**
-   * Logout function
+   * Logout function - Memoized to prevent re-renders
    * Clears authentication state and storage
    */
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     setAccessToken(null);
     setRefreshToken(null);
     queryClient.removeQueries({ queryKey: ['user'] });
-  };
+  }, [queryClient]);
 
   // Determine authentication status
   const isAuthenticated = !!accessToken && !userQuery.isError;
 
-  // Context value provided to consumers
-  const contextValue = {
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
     isAuthenticated,
     accessToken,
     refreshToken,
@@ -198,7 +198,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     refreshUser,
     login,
     logout,
-  };
+  }), [
+    isAuthenticated,
+    accessToken,
+    refreshToken,
+    initialCheckComplete,
+    userQuery.data,
+    refreshUser,
+    login,
+    logout
+  ]);
 
   return (
     <AuthContext.Provider value={contextValue}>

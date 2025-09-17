@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo, useMemo, useCallback } from "react";
 
 interface AutocompleteInputPropsBase {
   value: string;
@@ -43,36 +43,40 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
     isTextarea = false,
     openOnFocus = false, 
   } = props;
-  // State for filtered suggestions and visibility
-  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  // State for suggestions visibility  
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [displayedSuggestions, setDisplayedSuggestions] = useState<string[]>([]);
 
   // Ref for the container to handle click-outside events
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Function to open suggestions dropdown
-  const openSuggestions = () => {
-    setFilteredSuggestions(suggestions);
+  // Memoized function to open suggestions dropdown
+  const openSuggestions = useCallback(() => {
+    setDisplayedSuggestions(suggestions);
     setShowSuggestions(suggestions.length > 0);
-  };
+  }, [suggestions]);
 
-  // Effect to filter suggestions based on input value
-  useEffect(() => {
+  // Memoized filtered suggestions for better performance
+  const filteredSuggestions = useMemo(() => {
     if (value.trim() === "") {
-      setFilteredSuggestions(
-        openOnFocus ? suggestions : []
-      );
-      setShowSuggestions(openOnFocus); 
-      return;
+      return openOnFocus ? suggestions : [];
     }
-    const filtered = suggestions.filter(
+    return suggestions.filter(
       (s) =>
         s.toLowerCase().includes(value.toLowerCase()) &&
         s.toLowerCase() !== value.toLowerCase()
     );
-    setFilteredSuggestions(filtered);
-    setShowSuggestions(filtered.length > 0);
-  }, [value, suggestions]);
+  }, [value, suggestions, openOnFocus]);
+
+  // Effect to update suggestions visibility
+  useEffect(() => {
+    if (value.trim() === "") {
+      setShowSuggestions(openOnFocus);
+    } else {
+      setShowSuggestions(filteredSuggestions.length > 0);
+    }
+    setDisplayedSuggestions(filteredSuggestions);
+  }, [value, filteredSuggestions, openOnFocus]);
 
   // Effect to handle click-outside events
   useEffect(() => {
@@ -90,9 +94,9 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
 
   /**
    * Handles suggestion selection by creating a synthetic change event
-   * and passing it to the onChange handler
+   * and passing it to the onChange handler - Memoized for performance
    */
-  const handleSuggestionClick = (suggestion: string) => {
+  const handleSuggestionClick = useCallback((suggestion: string) => {
     if (isTextarea) {
       const syntheticEvent = {
         target: { value: suggestion },
@@ -105,7 +109,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
       props.onChange(syntheticEvent);
     }
     setShowSuggestions(false);
-  };
+  }, [isTextarea, props]);
 
   return (
     <div className="relative" ref={containerRef}>
@@ -136,7 +140,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
       {/* Suggestions dropdown */}
       {showSuggestions && (
         <ul className="absolute z-10 w-full max-h-40 overflow-auto rounded border border-gray-300 bg-white shadow-lg text-sm">
-          {filteredSuggestions.map((suggestion, idx) => (
+          {displayedSuggestions.map((suggestion, idx) => (
             <li
               key={idx}
               onMouseDown={() => handleSuggestionClick(suggestion)}
@@ -151,4 +155,4 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
   );
 };
 
-export default AutocompleteInput;
+export default memo(AutocompleteInput);
