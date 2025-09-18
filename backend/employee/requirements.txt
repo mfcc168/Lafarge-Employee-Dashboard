@@ -16,10 +16,6 @@ django-environ
 redis
 django-redis
 
-# Background Tasks
-celery[redis]
-django-celery-beat
-django-celery-results
 
 # Email
 django-anymail

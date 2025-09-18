@@ -4,6 +4,7 @@ from .views.auth_views import TokenObtainPairViewCustom, TokenRefreshViewCustom,
 from .views.employee_views import DownloadPaySlipPDFView, GetOwnSalaryView, GetAllEmployeeSalary, GetOwnEmployeeProfile, GetEmployeeProfileAPIView, UpdateEmployeeProfileAPIView
 from .views.vacation_views import MyVacationRequestListView, VacationRequestCreateView, VacationRequestListView, VacationRequestUpdateAPIView
 from .views.report_views import ReportEntryDatesView, ReportEntryViewSet, AllReportEntriesView, ReportEntriesByDateView
+from .views.health import redis_health, app_health, redis_metrics, cache_warm, cache_stats
 
 router = DefaultRouter()
 router.register(r'report-entries', ReportEntryViewSet, basename='reportentry')
@@ -29,5 +30,15 @@ urlpatterns = [
     path('all-report-entries/', AllReportEntriesView.as_view(), name='all-report-entries'),
     path("report-entry-dates/", ReportEntryDatesView.as_view()),
     path('report-entries-by-date/', ReportEntriesByDateView.as_view(), name='report-entries-by-date'),
+    
+    # Health check endpoints
+    path('health/redis/', redis_health, name='redis-health'),
+    path('health/', app_health, name='app-health'),
+    
+    # Cache monitoring and management endpoints
+    path('health/redis/metrics/', redis_metrics, name='redis-metrics'),
+    path('health/cache/stats/', cache_stats, name='cache-stats'),
+    path('health/cache/warm/', cache_warm, name='cache-warm'),
+    
     path('', include(router.urls)),
 ]

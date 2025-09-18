@@ -5,6 +5,10 @@ from rest_framework import generics
 from vacation.models import VacationRequest
 from vacation.serializers import VacationRequestSerializer
 from rest_framework.exceptions import ValidationError
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
+from core.redis_config import safe_cache_delete
+from django.conf import settings
 
 
 
@@ -25,7 +29,12 @@ class VacationRequestCreateView(generics.CreateAPIView):
         # Deduct days
         user_profile.annual_leave_days -= total_days
         user_profile.save()
+        
+        # Invalidate vacation-related caches
+        safe_cache_delete('vacation_requests')
+        safe_cache_delete(f'vacation_requests_user_{self.request.user.id}')
 
+@method_decorator(cache_page(settings.CACHE_TIMEOUTS['vacation_requests']), name='get')
 class VacationRequestListView(generics.ListAPIView):
     queryset = VacationRequest.objects.all()
     serializer_class = VacationRequestSerializer
@@ -51,9 +60,14 @@ class VacationRequestUpdateAPIView(generics.UpdateAPIView):
 
         vacation_request.status = new_status
         vacation_request.save()
+        
+        # Invalidate vacation-related caches
+        safe_cache_delete('vacation_requests')
+        safe_cache_delete(f'vacation_requests_user_{vacation_request.employee.user.id}')
 
         return Response(self.get_serializer(vacation_request).data, status=status.HTTP_200_OK)
     
+@method_decorator(cache_page(settings.CACHE_TIMEOUTS['vacation_requests']), name='get')
 class MyVacationRequestListView(generics.ListAPIView):
     serializer_class = VacationRequestSerializer
     permission_classes = [IsAuthenticated]

@@ -4,6 +4,10 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.views import APIView
+from django.utils.decorators import method_decorator
+from django.conf import settings
+from django.views.decorators.cache import cache_page
+from core.redis_config import safe_cache_delete
 
 
 class TokenObtainPairViewCustom(TokenObtainPairView):
@@ -32,6 +36,7 @@ class TokenRefreshViewCustom(TokenRefreshView):
             return Response(data)
         return response
     
+@method_decorator(cache_page(settings.CACHE_TIMEOUTS['user_profile']), name='get')
 class ProtectedView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -62,5 +67,8 @@ class ChangePassword(APIView):
 
         user.set_password(new_password)
         user.save()
+        
+        # Invalidate user cache after password change
+        safe_cache_delete(f'user_profile_{user.id}')
 
         return Response({"detail": "Password changed successfully"})

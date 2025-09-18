@@ -9,9 +9,14 @@ from employee.models import EmployeeProfile
 from employee.serializers import EmployeeProfileSerializer
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
+from django.conf import settings
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
+from core.redis_config import safe_cache_delete
 import io
 
 
+@method_decorator(cache_page(settings.CACHE_TIMEOUTS['user_salary']), name='get')
 class GetOwnSalaryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -27,6 +32,7 @@ class GetOwnSalaryView(APIView):
             return Response({'error': 'Profile not found for this user'}, status=status.HTTP_404_NOT_FOUND)
         
 
+@method_decorator(cache_page(settings.CACHE_TIMEOUTS['employee_salaries']), name='get')
 class GetAllEmployeeSalary(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -61,6 +67,12 @@ class UpdateEmployeeProfileAPIView(generics.UpdateAPIView):
         serializer = self.get_serializer(profile, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+        
+        # Invalidate related caches after profile update
+        safe_cache_delete(f'user_profile_{profile.user.id}')
+        safe_cache_delete(f'user_salary_{profile.user.id}')
+        safe_cache_delete('employee_salaries')
+        
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 
