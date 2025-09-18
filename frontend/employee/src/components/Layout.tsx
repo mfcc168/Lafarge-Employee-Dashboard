@@ -13,22 +13,25 @@ const Layout = () => {
   
   // Check if current route is the report page
   const isReportRoute = location.pathname === "/report";
+  // Check if current route is the login page
+  const isLoginRoute = location.pathname === "/login";
 
   return (
     <>
-      {/* Conditionally render Sidebar - hidden on report route */}
-      {!isReportRoute && <Sidebar />}
+      {/* Conditionally render Sidebar - hidden on report and login routes */}
+      {!isReportRoute && !isLoginRoute && <Sidebar />}
       
-      {/* Always render Navbar */}
-      <Navbar />
+      {/* Conditionally render Navbar - hidden on login route */}
+      {!isLoginRoute && <Navbar />}
       
       {/*
         Main content area with dynamic styling:
-        - Adds left margin and background color except on report route
+        - Adds left margin and background color except on report and login routes
         - Ensures full viewport height
+        - No padding on login route to allow full-page centering
       */}
-      <div className={`flex-1 ${!isReportRoute ? "lg:ml-54 bg-gray-100" : ""} min-h-screen`}>
-        <main className="p-6 pb-16">
+      <div className={`flex-1 ${!isReportRoute && !isLoginRoute ? "lg:ml-54 bg-gray-100" : ""} min-h-screen`}>
+        <main className={isLoginRoute ? "" : "p-6 pb-16"}>
           {/* Outlet for rendering child route components */}
           <Outlet />
         </main>
