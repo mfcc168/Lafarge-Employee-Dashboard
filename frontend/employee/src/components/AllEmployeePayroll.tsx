@@ -113,9 +113,16 @@ const AllEmployeePayroll = () => {
               className="flex items-center justify-between w-full px-6 py-4 text-left bg-gray-50 hover:bg-gray-100"
             >
               <div>
-                <p className="font-semibold text-gray-800">
-                  {profile.user.first_name} {profile.user.last_name}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-gray-800">
+                    {profile.user.first_name} {profile.user.last_name}
+                  </p>
+                  {!profile.is_active && (
+                    <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                      Inactive
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-gray-600">{profile.role}</p>
               </div>
               <div className="text-gray-500">

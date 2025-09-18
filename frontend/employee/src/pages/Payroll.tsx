@@ -6,7 +6,6 @@ const Payroll = () => {
     const { user } = useAuth();
     const isManagerialRole = ["ADMIN", "DIRECTOR"].includes(user?.role || "");
 
-
     return (
         <>
             {isManagerialRole && <AllEmployeePayroll />}

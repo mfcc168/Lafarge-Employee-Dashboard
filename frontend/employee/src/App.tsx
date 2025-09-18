@@ -17,6 +17,8 @@ const Payroll = lazy(() => import("@pages/Payroll"));
 const Vacation = lazy(() => import("@pages/Vacation"));
 const Sales = lazy(() => import("@pages/Sales"));
 const Client = lazy(() => import("@pages/Client"));
+const Employees = lazy(() => import("@pages/Employees"));
+const EmployeeDetail = lazy(() => import("@pages/EmployeeDetail"));
 
 
 function App() {
@@ -84,6 +86,26 @@ function App() {
             <RequireAuth>
               <Suspense fallback={<LoadingSpinner />}>
                 <Sales />
+              </Suspense>
+            </RequireAuth>
+          }
+        />
+        <Route 
+          path="/employees" 
+          element={
+            <RequireAuth>
+              <Suspense fallback={<LoadingSpinner />}>
+                <Employees />
+              </Suspense>
+            </RequireAuth>
+          }
+        />
+        <Route 
+          path="/employees/:id" 
+          element={
+            <RequireAuth>
+              <Suspense fallback={<LoadingSpinner />}>
+                <EmployeeDetail />
               </Suspense>
             </RequireAuth>
           }

@@ -6,7 +6,8 @@ import {
   BarChart3,
   ClipboardPaste,
   ChartNoAxesCombined,
-  CircleUser
+  CircleUser,
+  Users
 } from "lucide-react";
 import { useMemo, memo, useCallback } from "react";
 import { useHoverPreload } from '@utils/preloader';
@@ -22,7 +23,7 @@ import { useHoverPreload } from '@utils/preloader';
  */
 const Sidebar = () => {
   const location = useLocation();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, initialCheckComplete } = useAuth();
   const { handleMouseEnter } = useHoverPreload();
   
   // Memoize the mouse enter handler to prevent re-renders
@@ -38,29 +39,33 @@ const Sidebar = () => {
     const baseItems = [];
     
     // Common items for all authenticated users
-    if (isAuthenticated) {
+    // Wait for initial check to complete to ensure user data is loaded
+    if (isAuthenticated && user && initialCheckComplete) {
       baseItems.push(
         { label: "Home", icon: <Home size={20} />, path: "/" },
         { label: "Vacation", icon: <ClipboardPaste size={20} />, path: "/vacation" }
       );
-    }
-    
-    // Role-specific items
-    if (user?.role === "SALESMAN") {
-      baseItems.push({ label: "Report", icon: <BarChart3 size={20} />, path: "/report" });
-    }
-    if (["DIRECTOR", "ADMIN", "SALESMAN", "CEO"].includes(user?.role || "")) {
-      baseItems.push({ label: "Client", icon: <CircleUser size={20} />, path: "/client" });
-    }
-    if (["DIRECTOR", "ADMIN"].includes(user?.role || "")) {
-      baseItems.push({ label: "Payroll", icon: <Wallet size={20} />, path: "/payroll" });
-    }
-    if (["DIRECTOR", "ADMIN", "SALESMAN"].includes(user?.role || "")) {
-      baseItems.push({ label: "Sales", icon: <ChartNoAxesCombined size={20} />, path: "/sales" });
+      
+      // Role-specific items - only add when user role is available
+      if (user.role) {
+        if (user.role === "SALESMAN") {
+          baseItems.push({ label: "Report", icon: <BarChart3 size={20} />, path: "/report" });
+        }
+        if (["DIRECTOR", "ADMIN", "SALESMAN", "CEO"].includes(user.role)) {
+          baseItems.push({ label: "Client", icon: <CircleUser size={20} />, path: "/client" });
+        }
+        if (["DIRECTOR", "ADMIN"].includes(user.role)) {
+          baseItems.push({ label: "Payroll", icon: <Wallet size={20} />, path: "/payroll" });
+          baseItems.push({ label: "Employees", icon: <Users size={20} />, path: "/employees" });
+        }
+        if (["DIRECTOR", "ADMIN", "SALESMAN"].includes(user.role)) {
+          baseItems.push({ label: "Sales", icon: <ChartNoAxesCombined size={20} />, path: "/sales" });
+        }
+      }
     }
     
     return baseItems;
-  }, [user?.role, isAuthenticated]);
+  }, [user, user?.role, isAuthenticated, initialCheckComplete]);
   
   return (
     <div className="flex">

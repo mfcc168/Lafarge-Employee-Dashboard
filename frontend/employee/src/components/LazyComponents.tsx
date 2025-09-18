@@ -83,3 +83,8 @@ export const LazyWeeklyNewClientOrder = withLazyLoading(
   () => import('./WeeklyNewClientOrder'),
   <CardSkeleton />
 );
+
+export const LazyEmployeeManagement = withLazyLoading(
+  () => import('./EmployeeManagement'),
+  <TableSkeleton />
+);

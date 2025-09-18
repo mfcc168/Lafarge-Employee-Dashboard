@@ -15,5 +15,7 @@ export type EmployeeProfile = {
     bonus_payment: string;
     transportation_allowance: string;
     is_mpf_exempt: boolean;
+    is_active: boolean;
+    annual_leave_days: number;
   }
   

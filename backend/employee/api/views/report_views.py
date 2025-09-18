@@ -51,7 +51,7 @@ from report.models import ReportEntry
 from report.serializers import ReportEntrySerializer
 
 class ReportEntryViewSet(viewsets.ModelViewSet):
-    queryset = ReportEntry.objects.select_related('salesman').all().order_by('-date')
+    queryset = ReportEntry.objects.select_related('salesman', 'salesman__profile').filter(salesman__profile__is_active=True).order_by('-date')
     serializer_class = ReportEntrySerializer
     permission_classes = [IsAuthenticated]
     
@@ -89,7 +89,10 @@ class AllReportEntriesView(generics.ListAPIView):
     pagination_class = None  # No pagination by default for backwards compatibility
 
     def get_queryset(self):
-        qs = ReportEntry.objects.select_related('salesman').all().order_by("-date")
+        # Only include report entries from active employees
+        qs = ReportEntry.objects.select_related('salesman', 'salesman__profile').filter(
+            salesman__profile__is_active=True
+        ).order_by("-date")
 
         # filter by single calendar date
         date_param = self.request.query_params.get("date")
@@ -141,8 +144,11 @@ class ReportEntryDatesView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        # Only include dates from active employees
         dates = list(
-            ReportEntry.objects.annotate(date_only=TruncDate('date'))
+            ReportEntry.objects.select_related('salesman__profile')
+            .filter(salesman__profile__is_active=True)
+            .annotate(date_only=TruncDate('date'))
             .values_list('date_only', flat=True)
             .distinct()
             .order_by('-date_only')
@@ -159,7 +165,10 @@ class ReportEntriesByDateView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = ReportEntry.objects.select_related('salesman').all().order_by("-date")
+        # Only include report entries from active employees
+        qs = ReportEntry.objects.select_related('salesman', 'salesman__profile').filter(
+            salesman__profile__is_active=True
+        ).order_by("-date")
 
         # Get and validate date parameters
         start_date_param = self.request.query_params.get("start_date")

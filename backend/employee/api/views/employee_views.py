@@ -13,6 +13,7 @@ from django.conf import settings
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 from core.redis_config import safe_cache_delete
+from rest_framework.decorators import action
 import io
 
 
@@ -37,7 +38,7 @@ class GetAllEmployeeSalary(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        profiles = EmployeeProfile.objects.select_related('user').all()
+        profiles = EmployeeProfile.objects.select_related('user').filter(is_active=True)
         serializer = EmployeeProfileSerializer(profiles, many=True)
         return Response(serializer.data)
 
@@ -49,12 +50,12 @@ class GetOwnEmployeeProfile(generics.RetrieveAPIView):
         return self.request.user.profile
 
 class GetEmployeeProfileAPIView(generics.RetrieveAPIView):
-    queryset = EmployeeProfile.objects.all()
+    queryset = EmployeeProfile.objects.select_related('user').all()
     serializer_class = EmployeeProfileSerializer
     permission_classes = [IsAuthenticated]
 
 class UpdateEmployeeProfileAPIView(generics.UpdateAPIView):
-    queryset = EmployeeProfile.objects.all()
+    queryset = EmployeeProfile.objects.select_related('user').all()
     serializer_class = EmployeeProfileSerializer
     permission_classes = [IsAuthenticated]
 
@@ -102,3 +103,54 @@ class DownloadPaySlipPDFView(APIView):
         response = HttpResponse(pdf_content, content_type='application/pdf')
         response['Content-Disposition'] = 'inline; filename="Payslip.pdf"'
         return response
+
+
+class ToggleEmployeeStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, pk):
+        # Check if user has admin or director role
+        if request.user.profile.role not in ['ADMIN', 'DIRECTOR']:
+            return Response(
+                {"detail": "Only administrators and directors can toggle employee status."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            profile = EmployeeProfile.objects.get(pk=pk)
+        except EmployeeProfile.DoesNotExist:
+            return Response({"detail": "Employee profile not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Toggle the is_active status
+        profile.is_active = not profile.is_active
+        profile.save()
+        
+        # Invalidate related caches
+        safe_cache_delete(f'user_profile_{profile.user.id}')
+        safe_cache_delete(f'user_salary_{profile.user.id}')
+        safe_cache_delete('employee_salaries')
+        
+        action = "activated" if profile.is_active else "deactivated"
+        
+        return Response({
+            "detail": f"Employee {profile.user.username} has been {action}.",
+            "is_active": profile.is_active
+        })
+
+
+class GetAllEmployeesView(APIView):
+    """Get all employees including their active status - for admin view"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Check if user has admin or director role
+        if request.user.profile.role not in ['ADMIN', 'DIRECTOR']:
+            return Response(
+                {"detail": "Only administrators and directors can view all employees."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get ALL employees, including inactive ones
+        profiles = EmployeeProfile.objects.select_related('user').all()
+        serializer = EmployeeProfileSerializer(profiles, many=True)
+        return Response(serializer.data)
