@@ -7,10 +7,10 @@ import { useAuth } from '@context/AuthContext';
 import { useEffect } from 'react';
 
 // Route preloading functions
-const preloadRoute = (routeImport: () => Promise<any>) => {
+const preloadRoute = (routeImport: () => Promise<unknown>) => {
   // Only preload if we have sufficient bandwidth and the user isn't on a slow connection
   if ('connection' in navigator) {
-    const connection = (navigator as any).connection;
+    const connection = (navigator as { connection?: { effectiveType?: string } }).connection;
     if (connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g')) {
       return; // Skip preloading on slow connections
     }
@@ -63,7 +63,7 @@ export const useRoleBasedPreloading = () => {
         preloadRoute(() => import('@pages/Client'));
         break;
     }
-  }, [user?.role, isAuthenticated]);
+  }, [user, isAuthenticated]);
 };
 
 /**
@@ -71,7 +71,7 @@ export const useRoleBasedPreloading = () => {
  * Preloads route when user hovers over nav link
  */
 export const useHoverPreload = () => {
-  const preloadMap: Record<string, () => Promise<any>> = {
+  const preloadMap: Record<string, () => Promise<unknown>> = {
     '/': () => import('@pages/Home'),
     '/report': () => import('@pages/Report'),
     '/payroll': () => import('@pages/Payroll'),
@@ -95,7 +95,7 @@ export const useHoverPreload = () => {
  * Preloads components when they're about to come into view
  */
 export const useIntersectionPreload = (
-  componentImport: () => Promise<any>,
+  componentImport: () => Promise<unknown>,
   threshold: number = 0.1
 ) => {
   useEffect(() => {

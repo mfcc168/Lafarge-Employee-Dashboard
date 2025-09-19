@@ -90,7 +90,7 @@ export const useVacationRequestForm = () => {
       await refreshUser();
       setDateItems([]);
       return true;
-    } catch (err) {
+    } catch {
       return false;
     } finally {
       setSubmitting(false);

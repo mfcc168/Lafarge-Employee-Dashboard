@@ -152,8 +152,10 @@ if [ -d "backend/employee" ]; then
     
     # Django System Check
     echo "Running Django system check..."
-    export SECRET_KEY="test-secret-for-checks"
+    export DJANGO_SECRET_KEY="test-secret-for-checks-very-long-and-secure-key-for-testing-purposes-only"
     export DATABASE_URL="sqlite:///test.db"
+    export DJANGO_DEBUG="false"
+    export ALLOWED_HOSTS="localhost,127.0.0.1"
     
     if python manage.py check > /dev/null 2>&1; then
         log_result "PASS" "Django system check passed"

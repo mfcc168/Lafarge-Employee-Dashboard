@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             
             // Retry original request with new token
             return authAxios(originalRequest);
-          } catch (err) {
+          } catch {
             // If refresh fails, logout user
             logout();
           }
@@ -149,23 +149,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
    * @throws {Error} When authentication fails
    */
   const login = useCallback(async (username: string, password: string) => {
-    try {
-      const res = await axios.post(`${backendUrl}/api/token/`, { 
-        username, 
-        password 
-      });
-      
-      // Store tokens and update state
-      localStorage.setItem("accessToken", res.data.access);
-      localStorage.setItem("refreshToken", res.data.refresh);
-      setAccessToken(res.data.access);
-      setRefreshToken(res.data.refresh);
-      
-      // Invalidate any cached user data
-      await queryClient.invalidateQueries({ queryKey: ['user'] });
-    } catch (error) {
-      throw error;
-    }
+    const res = await axios.post(`${backendUrl}/api/token/`, { 
+      username, 
+      password 
+    });
+    
+    // Store tokens and update state
+    localStorage.setItem("accessToken", res.data.access);
+    localStorage.setItem("refreshToken", res.data.refresh);
+    setAccessToken(res.data.access);
+    setRefreshToken(res.data.refresh);
+    
+    // Invalidate any cached user data
+    await queryClient.invalidateQueries({ queryKey: ['user'] });
   }, [queryClient]);
 
   /**

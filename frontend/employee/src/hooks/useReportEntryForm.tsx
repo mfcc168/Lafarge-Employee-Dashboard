@@ -127,7 +127,7 @@ export const useReportEntryForm = () => {
     if (!sortedDates.includes(pagedDate)) {
       setCurrentPage(0);
     }
-  }, [pagedDate, sortedDates]);
+  }, [pagedDate, sortedDates, entries.length]);
 
   const getGlobalIndex = useCallback((localIndex: number): number => {
     const entry = entriesForCurrentPage[localIndex];

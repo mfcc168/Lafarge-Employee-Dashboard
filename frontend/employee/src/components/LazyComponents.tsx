@@ -1,20 +1,24 @@
 import { lazy, Suspense, ComponentType, ReactElement } from 'react';
 import LoadingSpinner from './LoadingSpinner';
 import SkeletonRow from './SkeletonRow';
+import ChunkLoadErrorBoundary from './ChunkLoadErrorBoundary';
+import { retryChunkImport } from '@utils/retryLazyImport';
 
 /**
- * Higher-order component for lazy loading with custom fallback
+ * Higher-order component for lazy loading with chunk error handling and retry logic
  */
 export const withLazyLoading = <P extends object>(
   importFunc: () => Promise<{ default: ComponentType<P> }>,
   fallback: ReactElement = <LoadingSpinner />
 ) => {
-  const LazyComponent = lazy(importFunc);
+  const LazyComponent = lazy(retryChunkImport(importFunc));
   
   return (props: P) => (
-    <Suspense fallback={fallback}>
-      <LazyComponent {...props} />
-    </Suspense>
+    <ChunkLoadErrorBoundary>
+      <Suspense fallback={fallback}>
+        <LazyComponent {...props} />
+      </Suspense>
+    </ChunkLoadErrorBoundary>
   );
 };
 

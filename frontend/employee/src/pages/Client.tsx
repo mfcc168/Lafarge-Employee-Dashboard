@@ -2,7 +2,6 @@ import { useGetAllReportEntries } from "@hooks/useGetAllReportEntries";
 import { ReportEntry } from "@interfaces/index";
 import { useAuth } from '@context/AuthContext';
 import { useMemo, useState } from "react";
-import { useNameAlias } from "@hooks/useNameAlias";
 
 const Client = () => {
   const { data: entries = [], isLoading, isError } = useGetAllReportEntries();
@@ -24,6 +23,19 @@ const Client = () => {
     });
     return Array.from(names);
   }, [entries]);
+
+  // Create aliases mapping for salesmen
+  const salesmenAliases = useMemo(() => {
+    const aliasMap: Record<string, string> = {
+      "Ho Yeung Cheung": "Alex",
+      "Hung Ki So": "Dominic", 
+      "Kwok Wai Mak": "Matthew",
+    };
+    return salesmanList.reduce((acc, salesman) => {
+      acc[salesman] = aliasMap[salesman] || salesman;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [salesmanList]);
 
 
   if (isLoading) {
@@ -120,7 +132,7 @@ const Client = () => {
               <option value="all">All Salesmen</option>
               {salesmanList.map((name: string) => (
                 <option key={name} value={name}>
-                  {useNameAlias(name)}
+                  {salesmenAliases[name] || name}
                 </option>
               ))}
             </select>
@@ -188,7 +200,7 @@ const Client = () => {
                       </div>
                       <div className="text-right flex-shrink-0">
                         <span className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-4 py-1 rounded-full select-none">
-                          {useNameAlias(entry.salesman_name)}
+                          {salesmenAliases[entry.salesman_name] || entry.salesman_name}
                         </span>
                       </div>
 
