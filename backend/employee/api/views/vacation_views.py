@@ -9,6 +9,7 @@ from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 from core.redis_config import safe_cache_delete
 from django.conf import settings
+from core.permissions import require_roles, get_permission_message
 
 
 
@@ -40,11 +41,21 @@ class VacationRequestListView(generics.ListAPIView):
     serializer_class = VacationRequestSerializer
     permission_classes = [IsAuthenticated]
     
+    def get(self, request, *args, **kwargs):
+        # Only management can view all vacation requests
+        if request.user.profile.role not in ['MANAGER', 'ADMIN', 'DIRECTOR', 'CEO']:
+            return Response(
+                {"detail": get_permission_message('approve_vacation')},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().get(request, *args, **kwargs)
+    
 class VacationRequestUpdateAPIView(generics.UpdateAPIView):
     queryset = VacationRequest.objects.all()
     serializer_class = VacationRequestSerializer
     permission_classes = [IsAuthenticated]
 
+    @require_roles(['MANAGER', 'ADMIN', 'DIRECTOR', 'CEO'], custom_message=get_permission_message('approve_vacation'))
     def update(self, request, *args, **kwargs):
         vacation_request = self.get_object()
         new_status = request.data.get('status')

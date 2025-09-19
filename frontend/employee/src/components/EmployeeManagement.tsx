@@ -7,6 +7,7 @@ import { EmployeeProfile } from "@interfaces/EmployeeType";
 import LoadingSpinner from "@components/LoadingSpinner";
 import { UserX, UserCheck, AlertCircle, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { canManageEmployees, PERMISSION_MESSAGES } from "@utils/permissions";
 
 const EmployeeManagement = () => {
   const { user, accessToken } = useAuth();
@@ -23,7 +24,7 @@ const EmployeeManagement = () => {
       });
       return response.data;
     },
-    enabled: !!user && ["ADMIN", "DIRECTOR"].includes(user.role || "") && !!accessToken,
+    enabled: !!user && canManageEmployees(user.role) && !!accessToken,
   });
 
   // Toggle employee status mutation
@@ -43,10 +44,10 @@ const EmployeeManagement = () => {
   });
 
   // Check authorization
-  if (!user || !["ADMIN", "DIRECTOR"].includes(user.role || "")) {
+  if (!user || !canManageEmployees(user.role)) {
     return (
       <div className="max-w-md mx-auto mt-6 text-red-600 font-semibold">
-        You do not have permission to manage employees.
+        {PERMISSION_MESSAGES.manageEmployees}
       </div>
     );
   }

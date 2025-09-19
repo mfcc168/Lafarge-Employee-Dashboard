@@ -3,10 +3,15 @@ from django.core.cache import cache
 from core.redis_config import get_redis_client
 from core.cache_monitoring import RedisMonitor, log_cache_metrics
 from core.cache_warming import warm_essential_caches
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 import logging
 
 logger = logging.getLogger(__name__)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def redis_health(request):
     """
     Simple Redis health check endpoint for monitoring.
@@ -47,6 +52,8 @@ def redis_health(request):
             'error': str(e)
         })
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def app_health(request):
     """
     Overall application health check including Redis status.
@@ -80,6 +87,8 @@ def app_health(request):
             'error': str(e)
         })
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def redis_metrics(request):
     """
     Detailed Redis metrics and monitoring endpoint.
@@ -88,6 +97,8 @@ def redis_metrics(request):
     summary = monitor.get_monitoring_summary()
     return JsonResponse(summary)
 
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def cache_warm(request):
     """
     Manually trigger cache warming for better performance.
@@ -112,6 +123,8 @@ def cache_warm(request):
             'message': 'POST method required'
         })
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def cache_stats(request):
     """
     Quick cache statistics for monitoring dashboard.

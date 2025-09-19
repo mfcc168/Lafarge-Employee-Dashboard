@@ -16,6 +16,7 @@ from django.views.decorators.cache import cache_page
 from datetime import datetime, timedelta
 from django.conf import settings
 from core.redis_config import safe_cache_get, safe_cache_set, safe_cache_delete
+from core.permissions import IsSalesTeam
 
 def get_cache_timeout_for_date(date_param):
     """
@@ -85,7 +86,7 @@ class AllReportEntriesView(generics.ListAPIView):
     Optional pagination: Add ?paginate=true to enable pagination
     """
     serializer_class = ReportEntrySerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSalesTeam]
     pagination_class = None  # No pagination by default for backwards compatibility
 
     def get_queryset(self):
@@ -141,7 +142,7 @@ class AllReportEntriesView(generics.ListAPIView):
     
 @method_decorator(cache_page(60 * 15), name='get')  # Cache for 15 minutes
 class ReportEntryDatesView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSalesTeam]
 
     def get(self, request):
         # Only include dates from active employees
@@ -162,7 +163,7 @@ class ReportEntriesByDateView(generics.ListAPIView):
     Returns all entries within the specified date range (inclusive).
     """
     serializer_class = ReportEntrySerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSalesTeam]
 
     def get_queryset(self):
         # Only include report entries from active employees

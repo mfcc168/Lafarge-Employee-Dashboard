@@ -14,6 +14,13 @@ from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 from core.redis_config import safe_cache_delete
 from rest_framework.decorators import action
+from core.permissions import (
+    IsManagement, 
+    IsEmployeeOwnerOrManagement,
+    require_roles, 
+    MANAGEMENT_ROLES,
+    get_permission_message
+)
 import io
 
 
@@ -37,6 +44,7 @@ class GetOwnSalaryView(APIView):
 class GetAllEmployeeSalary(APIView):
     permission_classes = [IsAuthenticated]
 
+    @require_roles(['ADMIN', 'DIRECTOR'], custom_message=get_permission_message('view_payroll'))
     def get(self, request, *args, **kwargs):
         profiles = EmployeeProfile.objects.select_related('user').filter(is_active=True)
         serializer = EmployeeProfileSerializer(profiles, many=True)
@@ -53,6 +61,16 @@ class GetEmployeeProfileAPIView(generics.RetrieveAPIView):
     queryset = EmployeeProfile.objects.select_related('user').all()
     serializer_class = EmployeeProfileSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        profile = self.get_object()
+        # Users can view their own profile, management can view any profile
+        if profile.user != request.user and request.user.profile.role not in MANAGEMENT_ROLES:
+            return Response(
+                {"detail": get_permission_message('not_owner')},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().get(request, *args, **kwargs)
 
 class UpdateEmployeeProfileAPIView(generics.UpdateAPIView):
     queryset = EmployeeProfile.objects.select_related('user').all()
@@ -64,6 +82,14 @@ class UpdateEmployeeProfileAPIView(generics.UpdateAPIView):
             profile = self.get_object()
         except EmployeeProfile.DoesNotExist:
             return Response({"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if user can update this profile
+        # Users can update their own profile, or management can update any profile
+        if profile.user != request.user and request.user.profile.role not in MANAGEMENT_ROLES:
+            return Response(
+                {"detail": get_permission_message('update_employee')},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         serializer = self.get_serializer(profile, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -80,6 +106,7 @@ class UpdateEmployeeProfileAPIView(generics.UpdateAPIView):
 class DownloadPaySlipPDFView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @require_roles(['ADMIN', 'DIRECTOR'], custom_message=get_permission_message('view_payroll'))
     def post(self, request, *args, **kwargs):
         employees_data = request.data.get("profiles", [])
         commissions_data = request.data.get("commissions", {})  # username -> commission
@@ -108,13 +135,8 @@ class DownloadPaySlipPDFView(APIView):
 class ToggleEmployeeStatusView(APIView):
     permission_classes = [IsAuthenticated]
     
+    @require_roles(MANAGEMENT_ROLES)
     def post(self, request, pk):
-        # Check if user has admin or director role
-        if request.user.profile.role not in ['ADMIN', 'DIRECTOR']:
-            return Response(
-                {"detail": "Only administrators and directors can toggle employee status."},
-                status=status.HTTP_403_FORBIDDEN
-            )
         
         try:
             profile = EmployeeProfile.objects.get(pk=pk)
@@ -140,15 +162,9 @@ class ToggleEmployeeStatusView(APIView):
 
 class GetAllEmployeesView(APIView):
     """Get all employees including their active status - for admin view"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsManagement]
     
     def get(self, request):
-        # Check if user has admin or director role
-        if request.user.profile.role not in ['ADMIN', 'DIRECTOR']:
-            return Response(
-                {"detail": "Only administrators and directors can view all employees."},
-                status=status.HTTP_403_FORBIDDEN
-            )
         
         # Get ALL employees, including inactive ones
         profiles = EmployeeProfile.objects.select_related('user').all()

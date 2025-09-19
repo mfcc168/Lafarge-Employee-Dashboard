@@ -38,6 +38,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.getItem("refreshToken")
   );
   const [initialCheckComplete, setInitialCheckComplete] = useState(false);
+  
+  // Cached user role for immediate access
+  const [cachedRole, setCachedRole] = useState<string | null>(
+    localStorage.getItem("userRole")
+  );
+  
+  // Fast check if we have tokens (for immediate UI updates)
+  const hasTokens = !!accessToken && !!refreshToken;
 
   // Setup axios interceptors for request/response handling
   useEffect(() => {
@@ -97,7 +105,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     queryKey: ['user'],
     queryFn: async () => {
       const res = await authAxios.get('/api/protected-endpoint/');
-      return {
+      const userData = {
         username: res.data.username,
         firstname: res.data.firstname,
         lastname: res.data.lastname,
@@ -105,12 +113,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         role: res.data.role,
         annual_leave_days: res.data.annual_leave_days,
       } as User;
+      
+      // Cache the role for immediate access on next load
+      if (userData.role) {
+        localStorage.setItem("userRole", userData.role);
+        setCachedRole(userData.role);
+      }
+      
+      return userData;
     },
-    enabled: !!accessToken && initialCheckComplete,
+    // Enable immediately when we have tokens for faster loading
+    enabled: hasTokens,
     staleTime: 1000 * 60 * 30, // 30 minutes cache
     retry: (failureCount, error) => {
       // Don't retry on 401 errors
       if (axios.isAxiosError(error) && error.response?.status === 401) {
+        // Clear tokens on 401
+        logout();
         return false;
       }
       // Retry up to 3 times for other errors
@@ -118,26 +137,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  // Initial authentication check
+  // Mark initial check as complete once we know if we have tokens
   useEffect(() => {
-    const checkAuth = async () => {
-      if (accessToken && initialCheckComplete === false) {
-        try {
-          // Verify token validity by fetching user data
-          await userQuery.refetch();
-        } catch (error) {
-          // Logout if token is invalid
-          logout();
-        } finally {
-          setInitialCheckComplete(true);
-        }
-      } else {
-        setInitialCheckComplete(true);
-      }
-    };
-
-    checkAuth();
-  }, [accessToken]);
+    setInitialCheckComplete(true);
+  }, []);
 
   /**
    * Login function - Memoized to prevent re-renders
@@ -180,21 +183,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = useCallback(() => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem("userRole");
     setAccessToken(null);
     setRefreshToken(null);
-    queryClient.removeQueries({ queryKey: ['user'] });
+    setCachedRole(null);
+    // Clear all cached data on logout
+    queryClient.clear();
   }, [queryClient]);
 
-  // Determine authentication status
-  const isAuthenticated = !!accessToken && !userQuery.isError;
+  // Determine authentication status - immediate check based on tokens
+  const isAuthenticated = hasTokens && !userQuery.isError;
 
+  // Create user object with cached role for immediate access
+  const userWithCachedRole = useMemo(() => {
+    if (userQuery.data) return userQuery.data;
+    if (cachedRole && isAuthenticated) {
+      // Return partial user object with cached role for immediate sidebar rendering
+      return { role: cachedRole } as Partial<User>;
+    }
+    return null;
+  }, [userQuery.data, cachedRole, isAuthenticated]);
+  
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
     isAuthenticated,
     accessToken,
     refreshToken,
     initialCheckComplete,
-    user: userQuery.data || null,
+    user: userWithCachedRole as User | null,
     refreshUser,
     login,
     logout,
@@ -203,7 +219,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     accessToken,
     refreshToken,
     initialCheckComplete,
-    userQuery.data,
+    userWithCachedRole,
     refreshUser,
     login,
     logout

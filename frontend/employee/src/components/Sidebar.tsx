@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useMemo, memo, useCallback } from "react";
 import { useHoverPreload } from '@utils/preloader';
+import SidebarSkeleton from './SidebarSkeleton';
+import { canViewPayroll, canManageEmployees, canAccessSales } from '@utils/permissions';
 
 /**
  * Sidebar Component
@@ -32,40 +34,49 @@ const Sidebar = () => {
   }, [handleMouseEnter]);
   
   /**
-   * Generates navigation items based on user role and authentication
-   * returns {Array} List of navigation items with label, icon, and path
+   * Generates navigation items with progressive enhancement
+   * Shows basic items immediately, adds role-specific items when loaded
    */
   const items = useMemo(() => {
     const baseItems = [];
     
-    // Common items for all authenticated users
-    // Wait for initial check to complete to ensure user data is loaded
-    if (isAuthenticated && user && initialCheckComplete) {
+    // Show basic items immediately for all authenticated users
+    if (isAuthenticated) {
       baseItems.push(
         { label: "Home", icon: <Home size={20} />, path: "/" },
         { label: "Vacation", icon: <ClipboardPaste size={20} />, path: "/vacation" }
       );
       
-      // Role-specific items - only add when user role is available
-      if (user.role) {
+      // Progressively add role-specific items when user data is available
+      if (user?.role) {
         if (user.role === "SALESMAN") {
           baseItems.push({ label: "Report", icon: <BarChart3 size={20} />, path: "/report" });
         }
-        if (["DIRECTOR", "ADMIN", "SALESMAN", "CEO"].includes(user.role)) {
+        if (canAccessSales(user.role)) {
           baseItems.push({ label: "Client", icon: <CircleUser size={20} />, path: "/client" });
         }
-        if (["DIRECTOR", "ADMIN"].includes(user.role)) {
+        if (canViewPayroll(user.role)) {
           baseItems.push({ label: "Payroll", icon: <Wallet size={20} />, path: "/payroll" });
-          baseItems.push({ label: "Employees", icon: <Users size={20} />, path: "/employees" });
         }
-        if (["DIRECTOR", "ADMIN", "SALESMAN"].includes(user.role)) {
+        if (canManageEmployees(user.role)) {
+          baseItems.push({ label: "Employees", icon: <Users size={20} />, path: "/employees" });
+        }  
+        if (canAccessSales(user.role)) {
           baseItems.push({ label: "Sales", icon: <ChartNoAxesCombined size={20} />, path: "/sales" });
         }
       }
     }
     
     return baseItems;
-  }, [user, user?.role, isAuthenticated, initialCheckComplete]);
+  }, [user?.role, isAuthenticated]);
+  
+  // Show loading skeleton only during initial auth check
+  const isInitialLoading = isAuthenticated && !initialCheckComplete && !user;
+  
+  // Show skeleton loader only during initial loading
+  if (isInitialLoading) {
+    return <SidebarSkeleton />;
+  }
   
   return (
     <div className="flex">

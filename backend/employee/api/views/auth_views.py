@@ -10,6 +10,7 @@ from django.views.decorators.cache import cache_page
 from core.redis_config import safe_cache_delete
 from employee.models import EmployeeProfile
 from django.contrib.auth import authenticate
+from core.permissions import get_permission_message
 
 
 class TokenObtainPairViewCustom(TokenObtainPairView):
@@ -25,7 +26,7 @@ class TokenObtainPairViewCustom(TokenObtainPairView):
                 profile = EmployeeProfile.objects.get(user=user)
                 if not profile.is_active:
                     return Response(
-                        {"detail": "This account has been deactivated. Please contact an administrator."},
+                        {"detail": get_permission_message('inactive_account')},
                         status=status.HTTP_403_FORBIDDEN
                     )
             except EmployeeProfile.DoesNotExist:

@@ -3,7 +3,7 @@ import { useAuth } from '@context/AuthContext';
 
 const Employees = () => {
     const { user } = useAuth();
-    const hasAccess = ["ADMIN", "DIRECTOR"].includes(user?.role || "");
+    const hasAccess = ["ADMIN", "DIRECTOR", "CEO",].includes(user?.role || "");
 
     return (
         <>

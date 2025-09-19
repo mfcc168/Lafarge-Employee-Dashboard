@@ -2,19 +2,22 @@ import { LazyVacationRequestForm as VacationRequestForm } from '@components/Lazy
 import MyVacationRequestList from '@components/MyVacationRequestList';
 import { useAuth } from '@context/AuthContext';
 import VacationRequestList from '@components/VacationRequestList';
+import { ALL_MANAGEMENT, hasRole } from '@utils/permissions';
 
 const Vacation = () => {
 
   const { user } = useAuth(); 
+  const canApproveVacations = hasRole(user?.role, ALL_MANAGEMENT);
+  const isRegularEmployee = user?.role && !canApproveVacations;
 
   return (
     <>
-    {(user?.role === "MANAGER" || user?.role === "ADMIN"|| user?.role === "CEO" || user?.role === "DIRECTOR") && (
+    {canApproveVacations && (
         <div className="min-h-screen p-6">
         <VacationRequestList />
         </div>
     )}
-    {(user?.role === "CLERK" || user?.role === "DELIVERYMAN"|| user?.role === "SALESMAN") && (
+    {isRegularEmployee && (
       <>
         <VacationRequestForm />
         <MyVacationRequestList />
