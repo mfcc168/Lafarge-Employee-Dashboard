@@ -56,7 +56,7 @@ const Home = () => {
   const { data: dayEntries, isLoading: dailyLoading, refetch: refetchDaily } = useQuery({
     queryKey: ['report-entries', currentDate],
     queryFn: async () => {
-      const response = await axios.get(`${backendUrl}/api/all-report-entries/`, {
+      const response = await axios.get(`${backendUrl}/api/dashboard/report-entries/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
         params: { date: currentDate }
       });
@@ -72,7 +72,7 @@ const Home = () => {
   const { data: weekEntries, isLoading: weeklyLoading, refetch: refetchWeekly } = useQuery({
     queryKey: ['report-entries', currentWeekStart, currentWeekEnd],
     queryFn: async () => {
-      const response = await axios.get(`${backendUrl}/api/report-entries-by-date/`, {
+      const response = await axios.get(`${backendUrl}/api/dashboard/report-entries-by-date/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
         params: { start_date: currentWeekStart, end_date: currentWeekEnd }
       });
