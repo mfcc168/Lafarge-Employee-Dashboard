@@ -8,8 +8,11 @@
     "build": "tsc -b && vite build",
     "build:analyze": "tsc -b && vite build --mode analyze",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview",
-    "analyze": "npm run build && npx vite-bundle-analyzer dist"
+    "analyze": "npm run build && npx vite-bundle-analyzer dist",
+    "quality:check": "npm run typecheck && npm run lint && npm run build",
+    "quality:fix": "eslint . --fix"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.1",
