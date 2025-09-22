@@ -152,7 +152,12 @@ jobs:
           DJANGO_SETTINGS_MODULE: core.settings
           DJANGO_SECRET_KEY: test-secret-key-for-ci
           CSRF_TRUSTED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
-          DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable
+          DB_NAME: testdb
+          DB_USER: testuser
+          DB_PASSWORD: testpass
+          DB_HOST: localhost
+          DB_PORT: 5432
+          PGSSLMODE: disable
           REDIS_URL: redis://localhost:6379/0
         run: |
           python manage.py check
@@ -163,7 +168,12 @@ jobs:
           DJANGO_SETTINGS_MODULE: core.settings
           DJANGO_SECRET_KEY: test-secret-key-for-ci
           CSRF_TRUSTED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
-          DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable
+          DB_NAME: testdb
+          DB_USER: testuser
+          DB_PASSWORD: testpass
+          DB_HOST: localhost
+          DB_PORT: 5432
+          PGSSLMODE: disable
           REDIS_URL: redis://localhost:6379/0
         run: |
           python manage.py migrate
@@ -174,7 +184,12 @@ jobs:
           DJANGO_SETTINGS_MODULE: core.settings
           DJANGO_SECRET_KEY: test-secret-key-for-ci
           CSRF_TRUSTED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
-          DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable
+          DB_NAME: testdb
+          DB_USER: testuser
+          DB_PASSWORD: testpass
+          DB_HOST: localhost
+          DB_PORT: 5432
+          PGSSLMODE: disable
           REDIS_URL: redis://localhost:6379/0
         run: |
           echo "🔍 Running performance tests..."
