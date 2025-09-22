@@ -150,6 +150,7 @@ jobs:
         working-directory: backend/employee
         env:
           DJANGO_SETTINGS_MODULE: core.settings
+          DJANGO_SECRET_KEY: test-secret-key-for-ci
           DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
         run: |
@@ -159,6 +160,7 @@ jobs:
         working-directory: backend/employee
         env:
           DJANGO_SETTINGS_MODULE: core.settings
+          DJANGO_SECRET_KEY: test-secret-key-for-ci
           DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
         run: |
@@ -168,6 +170,7 @@ jobs:
         working-directory: backend/employee
         env:
           DJANGO_SETTINGS_MODULE: core.settings
+          DJANGO_SECRET_KEY: test-secret-key-for-ci
           DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
         run: |
