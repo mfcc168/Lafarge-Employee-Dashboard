@@ -151,6 +151,7 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: core.settings
           DJANGO_SECRET_KEY: test-secret-key-for-ci
+          CSRF_TRUSTED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
           DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
         run: |
@@ -161,6 +162,7 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: core.settings
           DJANGO_SECRET_KEY: test-secret-key-for-ci
+          CSRF_TRUSTED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
           DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
         run: |
@@ -171,6 +173,7 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: core.settings
           DJANGO_SECRET_KEY: test-secret-key-for-ci
+          CSRF_TRUSTED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
           DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
         run: |
