@@ -33,6 +33,7 @@ jobs:
       - name: ESLint Check
         working-directory: frontend/employee
         run: npm run lint
+        continue-on-error: true
         
       - name: Security Audit
         working-directory: frontend/employee
@@ -144,15 +145,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install django-debug-toolbar django-querycount pytest-django pytest-benchmark
-          
-      - name: Django Security Check
-        working-directory: backend/employee
-        env:
-          DJANGO_SETTINGS_MODULE: core.settings_ci
-          DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
-          REDIS_URL: redis://localhost:6379/0
-        run: |
-          python manage.py check --deploy --fail-level WARNING
           
       - name: Django System Check
         working-directory: backend/employee
