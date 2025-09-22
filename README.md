@@ -1,7 +1,5 @@
 # 🏗️ Lafarge Employee Dashboard
 
-[![Quality & Performance](https://github.com/yourusername/Lafarge-Employee-Dashboard/workflows/Quality%20&%20Performance/badge.svg)](https://github.com/yourusername/Lafarge-Employee-Dashboard/actions)
-
 A comprehensive enterprise employee management system for Lafarge, featuring advanced payroll management, sales reporting, vacation tracking, and role-based administration with sophisticated caching and performance optimizations.
 
 ## ✨ Features
