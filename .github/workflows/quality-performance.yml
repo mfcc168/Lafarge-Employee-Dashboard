@@ -79,17 +79,6 @@ jobs:
           
           echo "✅ Docker configuration validated"
           
-      - name: API Documentation Check
-        run: |
-          echo "📚 Checking API documentation..."
-          
-          # Check if API documentation exists
-          if [ -f "backend/employee/openapi.json" ] || [ -f "backend/employee/schema.yml" ]; then
-            echo "✅ API documentation found"
-          else
-            echo "⚠️  No API documentation found. Consider adding OpenAPI/Swagger docs"
-          fi
-          
       - name: Environment Configuration Check
         run: |
           echo "🔧 Checking environment configuration..."
