@@ -149,7 +149,7 @@ jobs:
       - name: Django System Check
         working-directory: backend/employee
         env:
-          DJANGO_SETTINGS_MODULE: core.settings_ci
+          DJANGO_SETTINGS_MODULE: core.settings
           DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
         run: |
@@ -158,7 +158,7 @@ jobs:
       - name: Run Migrations
         working-directory: backend/employee
         env:
-          DJANGO_SETTINGS_MODULE: core.settings_ci
+          DJANGO_SETTINGS_MODULE: core.settings
           DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
         run: |
@@ -167,7 +167,7 @@ jobs:
       - name: Performance & Query Analysis Tests
         working-directory: backend/employee
         env:
-          DJANGO_SETTINGS_MODULE: core.settings_ci
+          DJANGO_SETTINGS_MODULE: core.settings
           DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
         run: |
