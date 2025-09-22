@@ -16,6 +16,14 @@ jobs:
         uses: actions/checkout@v4
         
       - name: Docker Compose Build
+        env:
+          DJANGO_SECRET_KEY: build-time-secret-key
+          CSRF_TRUSTED_ORIGINS: http://localhost:3000
+          DB_NAME: builddb
+          DB_USER: builduser
+          DB_PASSWORD: buildpass
+          DB_HOST: localhost
+          DB_PORT: 5432
         run: |
           echo "🐳 Building Docker containers..."
           docker compose build
