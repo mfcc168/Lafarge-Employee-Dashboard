@@ -18,12 +18,12 @@ jobs:
       - name: Docker Compose Build
         run: |
           echo "🐳 Building Docker containers..."
-          docker-compose build
+          docker compose build
           
       - name: Docker Compose Up
         run: |
           echo "🚀 Starting services..."
-          docker-compose up -d
+          docker compose up -d
           
       - name: Wait for Services
         run: |
@@ -32,14 +32,14 @@ jobs:
           # Wait for backend to be ready
           timeout 60 bash -c 'until curl -f http://localhost:8000/api/health/ 2>/dev/null; do sleep 2; done' || {
             echo "❌ Backend failed to start"
-            docker-compose logs backend
+            docker compose logs backend
             exit 1
           }
           
           # Wait for frontend to be ready
           timeout 60 bash -c 'until curl -f http://localhost:3000 2>/dev/null; do sleep 2; done' || {
             echo "❌ Frontend failed to start"
-            docker-compose logs frontend
+            docker compose logs frontend
             exit 1
           }
           
@@ -72,13 +72,13 @@ jobs:
         if: failure()
         run: |
           echo "📋 Docker logs for debugging:"
-          docker-compose logs
+          docker compose logs
           
       - name: Cleanup
         if: always()
         run: |
           echo "🧹 Cleaning up..."
-          docker-compose down -v
+          docker compose down -v
 
   integration-quality:
     name: Integration Quality Check
@@ -93,20 +93,20 @@ jobs:
         run: |
           echo "🐳 Validating Docker configuration..."
           
-          # Check if docker-compose files are valid
-          docker-compose config
+          # Check if docker compose files are valid
+          docker compose config
           
           # Check for common issues
           echo "📋 Docker configuration analysis:"
           
           # Check for exposed secrets
-          if grep -r "password\|secret\|key" docker-compose.yml docker-compose.*.yml 2>/dev/null | grep -v "SECRET_KEY_FILE\|PASSWORD_FILE"; then
+          if grep -r "password\|secret\|key" docker compose.yml docker compose.*.yml 2>/dev/null | grep -v "SECRET_KEY_FILE\|PASSWORD_FILE"; then
             echo "⚠️  Potential secrets in Docker files (review these):"
-            grep -r "password\|secret\|key" docker-compose.yml docker-compose.*.yml 2>/dev/null | grep -v "SECRET_KEY_FILE\|PASSWORD_FILE"
+            grep -r "password\|secret\|key" docker compose.yml docker compose.*.yml 2>/dev/null | grep -v "SECRET_KEY_FILE\|PASSWORD_FILE"
           fi
           
           # Check for production-ready configurations
-          if ! grep -q "restart:" docker-compose.yml 2>/dev/null; then
+          if ! grep -q "restart:" docker compose.yml 2>/dev/null; then
             echo "⚠️  Consider adding restart policies for production"
           fi
           
