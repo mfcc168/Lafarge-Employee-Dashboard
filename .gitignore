@@ -5,6 +5,7 @@
 .env.production
 .env.test
 *.md
+!README.md
 
 # Python
 __pycache__/
