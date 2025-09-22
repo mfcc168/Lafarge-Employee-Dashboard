@@ -162,22 +162,6 @@ jobs:
         run: |
           python manage.py check
           
-      - name: Run Migrations
-        working-directory: backend/employee
-        env:
-          DJANGO_SETTINGS_MODULE: core.settings
-          DJANGO_SECRET_KEY: test-secret-key-for-ci
-          CSRF_TRUSTED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
-          DB_NAME: testdb
-          DB_USER: testuser
-          DB_PASSWORD: testpass
-          DB_HOST: localhost
-          DB_PORT: 5432
-          PGSSLMODE: disable
-          REDIS_URL: redis://localhost:6379/0
-        run: |
-          python manage.py migrate
-          
       - name: Performance & Query Analysis Tests
         working-directory: backend/employee
         env:
