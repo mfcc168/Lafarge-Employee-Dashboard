@@ -1,6 +1,5 @@
 # 🏗️ Lafarge Employee Dashboard
 
-[![Quality & Performance](https://github.com/yourusername/Lafarge-Employee-Dashboard/workflows/Quality%20&%20Performance/badge.svg)](https://github.com/yourusername/Lafarge-Employee-Dashboard/actions)
 
 A comprehensive enterprise employee management system for Lafarge, featuring advanced payroll management, sales reporting, vacation tracking, and role-based administration with sophisticated caching and performance optimizations.
 
@@ -398,91 +397,6 @@ docker-compose logs -f db
 - Redis password authentication
 - Environment variable security
 
-## 🐛 Troubleshooting
-
-### Common Issues
-
-#### Chunk Loading Errors
-```javascript
-// The app automatically retries failed chunk loads
-// Manual fix: Hard refresh (Ctrl+F5 or Cmd+Shift+R)
-```
-
-#### Cache Issues
-```bash
-# Clear all caches
-docker-compose exec redis redis-cli -a $REDIS_PASSWORD FLUSHALL
-# Browser: Clear cache for the domain
-```
-
-#### Database Connection Issues
-```bash
-# Check database health
-docker-compose exec db pg_isready -U $DB_USER -d $DB_NAME
-
-# Reset database (development only)
-docker-compose down -v
-docker-compose up -d
-```
-
-#### Build Failures
-```bash
-# Clear Docker build cache
-docker system prune -a
-
-# Rebuild with no cache
-docker-compose build --no-cache
-```
-
-### Performance Issues
-- Monitor bundle size with `npm run analyze`
-- Check database query performance with Django Debug Toolbar
-- Use Redis CLI to monitor cache hit rates
-- Monitor container resource usage with `docker stats`
-
-## 📚 API Documentation
-
-### Authentication Endpoints
-- `POST /api/auth/login/` - User login
-- `POST /api/auth/logout/` - User logout
-- `POST /api/auth/refresh/` - Refresh JWT token
-- `POST /api/auth/change-password/` - Change password
-
-### Employee Endpoints
-- `GET /api/employees/` - List employees
-- `GET /api/employees/{id}/` - Employee details
-- `POST /api/employees/` - Create employee
-- `PUT /api/employees/{id}/` - Update employee
-- `DELETE /api/employees/{id}/` - Deactivate employee
-
-### Payroll Endpoints
-- `GET /api/payroll/{employee_id}/` - Employee payroll information
-- `GET /api/payroll/{employee_id}/pdf/` - Generate payslip PDF
-
-### More API details available in [API Documentation](backend/employee/API_DOCS.md)
-
-## 🤝 Contributing
-
-### Development Setup
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes
-4. Run quality checks: `bash scripts/quality-check.sh`
-5. Commit your changes: `git commit -m 'Add amazing feature'`
-6. Push to the branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
-
-### Code Standards
-- **Backend**: Follow PEP 8 Python style guide
-- **Frontend**: Use ESLint and Prettier configurations
-- **TypeScript**: Strict type checking enabled
-- **Testing**: Maintain test coverage above 80%
-
-### Pull Request Process
-1. Ensure all quality checks pass
-2. Update documentation for new features
-3. Add tests for new functionality
-4. Request review from maintainers
 
 ## 📄 License
 
@@ -490,15 +404,4 @@ docker-compose build --no-cache
 
 This software is proprietary to Lafarge and is intended solely for internal business operations. Unauthorized copying, distribution, or use is strictly prohibited.
 
-## 🆘 Support
-
-For technical support or questions:
-- **Internal IT Support**: it-support@lafarge.com
-- **Development Team**: dev-team@lafarge.com
-- **Documentation**: [Internal Wiki](https://wiki.lafarge.com/employee-dashboard)
-
 ---
-
-**Last Updated**: January 2025  
-**Version**: 1.0.1  
-**Maintained by**: Lafarge IT Development Team
