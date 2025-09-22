@@ -1,1 +1,81 @@
+# Environment files
 .env
+.env.dev
+.env.local
+.env.production
+.env.test
+*.md
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Node.js dependencies (should only be in frontend/employee/)
+# Explicitly ignore if accidentally created in root
+/node_modules/
+/package-lock.json
+/package.json
+
+# Build outputs
+/frontend/employee/dist/
+/frontend/employee/build/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Docker
+.dockerignore
+
+# Temporary files
+.tmp/
+.temp/
+
+# Documentation (removing *.md exclusion as we want to track some docs)
+# Only ignore specific auto-generated docs if needed

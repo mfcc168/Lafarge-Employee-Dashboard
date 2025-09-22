@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format, startOfISOWeek, endOfISOWeek, parseISO, addDays } from 'date-fns';
 import { useAuth } from '@context/AuthContext';
-import { useNameAlias } from '@hooks/useNameAlias';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/ReportEntryType';
-import { SkeletonRow } from '@components/SkeletonRow';
+import SkeletonRow from '@components/SkeletonRow';
 
 interface WeeklyNewClientOrderProps {
   entries: ReportEntry[];
@@ -61,6 +60,19 @@ const WeeklySamplesSummary = ({
     [sampleEntries]
   );
 
+  // Create aliases mapping for salesmen
+  const salesmenAliases = useMemo(() => {
+    const aliasMap: Record<string, string> = {
+      "Ho Yeung Cheung": "Alex",
+      "Hung Ki So": "Dominic", 
+      "Kwok Wai Mak": "Matthew",
+    };
+    return salesmen.reduce((acc, salesman) => {
+      acc[salesman] = aliasMap[salesman] || salesman;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [salesmen]);
+
   // Set default salesman selection
   useEffect(() => {
     if (!selectedSalesman && salesmen.length) {
@@ -107,9 +119,7 @@ const WeeklySamplesSummary = ({
       {!isSalesman && salesmen.length > 0 && (
         <div className="mb-6 border-b border-gray-200">
           <nav className="-mb-px flex space-x-6" aria-label="Salesman tabs">
-            {salesmen.map((salesman) => {
-              const alias = useNameAlias(salesman as string);
-              return (
+            {salesmen.map((salesman) => (
                 <button
                   key={salesman as string}
                   onClick={() => setSelectedSalesman(salesman as string)}
@@ -120,10 +130,9 @@ const WeeklySamplesSummary = ({
                   }`}
                   aria-current={salesman === selectedSalesman ? 'page' : undefined}
                 >
-                  {alias}
+                  {salesmenAliases[salesman] || salesman}
                 </button>
-              );
-            })}
+            ))}
           </nav>
         </div>
       )}

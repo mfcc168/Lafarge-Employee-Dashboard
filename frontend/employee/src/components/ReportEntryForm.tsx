@@ -1,7 +1,7 @@
 import { useAuth } from "@context/AuthContext";
 import { ChevronLeft, ChevronRight, Plus, SaveAll, Save, Trash2 } from "lucide-react";
 import AutocompleteInput from "@components/AutoCompleteInput";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useReportEntryForm } from "@hooks/useReportEntryForm";
 import LoadingSpinner from "@components/LoadingSpinner";
 
@@ -46,11 +46,11 @@ const ReportEntryForm = () => {
   const entriesRef = useRef<HTMLDivElement>(null);
   const focusedEntryIndex = useRef<number | null>(null);
 
-    /**
-   * Adjusts textarea height based on content
+  /**
+   * Adjusts textarea height based on content - Memoized for performance
    * @param {React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>} e - The change event
    */
-  const adjustTextareaHeight = (
+  const adjustTextareaHeight = useCallback((
     e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
   ) => {
     const textarea = e.target;
@@ -58,7 +58,7 @@ const ReportEntryForm = () => {
       textarea.style.height = "auto";
       textarea.style.height = textarea.scrollHeight + "px";
     }
-  };
+  }, []);
 
   // Keyboard navigation effect
   useEffect(() => {
@@ -86,10 +86,10 @@ const ReportEntryForm = () => {
   }, [entries]);
 
   /**
-   * Handles focus events on form fields
+   * Handles focus events on form fields - Memoized for performance
    * @param {number} index - The index of the focused entry
    */
-  const handleFocus = async (index: number) => {
+  const handleFocus = useCallback(async (index: number) => {
     // Add new entry if focusing on the newest row
     if (index === newestEntryIndex) {
       addEmptyEntry();
@@ -109,7 +109,7 @@ const ReportEntryForm = () => {
     }
 
     focusedEntryIndex.current = index;
-  };
+  }, [newestEntryIndex, addEmptyEntry, entries, unsavedEntriesRef, handleSubmitEntry]);
 
   // Loading state
   if (isLoading) {

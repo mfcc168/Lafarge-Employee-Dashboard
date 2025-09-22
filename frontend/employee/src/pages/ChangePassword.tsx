@@ -38,8 +38,12 @@ const ChangePassword = () => {
         }
       );
       navigate("/");
-    } catch (err: any) {
-      setErrorMessage(err.response?.data?.detail || "Failed to change password");
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setErrorMessage(err.response?.data?.detail || "Failed to change password");
+      } else {
+        setErrorMessage("Failed to change password");
+      }
     } finally {
       setIsLoading(false);
     }

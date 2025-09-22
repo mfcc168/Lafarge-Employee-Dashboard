@@ -2,9 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@context/AuthContext';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ReportEntry } from '@interfaces/index';
-import { useNameAlias } from '@hooks/useNameAlias';
 import { format, addDays, parseISO } from 'date-fns';
-import { SkeletonRow } from '@components/SkeletonRow';
+import SkeletonRow from '@components/SkeletonRow';
 
 interface ReportEntryListProps {
   allEntries: ReportEntry[];
@@ -53,7 +52,11 @@ const ReportEntryList = ({
     if (!isLimitedView) return;
     setCrossedRows((prev) => {
       const newSet = new Set(prev);
-      newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
       return newSet;
     });
   };
@@ -86,6 +89,19 @@ const ReportEntryList = ({
     Array.from(new Set(filteredEntries.map((e: ReportEntry) => e.salesman_name))).sort(),
     [filteredEntries]
   );
+
+  // Create aliases mapping for salesmen
+  const salesmenAliases = useMemo(() => {
+    const aliasMap: Record<string, string> = {
+      "Ho Yeung Cheung": "Alex",
+      "Hung Ki So": "Dominic", 
+      "Kwok Wai Mak": "Matthew",
+    };
+    return salesmen.reduce((acc, salesman) => {
+      acc[salesman] = aliasMap[salesman] || salesman;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [salesmen]);
 
   // Set default salesman when list changes
   useEffect(() => {
@@ -153,9 +169,7 @@ const ReportEntryList = ({
       {!isSalesman && (
         <div className="mb-6 border-b border-gray-200">
           <nav className="-mb-px flex space-x-6" aria-label="Salesman tabs">
-            {salesmen.map((salesman) => {
-              const alias = useNameAlias(salesman as string);
-              return (
+            {salesmen.map((salesman) => (
                 <button
                   key={salesman as string}
                   onClick={() => setSelectedSalesman(salesman as string)}
@@ -166,10 +180,9 @@ const ReportEntryList = ({
                   }`}
                   aria-current={salesman === selectedSalesman ? 'page' : undefined}
                 >
-                  {alias}
+                  {salesmenAliases[salesman] || salesman}
                 </button>
-              );
-            })}
+            ))}
           </nav>
         </div>
       )}

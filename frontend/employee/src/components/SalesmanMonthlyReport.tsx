@@ -54,7 +54,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
       {error ? (
         <ErrorMessage message={`Oops! ${error}`} type="error" />
       ) : !data ? (
-        <ErrorMessage message="No data available." type="no-data" />
+        <ErrorMessage message="No data available." type="warning" />
       ) : (
         <>
           {/* Month navigation header */}

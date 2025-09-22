@@ -1,6 +1,7 @@
 import { useAuth } from "@context/AuthContext";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { LogOut, Lock, LogIn, Home, BarChart3, ClipboardPaste, ChartNoAxesCombined, CircleUser } from "lucide-react";
+import { memo, useMemo, useCallback } from "react";
 
 /**
  * Navbar Component
@@ -28,33 +29,37 @@ const Navbar = () => {
   // Check if current route is the report page
   const isReportRoute = location.pathname === "/report";
 
-  // Navigation handlers
-  const handleChangePassword = () => navigate("/change-password");
-  const handleLogin = () => navigate("/login");
-  const handleLogout = () => {
+  // Memoized navigation handlers to prevent re-renders
+  const handleChangePassword = useCallback(() => navigate("/change-password"), [navigate]);
+  const handleLogin = useCallback(() => navigate("/login"), [navigate]);
+  const handleLogout = useCallback(() => {
     logout();
     navigate("/login");
-  };
+  }, [logout, navigate]);
 
-  // Dynamic navigation items based on authentication and role
-  const navItems = [];
-  
-  // Base items for authenticated users
-  if (isAuthenticated) {
-    navItems.push(
-      { label: "Home", icon: <Home size={20} />, path: "/" },
-      { label: "Vacation", icon: <ClipboardPaste size={20} />, path: "/vacation" }
-    );
-  }
-  
-  // Additional items for salesmen
-  if (user?.role === "SALESMAN") {
-    navItems.push(
-      { label: "Report", icon: <BarChart3 size={16} />, path: "/report" },
-      { label: "Client", icon: <CircleUser size={16} />, path: "/client" },
-      { label: "Sales", icon: <ChartNoAxesCombined size={16} />, path: "/sales" }
-    );
-  }
+  // Memoized navigation items based on authentication and role
+  const navItems = useMemo(() => {
+    const items = [];
+    
+    // Base items for authenticated users
+    if (isAuthenticated) {
+      items.push(
+        { label: "Home", icon: <Home size={20} />, path: "/" },
+        { label: "Vacation", icon: <ClipboardPaste size={20} />, path: "/vacation" }
+      );
+    }
+    
+    // Additional items for salesmen
+    if (user?.role === "SALESMAN") {
+      items.push(
+        { label: "Report", icon: <BarChart3 size={16} />, path: "/report" },
+        { label: "Client", icon: <CircleUser size={16} />, path: "/client" },
+        { label: "Sales", icon: <ChartNoAxesCombined size={16} />, path: "/sales" }
+      );
+    }
+    
+    return items;
+  }, [isAuthenticated, user?.role]);
 
   return (
     <nav className="bg-white shadow-sm px-6 py-3 flex justify-between items-center sticky top-0 z-50">
@@ -124,4 +129,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default memo(Navbar);

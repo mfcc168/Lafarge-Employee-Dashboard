@@ -4,7 +4,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '@context/AuthContext';
 import { backendUrl } from '@configs/DotEnv';
-import ErrorMessage from '@components/ErrorMessage';
 
 /**
  * PayrollInformation Component
@@ -29,7 +28,6 @@ const PayrollInformation = ({
     employeeId
 }: PayrollInformationProps) => {
     // Component state
-    const [error, setError] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({
         baseSalary: salaryData.baseSalary || 0,
@@ -74,12 +72,8 @@ const PayrollInformation = ({
             });
             setIsEditing(false);
         },
-        onError: (e: any) => {
-            const message = e?.response?.data?.detail || 'An error occurred while saving.';
-            setError(message);
-            {error && (
-                <ErrorMessage message={error} type="error" />
-            )}
+        onError: (e: unknown) => {
+            console.error('Failed to update salary:', e);
         }
     });
 
@@ -114,7 +108,6 @@ const PayrollInformation = ({
             commission: salaryData.commission || 0,
             mpfDeduction: salaryData.mpfDeduction || 0
         });
-        setError(null);
         setIsEditing(false);
     };
 

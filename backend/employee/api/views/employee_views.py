@@ -9,9 +9,22 @@ from employee.models import EmployeeProfile
 from employee.serializers import EmployeeProfileSerializer
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
+from django.conf import settings
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
+from core.redis_config import safe_cache_delete
+from rest_framework.decorators import action
+from core.permissions import (
+    IsManagement, 
+    IsEmployeeOwnerOrManagement,
+    require_roles, 
+    MANAGEMENT_ROLES,
+    get_permission_message
+)
 import io
 
 
+@method_decorator(cache_page(settings.CACHE_TIMEOUTS['user_salary']), name='get')
 class GetOwnSalaryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -27,11 +40,13 @@ class GetOwnSalaryView(APIView):
             return Response({'error': 'Profile not found for this user'}, status=status.HTTP_404_NOT_FOUND)
         
 
+@method_decorator(cache_page(settings.CACHE_TIMEOUTS['employee_salaries']), name='get')
 class GetAllEmployeeSalary(APIView):
     permission_classes = [IsAuthenticated]
 
+    @require_roles(['ADMIN', 'DIRECTOR'], custom_message=get_permission_message('view_payroll'))
     def get(self, request, *args, **kwargs):
-        profiles = EmployeeProfile.objects.select_related('user').all()
+        profiles = EmployeeProfile.objects.select_related('user').filter(is_active=True)
         serializer = EmployeeProfileSerializer(profiles, many=True)
         return Response(serializer.data)
 
@@ -43,12 +58,22 @@ class GetOwnEmployeeProfile(generics.RetrieveAPIView):
         return self.request.user.profile
 
 class GetEmployeeProfileAPIView(generics.RetrieveAPIView):
-    queryset = EmployeeProfile.objects.all()
+    queryset = EmployeeProfile.objects.select_related('user').all()
     serializer_class = EmployeeProfileSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        profile = self.get_object()
+        # Users can view their own profile, management can view any profile
+        if profile.user != request.user and request.user.profile.role not in MANAGEMENT_ROLES:
+            return Response(
+                {"detail": get_permission_message('not_owner')},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().get(request, *args, **kwargs)
 
 class UpdateEmployeeProfileAPIView(generics.UpdateAPIView):
-    queryset = EmployeeProfile.objects.all()
+    queryset = EmployeeProfile.objects.select_related('user').all()
     serializer_class = EmployeeProfileSerializer
     permission_classes = [IsAuthenticated]
 
@@ -57,16 +82,31 @@ class UpdateEmployeeProfileAPIView(generics.UpdateAPIView):
             profile = self.get_object()
         except EmployeeProfile.DoesNotExist:
             return Response({"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if user can update this profile
+        # Users can update their own profile, or management can update any profile
+        if profile.user != request.user and request.user.profile.role not in MANAGEMENT_ROLES:
+            return Response(
+                {"detail": get_permission_message('update_employee')},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         serializer = self.get_serializer(profile, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+        
+        # Invalidate related caches after profile update
+        safe_cache_delete(f'user_profile_{profile.user.id}')
+        safe_cache_delete(f'user_salary_{profile.user.id}')
+        safe_cache_delete('employee_salaries')
+        
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 
 class DownloadPaySlipPDFView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @require_roles(['ADMIN', 'DIRECTOR'], custom_message=get_permission_message('view_payroll'))
     def post(self, request, *args, **kwargs):
         employees_data = request.data.get("profiles", [])
         commissions_data = request.data.get("commissions", {})  # username -> commission
@@ -90,3 +130,43 @@ class DownloadPaySlipPDFView(APIView):
         response = HttpResponse(pdf_content, content_type='application/pdf')
         response['Content-Disposition'] = 'inline; filename="Payslip.pdf"'
         return response
+
+
+class ToggleEmployeeStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    @require_roles(MANAGEMENT_ROLES)
+    def post(self, request, pk):
+        
+        try:
+            profile = EmployeeProfile.objects.get(pk=pk)
+        except EmployeeProfile.DoesNotExist:
+            return Response({"detail": "Employee profile not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Toggle the is_active status
+        profile.is_active = not profile.is_active
+        profile.save()
+        
+        # Invalidate related caches
+        safe_cache_delete(f'user_profile_{profile.user.id}')
+        safe_cache_delete(f'user_salary_{profile.user.id}')
+        safe_cache_delete('employee_salaries')
+        
+        action = "activated" if profile.is_active else "deactivated"
+        
+        return Response({
+            "detail": f"Employee {profile.user.username} has been {action}.",
+            "is_active": profile.is_active
+        })
+
+
+class GetAllEmployeesView(APIView):
+    """Get all employees including their active status - for admin view"""
+    permission_classes = [IsManagement]
+    
+    def get(self, request):
+        
+        # Get ALL employees, including inactive ones
+        profiles = EmployeeProfile.objects.select_related('user').all()
+        serializer = EmployeeProfileSerializer(profiles, many=True)
+        return Response(serializer.data)

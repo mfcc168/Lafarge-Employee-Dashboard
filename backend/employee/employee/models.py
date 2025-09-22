@@ -21,6 +21,7 @@ class EmployeeProfile(models.Model):
     annual_leave_days = models.FloatField(default=7.0)
     bonus_payment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     year_end_bonus = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    is_active = models.BooleanField(default=True, help_text="Designates whether this employee should be treated as active.")
 
     def __str__(self):
         return f"{self.user.username}"

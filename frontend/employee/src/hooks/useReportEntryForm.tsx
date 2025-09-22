@@ -3,7 +3,7 @@ import { ReportEntry } from '@interfaces/index';
 import axios from 'axios';
 import { useAuth } from '@context/AuthContext';
 import { backendUrl } from '@configs/DotEnv';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const useReportEntryForm = () => {
   // State declarations
@@ -16,6 +16,7 @@ export const useReportEntryForm = () => {
   const today = new Date().toISOString().split('T')[0];
   const unsavedEntriesRef = useRef<ReportEntry[]>([]);
   const accessTokenRef = useRef(accessToken);
+  const queryClient = useQueryClient();
 
   // Update access token ref
   useEffect(() => {
@@ -126,12 +127,12 @@ export const useReportEntryForm = () => {
     if (!sortedDates.includes(pagedDate)) {
       setCurrentPage(0);
     }
-  }, [pagedDate, sortedDates]);
+  }, [pagedDate, sortedDates, entries.length]);
 
-  const getGlobalIndex = (localIndex: number): number => {
+  const getGlobalIndex = useCallback((localIndex: number): number => {
     const entry = entriesForCurrentPage[localIndex];
     return entries.findIndex(e => e === entry);
-  };
+  }, [entriesForCurrentPage, entries]);
 
   const handleChange = useCallback(<T extends keyof ReportEntry>(
     index: number,
@@ -156,10 +157,31 @@ export const useReportEntryForm = () => {
   }, []);
 
   // CRUD operations
-  const handleSubmitEntry = useCallback(async (index: number) => {
+  // Memoized helper function to check if entry is blank
+  const isBlankEntry = useCallback((entry: ReportEntry) => {
+    return (
+      !entry.time_range?.trim() &&
+      !entry.doctor_name?.trim() &&
+      !entry.district?.trim() &&
+      !entry.orders?.trim() &&
+      !entry.samples?.trim() &&
+      !entry.tel_orders?.trim() &&
+      !entry.new_product_intro?.trim() &&
+      !entry.old_product_followup?.trim() &&
+      !entry.delivery_time_update?.trim()
+    );
+  }, []);
+
+  const handleSubmitEntry = useCallback(async (index: number, skipBlankCheck = false) => {
     const globalIndex = getGlobalIndex(index);
     const entry = entries[globalIndex];
     if (!entry) return;
+
+    // For single submission, alert if blank
+    if (!skipBlankCheck && isBlankEntry(entry)) {
+      alert('Cannot submit blank entry. Please fill in at least one field.');
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -191,13 +213,19 @@ export const useReportEntryForm = () => {
           e => e !== entry
         );
       }
+      
+      // Invalidate cache for report entries to ensure fresh data
+      // This will update the home page and any other views showing report data
+      await queryClient.invalidateQueries({ 
+        queryKey: ['report-entries'] 
+      });
     } catch (error) {
       console.error('Error submitting entry:', error);
       alert('Failed to submit entry. Please try again.');
     } finally {
       setSubmitting(false);
     }
-  }, [entries, entriesForCurrentPage]);
+  }, [entries, getGlobalIndex, isBlankEntry, queryClient]);
 
   const handleDelete = useCallback(async (index: number) => {
     const globalIndex = getGlobalIndex(index);
@@ -224,13 +252,18 @@ export const useReportEntryForm = () => {
       unsavedEntriesRef.current = unsavedEntriesRef.current.filter(
         e => e.id !== entry.id
       );
+      
+      // Invalidate cache after deletion
+      await queryClient.invalidateQueries({ 
+        queryKey: ['report-entries'] 
+      });
     } catch (error) {
       console.error('Error deleting entry:', error);
       alert('Failed to delete entry. Please try again.');
     } finally {
       setSubmitting(false);
     }
-  }, [entries, entriesForCurrentPage]);
+  }, [entries, getGlobalIndex, queryClient]);
 
   const handleSubmitAllEntries = useCallback(async () => {
     if (entriesForCurrentPage.length === 0) {
@@ -238,18 +271,35 @@ export const useReportEntryForm = () => {
       return;
     }
 
+    // Filter out blank entries
+    const nonBlankIndices = entriesForCurrentPage
+      .map((entry, index) => ({ entry, index }))
+      .filter(({ entry }) => !isBlankEntry(entry))
+      .map(({ index }) => index);
+
+    if (nonBlankIndices.length === 0) {
+      alert("No entries with data to submit. All entries are blank.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await Promise.all(entriesForCurrentPage.map(async (_, index) => {
-        await handleSubmitEntry(index);
+      // Submit only non-blank entries, passing skipBlankCheck=true
+      await Promise.all(nonBlankIndices.map(async (index) => {
+        await handleSubmitEntry(index, true);
       }));
+      
+      const skippedCount = entriesForCurrentPage.length - nonBlankIndices.length;
+      if (skippedCount > 0) {
+        console.log(`Submitted ${nonBlankIndices.length} entries. Skipped ${skippedCount} blank entries.`);
+      }
     } catch (error) {
       console.error("Error submitting entries:", error);
       alert("Failed to submit some entries.");
     } finally {
       setSubmitting(false);
     }
-  }, [entriesForCurrentPage, handleSubmitEntry]);
+  }, [entriesForCurrentPage, handleSubmitEntry, isBlankEntry]);
 
   // Suggestion functions
   const getUniqueSuggestions = useCallback((field: keyof ReportEntry): string[] => {

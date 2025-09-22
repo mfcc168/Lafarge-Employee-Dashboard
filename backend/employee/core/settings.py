@@ -10,7 +10,9 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-fallback-key-for-dev-only')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("DJANGO_SECRET_KEY environment variable is not set!")
 
 
 DEBUG = os.getenv('DJANGO_DEBUG')
@@ -129,3 +131,46 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
 }
+
+# Redis Configuration
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
+REDIS_URL = f"redis://:{REDIS_PASSWORD}@redis:6379/0" if REDIS_PASSWORD else 'redis://redis:6379/0'
+
+# Cache Configuration with connection pooling
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': REDIS_URL,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 10,  # Small pool for in-house app
+                'retry_on_timeout': True,
+                'socket_connect_timeout': 5,
+                'socket_timeout': 5,
+            },
+            'SERIALIZER': 'django_redis.serializers.pickle.PickleSerializer',
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+        },
+        'KEY_PREFIX': 'lafarge_cache',
+        'TIMEOUT': 300,  # 5 minutes default timeout
+    }
+}
+
+# Session Configuration (use Redis for sessions)
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+SESSION_COOKIE_AGE = 86400  # 24 hours
+
+# Cache timeout configurations
+CACHE_TIMEOUTS = {
+    'user_profile': 60 * 30,        # 30 minutes
+    'employee_salaries': 60 * 60,   # 60 minutes  
+    'user_salary': 60 * 30,         # 30 minutes
+    'vacation_requests': 60 * 10,   # 10 minutes
+    'report_current_date': 0,       # No cache
+    'report_recent': 60 * 2,        # 2 minutes
+    'report_historical': 60 * 60,   # 60 minutes
+    'sales_commission': 60 * 30,    # 30 minutes
+}
+

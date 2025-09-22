@@ -1,5 +1,5 @@
 // AuthContext.tsx
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { User, AuthContextType } from "@interfaces/index";
@@ -38,6 +38,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.getItem("refreshToken")
   );
   const [initialCheckComplete, setInitialCheckComplete] = useState(false);
+  
+  // Cached user role for immediate access
+  const [cachedRole, setCachedRole] = useState<string | null>(
+    localStorage.getItem("userRole")
+  );
+  
+  // Fast check if we have tokens (for immediate UI updates)
+  const hasTokens = !!accessToken && !!refreshToken;
 
   // Setup axios interceptors for request/response handling
   useEffect(() => {
@@ -73,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             
             // Retry original request with new token
             return authAxios(originalRequest);
-          } catch (err) {
+          } catch {
             // If refresh fails, logout user
             logout();
           }
@@ -97,7 +105,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     queryKey: ['user'],
     queryFn: async () => {
       const res = await authAxios.get('/api/protected-endpoint/');
-      return {
+      const userData = {
         username: res.data.username,
         firstname: res.data.firstname,
         lastname: res.data.lastname,
@@ -105,12 +113,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         role: res.data.role,
         annual_leave_days: res.data.annual_leave_days,
       } as User;
+      
+      // Cache the role for immediate access on next load
+      if (userData.role) {
+        localStorage.setItem("userRole", userData.role);
+        setCachedRole(userData.role);
+      }
+      
+      return userData;
     },
-    enabled: !!accessToken && initialCheckComplete,
+    // Enable immediately when we have tokens for faster loading
+    enabled: hasTokens,
     staleTime: 1000 * 60 * 30, // 30 minutes cache
     retry: (failureCount, error) => {
       // Don't retry on 401 errors
       if (axios.isAxiosError(error) && error.response?.status === 401) {
+        // Clear tokens on 401
+        logout();
         return false;
       }
       // Retry up to 3 times for other errors
@@ -118,87 +137,89 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  // Initial authentication check
+  // Mark initial check as complete once we know if we have tokens
   useEffect(() => {
-    const checkAuth = async () => {
-      if (accessToken && initialCheckComplete === false) {
-        try {
-          // Verify token validity by fetching user data
-          await userQuery.refetch();
-        } catch (error) {
-          // Logout if token is invalid
-          logout();
-        } finally {
-          setInitialCheckComplete(true);
-        }
-      } else {
-        setInitialCheckComplete(true);
-      }
-    };
-
-    checkAuth();
-  }, [accessToken]);
+    setInitialCheckComplete(true);
+  }, []);
 
   /**
-   * Login function
+   * Login function - Memoized to prevent re-renders
    * @param {string} username - User's username
    * @param {string} password - User's password
    * @throws {Error} When authentication fails
    */
-  const login = async (username: string, password: string) => {
-    try {
-      const res = await axios.post(`${backendUrl}/api/token/`, { 
-        username, 
-        password 
-      });
-      
-      // Store tokens and update state
-      localStorage.setItem("accessToken", res.data.access);
-      localStorage.setItem("refreshToken", res.data.refresh);
-      setAccessToken(res.data.access);
-      setRefreshToken(res.data.refresh);
-      
-      // Invalidate any cached user data
-      await queryClient.invalidateQueries({ queryKey: ['user'] });
-    } catch (error) {
-      throw error;
-    }
-  };
+  const login = useCallback(async (username: string, password: string) => {
+    const res = await axios.post(`${backendUrl}/api/token/`, { 
+      username, 
+      password 
+    });
+    
+    // Store tokens and update state
+    localStorage.setItem("accessToken", res.data.access);
+    localStorage.setItem("refreshToken", res.data.refresh);
+    setAccessToken(res.data.access);
+    setRefreshToken(res.data.refresh);
+    
+    // Invalidate any cached user data
+    await queryClient.invalidateQueries({ queryKey: ['user'] });
+  }, [queryClient]);
 
   /**
-   * Refresh user data
+   * Refresh user data - Memoized to prevent re-renders
    * Forces a refetch of the current user's data
    */
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['user'] });
-  };
+  }, [queryClient]);
 
   /**
-   * Logout function
+   * Logout function - Memoized to prevent re-renders
    * Clears authentication state and storage
    */
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem("userRole");
     setAccessToken(null);
     setRefreshToken(null);
-    queryClient.removeQueries({ queryKey: ['user'] });
-  };
+    setCachedRole(null);
+    // Clear all cached data on logout
+    queryClient.clear();
+  }, [queryClient]);
 
-  // Determine authentication status
-  const isAuthenticated = !!accessToken && !userQuery.isError;
+  // Determine authentication status - immediate check based on tokens
+  const isAuthenticated = hasTokens && !userQuery.isError;
 
-  // Context value provided to consumers
-  const contextValue = {
+  // Create user object with cached role for immediate access
+  const userWithCachedRole = useMemo(() => {
+    if (userQuery.data) return userQuery.data;
+    if (cachedRole && isAuthenticated) {
+      // Return partial user object with cached role for immediate sidebar rendering
+      return { role: cachedRole } as Partial<User>;
+    }
+    return null;
+  }, [userQuery.data, cachedRole, isAuthenticated]);
+  
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
     isAuthenticated,
     accessToken,
     refreshToken,
     initialCheckComplete,
-    user: userQuery.data || null,
+    user: userWithCachedRole as User | null,
     refreshUser,
     login,
     logout,
-  };
+  }), [
+    isAuthenticated,
+    accessToken,
+    refreshToken,
+    initialCheckComplete,
+    userWithCachedRole,
+    refreshUser,
+    login,
+    logout
+  ]);
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -1,15 +1,15 @@
-import AllEmployeePayroll from '@components/AllEmployeePayroll';
+import { LazyAllEmployeePayroll as AllEmployeePayroll } from '@components/LazyComponents';
 import { useAuth } from '@context/AuthContext';
+import { canViewPayroll } from '@utils/permissions';
 
 const Payroll = () => {
 
     const { user } = useAuth();
-    const isManagerialRole = ["ADMIN", "DIRECTOR"].includes(user?.role || "");
-
+    const hasPayrollAccess = canViewPayroll(user?.role);
 
     return (
         <>
-            {isManagerialRole && <AllEmployeePayroll />}
+            {hasPayrollAccess && <AllEmployeePayroll />}
         </>
     );
 };

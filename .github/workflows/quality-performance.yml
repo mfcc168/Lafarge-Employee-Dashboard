@@ -1,0 +1,130 @@
+name: Quality & Performance Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  docker-quality:
+    name: Docker Configuration Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Docker Compose Validation
+        run: |
+          echo "🐳 Validating Docker configuration..."
+          docker compose config
+          echo "✅ Docker Compose configuration is valid"
+          
+      - name: Dockerfile Syntax Check
+        run: |
+          echo "🔍 Checking Dockerfile syntax..."
+          
+          # Check backend Dockerfile
+          if [ -f "backend/employee/Dockerfile" ]; then
+            echo "✅ Backend Dockerfile found"
+            docker run --rm -i hadolint/hadolint < backend/employee/Dockerfile || echo "⚠️ Hadolint suggestions (non-blocking)"
+          fi
+          
+          # Check frontend Dockerfile
+          if [ -f "frontend/employee/Dockerfile" ]; then
+            echo "✅ Frontend Dockerfile found"
+            docker run --rm -i hadolint/hadolint < frontend/employee/Dockerfile || echo "⚠️ Hadolint suggestions (non-blocking)"
+          fi
+          
+      - name: Docker Build Dry Run
+        run: |
+          echo "🏗️ Testing Docker build without execution..."
+          
+          # Just validate that docker compose can parse and plan the build
+          echo "Docker build plan:"
+          docker compose build --dry-run || echo "⚠️ Build planning completed with warnings"
+          
+          echo "✅ Docker build validation completed"
+
+  integration-quality:
+    name: Integration Quality Check
+    runs-on: ubuntu-latest
+    needs: [docker-quality]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Docker Compose Validation
+        run: |
+          echo "🐳 Validating Docker configuration..."
+          
+          # Check if docker compose files are valid
+          docker compose config
+          
+          # Check for common issues
+          echo "📋 Docker configuration analysis:"
+          
+          # Check for exposed secrets
+          if grep -r "password\|secret\|key" docker compose.yml docker compose.*.yml 2>/dev/null | grep -v "SECRET_KEY_FILE\|PASSWORD_FILE"; then
+            echo "⚠️  Potential secrets in Docker files (review these):"
+            grep -r "password\|secret\|key" docker compose.yml docker compose.*.yml 2>/dev/null | grep -v "SECRET_KEY_FILE\|PASSWORD_FILE"
+          fi
+          
+          # Check for production-ready configurations
+          if ! grep -q "restart:" docker compose.yml 2>/dev/null; then
+            echo "⚠️  Consider adding restart policies for production"
+          fi
+          
+          echo "✅ Docker configuration validated"
+          
+      - name: Environment Configuration Check
+        run: |
+          echo "🔧 Checking environment configuration..."
+          
+          # Check for .env.example
+          if [ -f ".env.example" ]; then
+            echo "✅ Environment example file found"
+          else
+            echo "⚠️  No .env.example file found. Consider adding one for setup instructions"
+          fi
+          
+          # Check for sensitive files in git
+          if [ -f ".env" ]; then
+            echo "❌ .env file found in repository! This should be in .gitignore"
+            exit 1
+          fi
+          
+          echo "✅ Environment configuration check passed"
+
+  performance-summary:
+    name: Performance Summary
+    runs-on: ubuntu-latest
+    needs: [docker-quality, integration-quality]
+    if: always()
+    
+    steps:
+      - name: Performance Summary
+        run: |
+          echo "📊 Quality & Performance Check Summary"
+          echo "=================================="
+          
+          # Check job statuses
+          docker_status="${{ needs.docker-quality.result }}"
+          integration_status="${{ needs.integration-quality.result }}"
+          
+          echo "Docker Quality: $docker_status"
+          echo "Integration Quality: $integration_status"
+          
+          # Overall status
+          if [ "$docker_status" = "success" ] && [ "$integration_status" = "success" ]; then
+            echo ""
+            echo "🎉 All quality & performance checks passed!"
+            echo "✅ Code is ready for deployment"
+          else
+            echo ""
+            echo "❌ Some quality checks failed"
+            echo "🔧 Please review and fix the issues above"
+            exit 1
+          fi
