@@ -82,50 +82,81 @@ const Sidebar = () => {
     <div className="flex">
       {/* Desktop Sidebar - shown on lg screens and up */}
       <aside 
-        className="bg-gray-900 w-60 hidden lg:flex flex-col h-screen fixed left-0 top-0 shadow-lg z-999 px-6 py-8"
+        className="bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 w-64 hidden lg:flex flex-col h-screen fixed left-0 top-0 shadow-strong z-999 px-6 py-8 border-r border-gray-700 animate-slideInLeft"
         aria-label="Main navigation"
       >
-        <h1 className="text-white text-2xl font-bold mb-10">Dashboard</h1>
-        <ul className="space-y-6">
-          {items.map(({ label, icon, path }) => (
-            <li key={label}>
-              <Link
-                to={path}
-                onMouseEnter={() => handleItemHover(path)}
-                className={`flex items-center gap-4 px-3 py-2 rounded-lg transition-colors ${
-                  location.pathname === path
-                    ? "bg-gray-700 text-white"  // Active route styling
-                    : "text-gray-400 hover:text-white hover:bg-gray-800"  // Inactive route styling
-                }`}
-                aria-current={location.pathname === path ? "page" : undefined}
-              >
-                {icon}
-                <span className="text-md">{label}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        {/* Logo Section */}
+        <div className="flex items-center justify-center mb-12 animate-fadeIn">
+          <h1 className="text-white text-2xl font-bold font-display tracking-tight">
+            Lafarge
+          </h1>
+        </div>
+
+        {/* Navigation Items */}
+        <nav className="flex-1">
+          <ul className="space-y-3">
+            {items.map(({ label, icon, path }, index) => (
+              <li key={label} className="animate-fadeInUp" style={{ animationDelay: `${index * 100}ms` }}>
+                <Link
+                  to={path}
+                  onMouseEnter={() => handleItemHover(path)}
+                  className={`group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-normal hover:animate-buttonHover ${
+                    location.pathname === path
+                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/25"  // Active route styling
+                      : "text-gray-300 hover:text-white hover:bg-gray-700/50 hover:shadow-md"  // Inactive route styling
+                  }`}
+                  aria-current={location.pathname === path ? "page" : undefined}
+                >
+                  <span className={`transition-all duration-fast group-hover:scale-110 ${
+                    location.pathname === path ? "text-white" : "text-gray-400 group-hover:text-emerald-400"
+                  }`}>
+                    {icon}
+                  </span>
+                  <span className="text-sm font-medium tracking-wide">{label}</span>
+                  
+                  {/* Active indicator */}
+                  {location.pathname === path && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
       </aside>
 
       {/* Mobile Bottom Navigation - shown on screens smaller than lg */}
       <nav 
-        className="lg:hidden bg-gray-900 shadow-inner fixed bottom-0 w-full z-50 flex justify-around py-3"
+        className="lg:hidden bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 backdrop-blur-sm shadow-strong border-t border-gray-700 fixed bottom-0 w-full z-50 flex justify-around py-4 animate-slideInUp"
         aria-label="Mobile navigation"
       >
-        {items.map(({ label, icon, path }) => (
+        {items.map(({ label, icon, path }, index) => (
           <Link
             key={label}
             to={path}
             onMouseEnter={() => handleMouseEnter(path)}
-            className={`flex flex-col items-center text-xs ${
+            className={`group flex flex-col items-center text-xs transition-all duration-fast hover:animate-buttonHover ${
               location.pathname === path
-                ? "text-gray-300 hover:text-white"  // Active route styling
+                ? "text-emerald-400"  // Active route styling
                 : "text-gray-400 hover:text-white"  // Inactive route styling
             }`}
             aria-current={location.pathname === path ? "page" : undefined}
+            style={{ animationDelay: `${index * 50}ms` }}
           >
-            {icon}
-            <span className="mt-1">{label}</span>
+            <div className={`p-2 rounded-lg transition-all duration-fast group-hover:scale-110 ${
+              location.pathname === path 
+                ? "bg-emerald-600/20 shadow-lg" 
+                : "group-hover:bg-gray-700/50"
+            }`}>
+              {icon}
+            </div>
+            <span className="mt-1 font-medium tracking-tight">{label}</span>
+            
+            {/* Active indicator */}
+            {location.pathname === path && (
+              <div className="mt-1 w-1 h-1 bg-emerald-400 rounded-full animate-pulse"></div>
+            )}
           </Link>
         ))}
       </nav>

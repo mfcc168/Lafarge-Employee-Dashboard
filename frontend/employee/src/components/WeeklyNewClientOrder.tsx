@@ -126,7 +126,7 @@ const WeeklyNewClientOrder = ({
                   onClick={() => setSelectedSalesman(salesman as string)}
                   className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
                     salesman === selectedSalesman
-                      ? 'border-blue-600 text-blue-600'
+                      ? 'border-emerald-600 text-emerald-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                   aria-current={salesman === selectedSalesman ? 'page' : undefined}
@@ -174,7 +174,7 @@ const WeeklyNewClientOrder = ({
                       <div className="flex items-center">
                         <strong className="capitalize">{e.client_type}:</strong>
                         <span className="ml-1">{e.doctor_name}</span>
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-800 rounded-full">
                           New Client
                         </span>
                       </div>

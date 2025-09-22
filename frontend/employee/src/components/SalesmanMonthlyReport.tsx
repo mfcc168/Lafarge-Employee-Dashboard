@@ -63,7 +63,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
               {canGoPrevious && (
                 <button
                   onClick={() => navigateMonth(-1)}
-                  className="flex items-center justify-center p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                  className="flex items-center justify-center p-2 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
                   aria-label="Previous month"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -81,7 +81,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
               {canGoNext && (
                 <button
                   onClick={() => navigateMonth(1)}
-                  className="flex items-center justify-center p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                  className="flex items-center justify-center p-2 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
                   aria-label="Next month"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -97,25 +97,25 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
               Sales Performance Report
             </h1>
-            <h2 className="text-xl font-semibold text-indigo-600 mb-1">
+            <h2 className="text-xl font-semibold text-slate-700 mb-1">
               {data.salesman} - {monthNames[month - 1]} {year}
             </h2>
             
             {/* Summary cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-              <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500">
+              <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-slate-500">
                 <h3 className="text-sm font-medium text-gray-500 uppercase">Monthly Total</h3>
                 <p className="text-2xl font-bold text-gray-800">${data.sales_monthly_total.toFixed(2)}</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500">
+              <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-slate-500">
                 <h3 className="text-sm font-medium text-gray-500 uppercase">Incentive</h3>
                 <p className="text-2xl font-bold text-gray-800">{data.incentive_percentage * 100}%</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500">
+              <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-slate-500">
                 <h3 className="text-sm font-medium text-gray-500 uppercase">Bonus</h3>
                 <p className="text-2xl font-bold text-gray-800">10%</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-green-500">
+              <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-emerald-500">
                 <h3 className="text-sm font-medium text-gray-500 uppercase">Commission</h3>
                 <p className="text-2xl font-bold text-gray-800">${data.commission.toFixed(2)}</p>
               </div>
@@ -152,7 +152,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                           ${data.weeks[weekNumber]?.total.toFixed(2)}
                         </span>
                         {expandedWeek === weekNumber ? (
-                          <ChevronUp size={20} className="text-indigo-600" />
+                          <ChevronUp size={20} className="text-slate-600" />
                         ) : (
                           <ChevronDown size={20} className="text-gray-500" />
                         )}
@@ -179,7 +179,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                                   </p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-lg font-bold text-indigo-600">
+                                  <p className="text-lg font-bold text-slate-600">
                                     ${invoice.total_price.toFixed(2)}
                                   </p>
                                   <p className="text-xs text-gray-500 mt-1">
@@ -211,14 +211,14 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                           <button
                             onClick={handlePrevPage}
                             disabled={currentPage === 1}
-                            className={`px-4 py-2 rounded-md flex items-center ${currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
+                            className={`px-4 py-2 rounded-md flex items-center ${currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
                           >
                             Previous
                           </button>
                           <button
                             onClick={handleNextPage}
                             disabled={currentPage * invoicesPerPage >= data.weeks[weekNumber]?.invoices.length}
-                            className={`px-4 py-2 rounded-md flex items-center ${currentPage * invoicesPerPage >= data.weeks[weekNumber]?.invoices.length ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
+                            className={`px-4 py-2 rounded-md flex items-center ${currentPage * invoicesPerPage >= data.weeks[weekNumber]?.invoices.length ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
                           >
                             Next
                           </button>
@@ -252,7 +252,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                     ${data.personal_monthly_total_share.toFixed(2)}
                   </span>
                   {sharedExpanded ? (
-                    <ChevronUp size={20} className="text-indigo-600" />
+                    <ChevronUp size={20} className="text-slate-600" />
                   ) : (
                     <ChevronDown size={20} className="text-gray-500" />
                   )}
@@ -275,7 +275,7 @@ const SalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReportProps) => 
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-lg font-bold text-indigo-600">
+                            <p className="text-lg font-bold text-slate-600">
                               ${invoice.total_price.toFixed(2)}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">

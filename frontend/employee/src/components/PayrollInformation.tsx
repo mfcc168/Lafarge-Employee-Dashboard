@@ -127,7 +127,7 @@ const PayrollInformation = ({
                 <label className="text-gray-600 block">{label}</label>
                 <input
                     type="number"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none bg-white"
                     value={value}
                     onChange={(e) => handleChange(field, parseFloat(e.target.value) || 0)}
                 />
@@ -141,14 +141,14 @@ const PayrollInformation = ({
     };
 
     return (
-        <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
+        <div className="max-w-2xl mx-auto p-8 bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-normal border border-gray-100">
             {/* Header with edit controls */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">Payroll Information</h1>
                 {!isEditing ? (
                     <button 
                         onClick={handleEditToggle}
-                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors duration-fast font-medium"
                         aria-label="Edit payroll information"
                     >
                         Edit
@@ -158,7 +158,7 @@ const PayrollInformation = ({
                         <button 
                             onClick={handleSave}
                             disabled={isUpdating}
-                            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 items-center justify-center min-w-[100px] disabled:bg-green-300"
+                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 items-center justify-center min-w-[100px] disabled:bg-emerald-300 transition-colors duration-fast font-medium"
                             aria-label="Save changes"
                         >
                             {isUpdating ? (
@@ -173,7 +173,7 @@ const PayrollInformation = ({
                         </button>
                         <button 
                             onClick={handleCancel}
-                            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-fast font-medium"
                             aria-label="Cancel editing"
                         >
                             Cancel
@@ -185,7 +185,7 @@ const PayrollInformation = ({
             {/* Payroll content sections */}
             <div className="space-y-4">
                 {/* Salary details section */}
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
                     <h2 className="text-lg font-semibold text-gray-700 mb-3">Salary Details</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {renderEditableField("Base salary", "baseSalary", editData.baseSalary)}
@@ -197,8 +197,8 @@ const PayrollInformation = ({
                 </div>
 
                 {/* Payment summary section */}
-                <div className="bg-blue-50 p-4 rounded-lg">
-                    <h2 className="text-lg font-semibold text-blue-700 mb-3">Payment Summary</h2>
+                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                    <h2 className="text-lg font-semibold text-slate-700 mb-3">Payment Summary</h2>
                     <div className="space-y-2">
                         <div className="flex justify-between">
                             <p className="text-gray-600">Gross payment:</p>
@@ -211,7 +211,7 @@ const PayrollInformation = ({
                         <div className="border-t border-gray-200 my-2"></div>
                         <div className="flex justify-between">
                             <p className="text-gray-600 font-semibold">Net payment:</p>
-                            <p className="font-bold text-blue-600">${netPayment.toFixed(2)}</p>
+                            <p className="font-bold text-emerald-600">${netPayment.toFixed(2)}</p>
                         </div>
                     </div>
                 </div>

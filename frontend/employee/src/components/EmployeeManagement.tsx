@@ -46,8 +46,14 @@ const EmployeeManagement = () => {
   // Check authorization
   if (!user || !canManageEmployees(user.role)) {
     return (
-      <div className="max-w-md mx-auto mt-6 text-red-600 font-semibold">
-        {PERMISSION_MESSAGES.manageEmployees}
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 animate-fadeIn">
+        <div className="max-w-md w-full bg-white shadow-soft rounded-2xl p-8 animate-scaleIn border border-gray-100 text-center">
+          <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-error-500" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Access Denied</h2>
+          <p className="text-slate-600 font-semibold">{PERMISSION_MESSAGES.manageEmployees}</p>
+        </div>
       </div>
     );
   }
@@ -58,8 +64,14 @@ const EmployeeManagement = () => {
 
   if (error) {
     return (
-      <div className="max-w-md mx-auto mt-6 text-red-600">
-        Error loading employees. Please try again.
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 animate-fadeIn">
+        <div className="max-w-md w-full bg-white shadow-soft rounded-2xl p-8 animate-scaleIn border border-gray-100 text-center">
+          <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-error-500" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Error</h2>
+          <p className="text-slate-600">Error loading employees. Please try again.</p>
+        </div>
       </div>
     );
   }
@@ -108,7 +120,7 @@ const EmployeeManagement = () => {
               {employee.user.first_name} {employee.user.last_name}
             </h3>
             {!employee.is_active && (
-              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+              <span className="text-xs bg-error-100 text-error-700 px-2 py-1 rounded-full">
                 Inactive
               </span>
             )}
@@ -130,8 +142,8 @@ const EmployeeManagement = () => {
           className={`
             p-3 rounded-lg transition-all duration-200
             ${employee.is_active
-              ? "bg-red-100 hover:bg-red-200 text-red-600"
-              : "bg-green-100 hover:bg-green-200 text-green-600"
+              ? "bg-error-100 hover:bg-error-200 text-error-600"
+              : "bg-emerald-100 hover:bg-emerald-200 text-emerald-600"
             }
             disabled:opacity-50 disabled:cursor-not-allowed
           `}
@@ -158,15 +170,15 @@ const EmployeeManagement = () => {
             <span className="text-sm font-medium text-gray-700">Total</span>
             <span className="text-lg font-bold text-gray-900">{nonManagementEmployees.length}</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-lg border border-green-200">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-sm font-medium text-green-700">Active</span>
-            <span className="text-lg font-bold text-green-900">{activeEmployees.length}</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+            <span className="text-sm font-medium text-emerald-700">Active</span>
+            <span className="text-lg font-bold text-emerald-900">{activeEmployees.length}</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 rounded-lg border border-red-200">
-            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-            <span className="text-sm font-medium text-red-700">Inactive</span>
-            <span className="text-lg font-bold text-red-900">{inactiveEmployees.length}</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-error-50 rounded-lg border border-error-200">
+            <div className="w-2 h-2 bg-error-500 rounded-full"></div>
+            <span className="text-sm font-medium text-error-700">Inactive</span>
+            <span className="text-lg font-bold text-error-900">{inactiveEmployees.length}</span>
           </div>
         </div>
       </div>
@@ -186,7 +198,7 @@ const EmployeeManagement = () => {
             border border-gray-200 rounded-xl 
             bg-gray-50 
             text-gray-900 placeholder-gray-500
-            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white
+            focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent focus:bg-white
             transition-all duration-200
             text-sm
           "
@@ -204,9 +216,9 @@ const EmployeeManagement = () => {
       </div>
 
       {/* Warning message */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-        <AlertCircle className="text-amber-600 mt-0.5" size={20} />
-        <div className="text-sm text-amber-800">
+      <div className="bg-warning-50 border border-warning-200 rounded-lg p-4 flex items-start gap-3">
+        <AlertCircle className="text-warning-600 mt-0.5" size={20} />
+        <div className="text-sm text-warning-800">
           <p className="font-medium mb-1">Important Notes:</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Deactivating an employee will prevent them from logging in</li>

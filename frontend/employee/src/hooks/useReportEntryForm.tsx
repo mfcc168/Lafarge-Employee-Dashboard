@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ReportEntry } from '@interfaces/index';
 import axios from 'axios';
 import { useAuth } from '@context/AuthContext';
+import { useToast } from '@context/ToastContext';
 import { backendUrl } from '@configs/DotEnv';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -13,6 +14,7 @@ export const useReportEntryForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const { user, accessToken } = useAuth();
+  const { showError, showWarning } = useToast();
   const today = new Date().toISOString().split('T')[0];
   const unsavedEntriesRef = useRef<ReportEntry[]>([]);
   const accessTokenRef = useRef(accessToken);
@@ -177,9 +179,13 @@ export const useReportEntryForm = () => {
     const entry = entries[globalIndex];
     if (!entry) return;
 
-    // For single submission, alert if blank
+    // For single submission, show warning if blank
     if (!skipBlankCheck && isBlankEntry(entry)) {
-      alert('Cannot submit blank entry. Please fill in at least one field.');
+      showWarning(
+        'Cannot Submit Entry',
+        'Please fill in at least one field before submitting.',
+        5000
+      );
       return;
     }
 
@@ -221,7 +227,11 @@ export const useReportEntryForm = () => {
       });
     } catch (error) {
       console.error('Error submitting entry:', error);
-      alert('Failed to submit entry. Please try again.');
+      showError(
+        'Submission Failed',
+        'Failed to submit entry. Please check your connection and try again.',
+        6000
+      );
     } finally {
       setSubmitting(false);
     }
@@ -259,7 +269,11 @@ export const useReportEntryForm = () => {
       });
     } catch (error) {
       console.error('Error deleting entry:', error);
-      alert('Failed to delete entry. Please try again.');
+      showError(
+        'Deletion Failed',
+        'Failed to delete entry. Please check your connection and try again.',
+        6000
+      );
     } finally {
       setSubmitting(false);
     }
@@ -267,7 +281,11 @@ export const useReportEntryForm = () => {
 
   const handleSubmitAllEntries = useCallback(async () => {
     if (entriesForCurrentPage.length === 0) {
-      alert("No entries to submit on this page.");
+      showWarning(
+        'No Entries Found',
+        'There are no entries to submit on this page.',
+        4000
+      );
       return;
     }
 
@@ -278,7 +296,11 @@ export const useReportEntryForm = () => {
       .map(({ index }) => index);
 
     if (nonBlankIndices.length === 0) {
-      alert("No entries with data to submit. All entries are blank.");
+      showWarning(
+        'No Data to Submit',
+        'All entries on this page are blank. Please fill in at least one field.',
+        5000
+      );
       return;
     }
 
@@ -295,7 +317,11 @@ export const useReportEntryForm = () => {
       }
     } catch (error) {
       console.error("Error submitting entries:", error);
-      alert("Failed to submit some entries.");
+      showError(
+        'Bulk Submission Failed',
+        'Failed to submit some entries. Please check your connection and try again.',
+        6000
+      );
     } finally {
       setSubmitting(false);
     }

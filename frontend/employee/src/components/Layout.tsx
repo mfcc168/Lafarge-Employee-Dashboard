@@ -25,13 +25,21 @@ const Layout = () => {
       {!isLoginRoute && <Navbar />}
       
       {/*
-        Main content area with dynamic styling:
-        - Adds left margin and background color except on report and login routes
-        - Ensures full viewport height
-        - No padding on login route to allow full-page centering
+        Main content area with enhanced styling:
+        - Adds left margin and beautiful background except on report and login routes
+        - Ensures full viewport height with smooth transitions
+        - Enhanced spacing and visual hierarchy
       */}
-      <div className={`flex-1 ${!isReportRoute && !isLoginRoute ? "lg:ml-54 bg-gray-100" : ""} min-h-screen`}>
-        <main className={isLoginRoute ? "" : "p-6 pb-16"}>
+      <div className={`flex-1 transition-all duration-normal ${
+        !isReportRoute && !isLoginRoute 
+          ? "lg:ml-64 bg-gradient-to-br from-slate-50 via-emerald-50/30 to-gray-100" 
+          : ""
+      } min-h-screen`}>
+        <main className={`${
+          isLoginRoute 
+            ? "" 
+            : "p-6 pb-20 lg:pb-16 space-y-6"
+        } animate-fadeIn`}>
           {/* Outlet for rendering child route components */}
           <Outlet />
         </main>

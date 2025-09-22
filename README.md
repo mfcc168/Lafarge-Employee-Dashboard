@@ -197,6 +197,7 @@ Lafarge-Employee-Dashboard/
 │   │   ├── hooks/             # Custom React hooks
 │   │   ├── context/           # React context providers
 │   │   ├── interfaces/        # TypeScript type definitions
+│   │   ├── design-system/     # Design tokens and component library
 │   │   └── utils/             # Utility functions
 │   ├── dist/                  # Production build output
 │   └── package.json           # Frontend dependencies
@@ -218,6 +219,7 @@ Lafarge-Employee-Dashboard/
 - **Error Boundaries**: Graceful chunk loading error recovery
 - **Role-Based Rendering**: Dynamic UI based on user permissions
 - **Optimistic Updates**: Immediate UI feedback with rollback capability
+- **Design System**: Comprehensive design tokens and component library
 
 ## 🔧 Advanced Configuration
 
@@ -403,5 +405,123 @@ docker-compose logs -f db
 **Proprietary - Lafarge Internal Use Only**
 
 This software is proprietary to Lafarge and is intended solely for internal business operations. Unauthorized copying, distribution, or use is strictly prohibited.
+
+---
+
+## 🎨 Design System
+
+### Overview
+The Lafarge Employee Dashboard features a comprehensive design system built with modern web technologies to ensure consistency, accessibility, and superior user experience.
+
+#### Key Features
+- 🎯 **Brand-aligned colors** - Professional Lafarge-inspired palette
+- ⚡ **Rich animations** - 25+ micro-interactions and transitions
+- 🏗️ **Centralized tokens** - Consistent spacing, typography, and styling
+- 📱 **Responsive design** - Mobile-first approach with desktop enhancements
+- ♿ **Accessibility focused** - WCAG compliant color contrasts and interactions
+
+### Color Palette
+
+#### Brand Colors
+```css
+/* Primary (Brand Blue) - Main brand color */
+primary-500: #0ea5e9  /* Primary actions, links, focus states */
+primary-600: #0284c7  /* Hover states */
+primary-700: #0369a1  /* Active states */
+
+/* Secondary (Accent Yellow) - Highlights and warnings */
+secondary-500: #eab308  /* Highlights, badges */
+secondary-600: #ca8a04  /* Hover states */
+
+/* Accent (Success Green) - Success states */
+accent-500: #22c55e   /* Success messages, confirmations */
+accent-600: #16a34a   /* Hover states */
+```
+
+#### Semantic Colors
+- **Success**: `success-50` through `success-900` - Successful operations, confirmations
+- **Warning**: `warning-50` through `warning-900` - Alerts, cautions, important notices  
+- **Error**: `error-50` through `error-900` - Error states, destructive actions
+- **Info**: `info-50` through `info-900` - Informational messages, tips
+
+### Animation Library
+
+#### Fade Animations
+```html
+<div class="animate-fadeIn">Content appears smoothly</div>
+<div class="animate-fadeInUp">Slides up while fading in</div>
+<div class="animate-fadeInFast">Quick fade (300ms)</div>
+```
+
+#### Interactive Animations
+```html
+<button class="hover:animate-buttonHover">Lifts on hover</button>
+<div class="hover:animate-cardHover">Card with lift effect</div>
+<div class="animate-shake">Shakes for errors</div>
+```
+
+#### Scale & Slide Animations
+```html
+<div class="animate-scaleIn">Grows from center</div>
+<div class="animate-slideInRight">Slides from right</div>
+<div class="animate-bounceIn">Bounces into view</div>
+```
+
+### Typography
+```css
+/* Font families */
+font-sans: Inter, system-ui, sans-serif       /* Primary font */
+font-mono: JetBrains Mono, Menlo, monospace   /* Code and data */
+font-display: Cal Sans, Inter, system-ui      /* Headlines */
+```
+
+### Usage Examples
+
+#### Buttons with Brand Colors
+```html
+<!-- Primary action -->
+<button class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition-colors duration-fast">
+  Save Changes
+</button>
+
+<!-- Success action -->
+<button class="bg-success-500 hover:bg-success-600 text-white px-4 py-2 rounded-lg animate-fadeIn">
+  Confirm
+</button>
+```
+
+#### Cards with Enhanced Styling
+```html
+<div class="bg-white rounded-xl shadow-soft p-6 hover:shadow-strong hover:animate-cardHover transition-all duration-normal">
+  <h3 class="text-lg font-semibold text-gray-900 mb-4">Enhanced Card</h3>
+  <p class="text-gray-600">Beautiful, consistent styling.</p>
+</div>
+```
+
+#### Form Inputs with Focus States
+```html
+<input 
+  type="text" 
+  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 transition-colors duration-fast"
+  placeholder="Enhanced input styling"
+>
+```
+
+### Design System Files
+- **`src/design-system/tokens.js`** - Centralized design tokens
+- **`src/design-system/animations.js`** - Animation library
+- **`src/design-system/index.js`** - Main export and utilities
+- **`src/design-system/README.md`** - Detailed documentation
+
+### Customization
+The design system is fully integrated with Tailwind CSS and can be extended:
+
+```javascript
+// Access design tokens programmatically
+import designSystem from '@/design-system';
+
+const primaryColor = designSystem.getColor('primary.500');
+const fadeAnimation = designSystem.getAnimation('fadeIn');
+```
 
 ---
