@@ -214,7 +214,7 @@ const ReportEntryList = ({
             <thead className="bg-gradient-to-r from-slate-700 to-slate-800">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Time Range</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Client Info</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[200px]">Client Info</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Order Info</th>
                 {!isLimitedView && <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Product Discussion</th>}
               </tr>

@@ -52,15 +52,19 @@ const AllEmployeePayroll = () => {
           flex-col
           items-center
           space-y-1
-          bg-blue-600
+          bg-gradient-to-br
+          from-slate-600
+          to-emerald-600
           text-white
           px-3
           py-4
           rounded-lg
           shadow-lg
-          hover:bg-blue-700
+          hover:from-slate-700
+          hover:to-emerald-700
           hover:shadow-xl
-          transition
+          transition-all
+          duration-200
           cursor-pointer
           z-50
         "
