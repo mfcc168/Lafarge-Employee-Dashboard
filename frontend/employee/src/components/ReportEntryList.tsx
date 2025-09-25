@@ -253,9 +253,11 @@ const ReportEntryList = ({
 
                     {/* Client Information */}
                     <td className="px-6 py-4">
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-600 text-xs uppercase font-semibold tracking-wide">{entry.client_type}:</span>
+                          <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                            {entry.client_type === 'doctor' ? 'Doctor' : entry.client_type === 'nurse' ? 'Nurse' : entry.client_type}
+                          </span>
                           <span className="text-slate-800 font-medium">{entry.doctor_name}</span>
                         </div>
                         {entry.new_client && (
@@ -271,23 +273,29 @@ const ReportEntryList = ({
 
                     {/* Order Information */}
                     <td className="px-6 py-4">
-                      <div className="space-y-2 text-sm">
+                      <div className="space-y-3 text-sm">
                         {entry.orders && (
-                          <div className="flex items-start gap-2">
-                            <span className="text-slate-500 font-medium min-w-0">Orders:</span>
-                            <span className="text-slate-700">{entry.orders}</span>
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                              Orders
+                            </span>
+                            <p className="text-slate-700 ml-1">{entry.orders}</p>
                           </div>
                         )}
                         {entry.tel_orders && (
-                          <div className="flex items-start gap-2">
-                            <span className="text-slate-500 font-medium min-w-0">Tel Orders:</span>
-                            <span className="text-slate-700">{entry.tel_orders}</span>
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                              Tel Orders
+                            </span>
+                            <p className="text-slate-700 ml-1">{entry.tel_orders}</p>
                           </div>
                         )}
                         {entry.samples && (
-                          <div className="flex items-start gap-2">
-                            <span className="text-slate-500 font-medium min-w-0">Samples:</span>
-                            <span className="text-slate-700">{entry.samples}</span>
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                              Samples
+                            </span>
+                            <p className="text-slate-700 ml-1">{entry.samples}</p>
                           </div>
                         )}
                       </div>
@@ -296,23 +304,29 @@ const ReportEntryList = ({
                     {/* Product Discussion (hidden for limited view) */}
                     {!isLimitedView && (
                       <td className="px-6 py-4">
-                        <div className="space-y-2 text-sm">
+                        <div className="space-y-3 text-sm">
                           {entry.new_product_intro && (
-                            <div className="flex items-start gap-2">
-                              <span className="text-slate-500 font-medium min-w-0">Intro:</span>
-                              <span className="text-slate-700">{entry.new_product_intro}</span>
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                                New Product Intro
+                              </span>
+                              <p className="text-slate-700 ml-1">{entry.new_product_intro}</p>
                             </div>
                           )}
                           {entry.old_product_followup && (
-                            <div className="flex items-start gap-2">
-                              <span className="text-slate-500 font-medium min-w-0">Follow-up:</span>
-                              <span className="text-slate-700">{entry.old_product_followup}</span>
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                                Follow-up
+                              </span>
+                              <p className="text-slate-700 ml-1">{entry.old_product_followup}</p>
                             </div>
                           )}
                           {entry.delivery_time_update && (
-                            <div className="flex items-start gap-2">
-                              <span className="text-slate-500 font-medium min-w-0">Delivery:</span>
-                              <span className="text-slate-700">{entry.delivery_time_update}</span>
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                                Delivery Update
+                              </span>
+                              <p className="text-slate-700 ml-1">{entry.delivery_time_update}</p>
                             </div>
                           )}
                         </div>
