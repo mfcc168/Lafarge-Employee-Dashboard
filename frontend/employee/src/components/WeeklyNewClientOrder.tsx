@@ -196,9 +196,11 @@ const WeeklyNewClientOrder = ({
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-600 text-xs uppercase font-semibold tracking-wide">{e.client_type}:</span>
+                          <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                            {e.client_type === 'doctor' ? 'Doctor' : e.client_type === 'nurse' ? 'Nurse' : e.client_type}
+                          </span>
                           <span className="text-slate-800 font-medium">{e.doctor_name}</span>
                         </div>
                         <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
@@ -210,23 +212,29 @@ const WeeklyNewClientOrder = ({
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="space-y-2 text-sm">
+                      <div className="space-y-3 text-sm">
                         {e.orders && (
-                          <div className="flex items-start gap-2">
-                            <span className="text-slate-500 font-medium min-w-0">Orders:</span>
-                            <span className="text-slate-700">{e.orders}</span>
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                              Orders
+                            </span>
+                            <p className="text-slate-700 ml-1">{e.orders}</p>
                           </div>
                         )}
                         {e.tel_orders && (
-                          <div className="flex items-start gap-2">
-                            <span className="text-slate-500 font-medium min-w-0">Tel Orders:</span>
-                            <span className="text-slate-700">{e.tel_orders}</span>
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                              Tel Orders
+                            </span>
+                            <p className="text-slate-700 ml-1">{e.tel_orders}</p>
                           </div>
                         )}
                         {e.samples && (
-                          <div className="flex items-start gap-2">
-                            <span className="text-slate-500 font-medium min-w-0">Samples:</span>
-                            <span className="text-slate-700">{e.samples}</span>
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                              Samples
+                            </span>
+                            <p className="text-slate-700 ml-1">{e.samples}</p>
                           </div>
                         )}
                       </div>

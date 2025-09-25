@@ -195,9 +195,11 @@ const WeeklySamplesSummary = ({
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-600 text-xs uppercase font-semibold tracking-wide">{e.client_type}:</span>
+                          <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                            {e.client_type === 'doctor' ? 'Doctor' : e.client_type === 'nurse' ? 'Nurse' : e.client_type}
+                          </span>
                           <span className="text-slate-800 font-medium">{e.doctor_name}</span>
                         </div>
                         {e.new_client && (
@@ -211,7 +213,12 @@ const WeeklySamplesSummary = ({
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="whitespace-pre-line text-slate-700 text-sm leading-relaxed">{e.samples}</div>
+                      <div className="space-y-1">
+                        <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                          Samples
+                        </span>
+                        <div className="whitespace-pre-line text-slate-700 text-sm leading-relaxed ml-1">{e.samples}</div>
+                      </div>
                     </td>
                   </tr>
                 ))
