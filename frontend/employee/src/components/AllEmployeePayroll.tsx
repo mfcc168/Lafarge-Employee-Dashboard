@@ -36,39 +36,29 @@ const AllEmployeePayroll = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* Page title */}
-      <h1 className="text-2xl font-bold text-gray-800">All Employee Payrolls</h1>
-      {/* Print button (fixed position) */}
-      <button
-        onClick={() => handleViewPayrollPDF()}
-        className="
-          fixed
-          top-1/2
-          right-4
-          transform
-          -translate-y-1/2
-          flex
-          flex-col
-          items-center
-          space-y-1
-          bg-blue-600
-          text-white
-          px-3
-          py-4
-          rounded-lg
-          shadow-lg
-          hover:bg-blue-700
-          hover:shadow-xl
-          transition
-          cursor-pointer
-          z-50
-        "
-        aria-label="Print Payslip"
-        title="Print Payslip"
-      >
-        <Printer size={24} />
-      </button>
+    <div className="space-y-8">
+      {/* Enhanced Header */}
+      <div className="flex items-center gap-4 mb-8">
+        <div className="w-12 h-12 bg-gradient-to-br from-slate-600 to-emerald-600 rounded-xl flex items-center justify-center shadow-md">
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800 font-display">All Employee Payrolls</h1>
+          <p className="text-slate-500 font-medium">Manage employee compensation and benefits</p>
+        </div>
+        {/* Print button */}
+        <button
+          onClick={() => handleViewPayrollPDF()}
+          className="ml-auto flex items-center gap-2 bg-gradient-to-br from-slate-600 to-emerald-600 hover:from-slate-700 hover:to-emerald-700 text-white px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
+          aria-label="Print All Payslips"
+          title="Print All Payslips"
+        >
+          <Printer size={20} />
+          <span className="font-medium">Print All</span>
+        </button>
+      </div>
 
       {/* Map through each employee profile to create payroll cards */}
       {profiles.map((profile) => {
@@ -102,37 +92,54 @@ const AllEmployeePayroll = () => {
         const isExpanded = expandedId === profile.id;
 
         return (
-          // Employee payroll card container
+          // Enhanced Employee payroll card container
           <div
             key={profile.id}
-            className="bg-white rounded-lg shadow-md overflow-hidden"
+            className="bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-300 overflow-hidden border border-slate-100"
           >
             {/* Clickable header to expand/collapse payroll details */}
             <button
               onClick={() => toggleExpand(profile.id)}
-              className="flex items-center justify-between w-full px-6 py-4 text-left bg-gray-50 hover:bg-gray-100"
+              className="flex items-center justify-between w-full px-8 py-6 text-left bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 transition-all duration-200"
             >
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-gray-800">
-                    {profile.user.first_name} {profile.user.last_name}
-                  </p>
-                  {!profile.is_active && (
-                    <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
-                      Inactive
-                    </span>
-                  )}
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-slate-600 to-emerald-600 rounded-xl flex items-center justify-center text-white shadow-md">
+                  {/* Universal person icon for all roles */}
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
                 </div>
-                <p className="text-sm text-gray-600">{profile.role}</p>
+                <div>
+                  <div className="flex items-center gap-3">
+                    <p className="font-bold text-slate-800 text-lg">
+                      {profile.user.last_name} {profile.user.first_name}
+                    </p>
+                    {!profile.is_active && (
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">
+                        Inactive
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-slate-100 text-slate-700 rounded-lg">
+                      {profile.role}
+                    </span>
+                    <span className="text-sm text-slate-500 font-medium">
+                      Net: ${netPayment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="text-gray-500">
-                {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              <div className="flex items-center gap-2">
+                <div className="text-slate-400">
+                  {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </div>
               </div>
             </button>
             
             {/* Expanded payroll details (shown when profile is expanded) */}
             {isExpanded && (
-              <div className="p-6 bg-white border-t border-gray-200">
+              <div className="p-8 bg-white border-t border-slate-200">
                 <PayrollInformation
                   salaryData={salaryData}
                   grossPayment={grossPayment}

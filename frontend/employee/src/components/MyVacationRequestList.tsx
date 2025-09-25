@@ -77,8 +77,8 @@ const MyVacationRequestList = () => {
           <button
             className={`px-6 py-2 rounded-xl text-sm font-medium transition ${
               activeTab === 'pending'
-                ? 'bg-white shadow text-blue-600'
-                : 'text-gray-500 hover:text-blue-600'
+                ? 'bg-white shadow text-emerald-600'
+                : 'text-gray-500 hover:text-emerald-600'
             }`}
             onClick={() => setActiveTab('pending')}
           >
@@ -87,8 +87,8 @@ const MyVacationRequestList = () => {
           <button
             className={`px-6 py-2 rounded-xl text-sm font-medium transition ${
               activeTab === 'approvedOrRejected'
-                ? 'bg-white shadow text-blue-600'
-                : 'text-gray-500 hover:text-blue-600'
+                ? 'bg-white shadow text-emerald-600'
+                : 'text-gray-500 hover:text-emerald-600'
             }`}
             onClick={() => setActiveTab('approvedOrRejected')}
           >
@@ -131,10 +131,10 @@ const MyVacationRequestList = () => {
               <p
                 className={`text-xs font-semibold uppercase tracking-wide ${
                   req.status === 'approved'
-                    ? 'text-green-600'
+                    ? 'text-emerald-600'
                     : req.status === 'rejected'
                     ? 'text-red-500'
-                    : 'text-yellow-600'
+                    : 'text-amber-600'
                 }`}
               >
                 {req.status}

@@ -41,7 +41,7 @@ const Client = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-600 border-t-transparent"></div>
       </div>
     );
   }
@@ -103,58 +103,80 @@ const Client = () => {
   const paginate = (page: number) => setCurrentPage(page);
 
   return (
-    <main className="min-h-screen bg-white p-8 md:p-12">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-          <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Clients</h1>
-
-          <div className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto">
-            <input
-              type="search"
-              placeholder="Search clients..."
-              className="w-full sm:w-72 px-5 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm transition"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-            {/* Salesman filter dropdown */}
-            {!isSalesman && 
-            <select
-              className="w-full sm:w-56 px-5 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm transition bg-white cursor-pointer"
-              value={selectedSalesman}
-              onChange={(e) => {
-                setSelectedSalesman(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="all">All Salesmen</option>
-              {salesmanList.map((name: string) => (
-                <option key={name} value={name}>
-                  {salesmenAliases[name] || name}
-                </option>
-              ))}
-            </select>
-            }
+    <div className="min-h-screen space-y-8 animate-fadeIn">
+      {/* Client Header */}
+      <div className="bg-gradient-to-r from-slate-700 to-emerald-600 rounded-2xl p-8 text-white shadow-soft animate-fadeInDown">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold font-display mb-2">Client Directory</h1>
+            <p className="text-slate-100 text-lg">Manage and search through client information</p>
           </div>
-        </header>
+          <div className="hidden md:block">
+            <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        <section className="mb-8 text-sm text-gray-600">
-          Showing{" "}
-          <span className="font-semibold">
-            {filteredClients.length === 0 ? 0 : indexOfFirstClient + 1}
-          </span>{" "}
-          -{" "}
-          <span className="font-semibold">
-            {Math.min(indexOfLastClient, filteredClients.length)}
-          </span>{" "}
-          of <span className="font-semibold">{filteredClients.length}</span> clients
-        </section>
+      <div className="bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-normal p-8 border border-gray-100 animate-scaleIn">
+        <div className="space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto">
+              <input
+                type="search"
+                placeholder="Search clients..."
+                className="w-full sm:w-72 px-5 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-slate-500 focus:outline-none shadow-sm transition"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+              {/* Salesman filter dropdown */}
+              {!isSalesman && 
+                <select
+                  className="w-full sm:w-56 px-5 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-slate-500 focus:outline-none shadow-sm transition bg-white cursor-pointer"
+                  value={selectedSalesman}
+                  onChange={(e) => {
+                    setSelectedSalesman(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="all">All Salesmen</option>
+                  {salesmanList.map((name: string) => (
+                    <option key={name} value={name}>
+                      {salesmenAliases[name] || name}
+                    </option>
+                  ))}
+                </select>
+              }
+            </div>
+          </div>
+
+          <div className="text-sm text-slate-600 bg-slate-50 px-4 py-2 rounded-lg">
+            Showing{" "}
+            <span className="font-semibold text-slate-800">
+              {filteredClients.length === 0 ? 0 : indexOfFirstClient + 1}
+            </span>{" "}
+            -{" "}
+            <span className="font-semibold text-slate-800">
+              {Math.min(indexOfLastClient, filteredClients.length)}
+            </span>{" "}
+            of <span className="font-semibold text-slate-800">{filteredClients.length}</span> clients
+          </div>
+        </div>
 
         {currentClients.length === 0 ? (
-          <div className="py-24 bg-gray-50 rounded-xl shadow-md text-center text-gray-500 text-lg select-none">
-            No clients match your criteria.
+          <div className="py-24 bg-slate-50 rounded-xl shadow-soft text-center text-slate-500 text-lg select-none border border-slate-200">
+            <div className="flex flex-col items-center space-y-4">
+              <svg className="w-16 h-16 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <p>No clients match your criteria.</p>
+            </div>
           </div>
         ) : (
           <ul className="space-y-8">
@@ -192,21 +214,21 @@ const Client = () => {
                         <span className="flex items-center gap-3 font-medium">
                           <span
                             className={`inline-block w-5 h-5 rounded-full ${
-                              entry.client_type === "doctor" ? "bg-blue-600" : "bg-green-600"
+                              entry.client_type === "doctor" ? "bg-slate-600" : "bg-emerald-600"
                             }`}
                           />
                           {entry.client_type === "doctor" ? "Doctor" : "Nurse"}
                         </span>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <span className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-4 py-1 rounded-full select-none">
+                        <span className="inline-block bg-slate-100 text-slate-700 text-xs font-semibold px-4 py-1 rounded-full select-none">
                           {salesmenAliases[entry.salesman_name] || entry.salesman_name}
                         </span>
                       </div>
 
                       <div className="flex flex-wrap gap-3 sm:justify-end max-w-xs">
                         {entry.new_product_intro && (
-                          <span className="bg-green-100 text-green-800 text-xs px-4 py-1 rounded-full font-semibold select-none">
+                          <span className="bg-emerald-100 text-emerald-800 text-xs px-4 py-1 rounded-full font-semibold select-none">
                             Product Intro: {entry.new_product_intro}
                           </span>
                         )}
@@ -239,8 +261,8 @@ const Client = () => {
             disabled={currentPage === 1}
             className={`px-5 py-2 rounded-l-xl border border-gray-300 ${
               currentPage === 1
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-white text-gray-700 hover:bg-gray-50"
+                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                : "bg-white text-slate-700 hover:bg-slate-50"
             } transition`}
             aria-label="First Page"
           >
@@ -281,7 +303,7 @@ const Client = () => {
                 aria-current={currentPage === number ? "page" : undefined}
                 className={`px-5 py-2 border-t border-b border-gray-300 ${
                   currentPage === number
-                    ? "bg-blue-600 text-white font-semibold"
+                    ? "bg-slate-600 text-white font-semibold"
                     : "bg-white text-gray-700 hover:bg-gray-50"
                 } transition`}
               >
@@ -318,9 +340,8 @@ const Client = () => {
             {">>"}
           </button>
         </nav>
-
       </div>
-    </main>
+    </div>
   );
 };
 

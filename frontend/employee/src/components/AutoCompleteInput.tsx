@@ -144,7 +144,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = (props) => {
             <li
               key={idx}
               onMouseDown={() => handleSuggestionClick(suggestion)}
-              className="cursor-pointer px-3 py-1 hover:bg-indigo-100"
+              className="cursor-pointer px-3 py-1 hover:bg-slate-100"
             >
               {suggestion}
             </li>

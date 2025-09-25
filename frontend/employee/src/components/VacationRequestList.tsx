@@ -125,8 +125,8 @@ const VacationRequestList = () => {
   }, [requests]);
   
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8 bg-white rounded-3xl shadow-2xl mt-12">
-      <h2 className="text-3xl font-bold text-gray-800 mb-8 text-center">Vacation Requests</h2>
+    <div className="max-w-5xl mx-auto px-8 py-8 bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-normal border border-gray-100 animate-scaleIn">
+      <h2 className="text-3xl font-bold text-slate-800 mb-8 text-center font-display">Vacation Requests</h2>
 
       {/* Status Filter Tabs */}
       <div className="flex justify-center mb-8">
@@ -136,8 +136,8 @@ const VacationRequestList = () => {
             aria-selected={activeTab === 'pendingOrRejected'}
             className={`px-6 py-2 rounded-xl text-sm font-medium transition ${
               activeTab === 'pendingOrRejected'
-                ? 'bg-white shadow text-blue-600'
-                : 'text-gray-500 hover:text-blue-600'
+                ? 'bg-white shadow text-emerald-600'
+                : 'text-gray-500 hover:text-emerald-600'
             }`}
             onClick={() => setActiveTab('pendingOrRejected')}
           >
@@ -148,8 +148,8 @@ const VacationRequestList = () => {
             aria-selected={activeTab === 'approvedOrRejected'}
             className={`px-6 py-2 rounded-xl text-sm font-medium transition ${
               activeTab === 'approvedOrRejected'
-                ? 'bg-white shadow text-blue-600'
-                : 'text-gray-500 hover:text-blue-600'
+                ? 'bg-white shadow text-emerald-600'
+                : 'text-gray-500 hover:text-emerald-600'
             }`}
             onClick={() => setActiveTab('approvedOrRejected')}
           >
@@ -161,10 +161,10 @@ const VacationRequestList = () => {
       {/* Content Area */}
       {isLoading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-slate-600" />
         </div>
       ) : isError ? (
-        <p className="text-center text-red-600">Failed to fetch vacation requests.</p>
+        <p className="text-center text-error-600">Failed to fetch vacation requests.</p>
       ) : filteredRequests && filteredRequests.length === 0 ? (
         <p className="text-center text-gray-500">No vacation requests found for this tab.</p>
       ) : (
@@ -172,7 +172,7 @@ const VacationRequestList = () => {
           {filteredRequests?.map((req) => (
             <div 
               key={req.id} 
-              className="bg-white border border-gray-200 rounded-2xl p-6 shadow hover:shadow-md transition"
+              className="bg-white border border-gray-200 rounded-2xl p-6 shadow-soft hover:shadow-strong transition-all duration-normal"
               aria-labelledby={`request-${req.id}-title`}
             >
               <div className="mb-3">
@@ -194,9 +194,9 @@ const VacationRequestList = () => {
                 <p
                   className={`text-xs font-semibold uppercase tracking-wide ${
                     req.status === 'approved'
-                      ? 'text-green-600'
+                      ? 'text-emerald-600'
                       : req.status === 'rejected'
-                      ? 'text-red-500'
+                      ? 'text-error-500'
                       : 'text-gray-400'
                   }`}
                   aria-label={`Status: ${req.status}`}
@@ -207,24 +207,23 @@ const VacationRequestList = () => {
 
               {/* Action Buttons for Pending Requests */}
               {req.status === 'pending' && (
-                <div className="mt-4 flex gap-3">
+                <div className="mt-6 flex gap-3">
                   <button
                     onClick={() => handleApproveReject(req.id, 'approved')}
-                    className="flex items-center justify-center px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white text-sm font-medium transition-all duration-fast shadow-md hover:shadow-lg disabled:opacity-50 transform hover:scale-105"
                     disabled={mutation.isPending}
                     aria-label={`Approve request from ${req.employee}`}
                   >
                     {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Approve'}
                   </button>
-                  {/* Uncomment to enable reject functionality
                   <button
                     onClick={() => handleApproveReject(req.id, 'rejected')}
-                    className="flex items-center justify-center px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-slate-600 to-error-600 hover:from-slate-700 hover:to-error-700 text-white text-sm font-medium transition-all duration-fast shadow-md hover:shadow-lg disabled:opacity-50 transform hover:scale-105"
                     disabled={mutation.isPending}
                     aria-label={`Reject request from ${req.employee}`}
                   >
                     {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reject'}
-                  </button> */}
+                  </button>
                 </div>
               )}
             </div>

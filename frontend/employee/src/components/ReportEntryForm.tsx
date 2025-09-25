@@ -126,7 +126,7 @@ const ReportEntryForm = () => {
           onClick={() => setCurrentPage(currentPage + 1)}
           disabled={currentPage >= sortedDates.length - 1}
           className={`flex items-center justify-center p-3 rounded-full transition 
-            ${currentPage >= sortedDates.length - 1 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700"}
+            ${currentPage >= sortedDates.length - 1 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-slate-600 text-white hover:bg-slate-700"}
           `}
           aria-label="Prev date"
           title="Prev Date"
@@ -142,7 +142,7 @@ const ReportEntryForm = () => {
           onClick={() => setCurrentPage(currentPage - 1)}
           disabled={currentPage === 0}
           className={`flex items-center justify-center p-3 rounded-full transition 
-            ${currentPage === 0 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700"}
+            ${currentPage === 0 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-slate-600 text-white hover:bg-slate-700"}
           `}
           aria-label="Next date"
           title="Next Date"
@@ -162,7 +162,7 @@ const ReportEntryForm = () => {
           <div
             key={entry.id || `new-${index}`}
             className={`entry-container rounded-lg shadow-md overflow-hidden border-l-4 ${
-              entry.id ? "border-yellow-400" : "border-green-500"
+              entry.id ? "border-emerald-400" : "border-emerald-500"
             }`}
           >
             <div className="overflow-x-auto max-w-full">
@@ -187,7 +187,7 @@ const ReportEntryForm = () => {
                         type="text"
                         value={entry.time_range}
                         onChange={(e) => handleChange(index, 'time_range', e.target.value)}
-                        className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         onFocus={() => handleFocus(index)}
                       />
                     </td>
@@ -196,7 +196,7 @@ const ReportEntryForm = () => {
                         value={entry.doctor_name}
                         onChange={(e) => handleChange(index, 'doctor_name', e.target.value)}
                         suggestions={doctorNameSuggestions}
-                        className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         inputProps={{ 
                           maxLength: 20,
                           onFocus: () => handleFocus(index)
@@ -208,7 +208,7 @@ const ReportEntryForm = () => {
                         value={entry.district}
                         onChange={(e) => handleChange(index, 'district', e.target.value)}
                         suggestions={districtSuggestions}
-                        className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         inputProps={{ 
                           maxLength: 20,
                           onFocus: () => handleFocus(index)
@@ -220,7 +220,7 @@ const ReportEntryForm = () => {
                       <textarea
                         value={entry.orders}
                         onChange={(e) => {handleChange(index, 'orders', e.target.value);adjustTextareaHeight(e);}}
-                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         rows={2}
                         onFocus={() => handleFocus(index)}
                       />
@@ -229,7 +229,7 @@ const ReportEntryForm = () => {
                       <textarea
                         value={entry.tel_orders}
                         onChange={(e) => {handleChange(index, 'tel_orders', e.target.value);adjustTextareaHeight(e);}}
-                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         rows={2}
                         onFocus={() => handleFocus(index)}
                       />
@@ -239,7 +239,7 @@ const ReportEntryForm = () => {
                         suggestions={getTelOrderSuggestions(entry.doctor_name)}
                         isTextarea={true}
                         openOnFocus={true}
-                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         textareaProps={{
                           onFocus: () => handleFocus(index)
                         }}
@@ -249,7 +249,7 @@ const ReportEntryForm = () => {
                       <textarea
                         value={entry.samples}
                         onChange={(e) => {handleChange(index, 'samples', e.target.value);adjustTextareaHeight(e);}}
-                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         rows={2}
                         onFocus={() => handleFocus(index)}
                       />
@@ -258,7 +258,7 @@ const ReportEntryForm = () => {
                       <textarea
                         value={entry.new_product_intro || ''}
                         onChange={(e) => {handleChange(index, 'new_product_intro', e.target.value);adjustTextareaHeight(e);}}
-                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         rows={2}
                         onFocus={() => handleFocus(index)}
                       />
@@ -267,7 +267,7 @@ const ReportEntryForm = () => {
                       <textarea
                         value={entry.old_product_followup || ''}
                         onChange={(e) => {handleChange(index, 'old_product_followup', e.target.value);adjustTextareaHeight(e);}}
-                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         rows={2}
                         onFocus={() => handleFocus(index)}
                       />
@@ -280,7 +280,7 @@ const ReportEntryForm = () => {
                       <select
                         value={entry.client_type}
                         onChange={(e) => handleChange(index, 'client_type', e.target.value as 'doctor' | 'nurse')}
-                        className="w-36 px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white bg-white"
+                        className="w-36 px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500 bg-white bg-white"
                         onFocus={() => handleFocus(index)}
                       >
                         <option value="doctor">Doctor</option>
@@ -293,7 +293,7 @@ const ReportEntryForm = () => {
                         type="checkbox"
                         checked={entry.new_client}
                         onChange={(e) => handleChange(index, 'new_client', e.target.checked)}
-                        className="ml-3 h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        className="ml-3 h-5 w-5 text-slate-600 focus:ring-slate-500 border-gray-300 rounded"
                         onFocus={() => handleFocus(index)}
                       />
                     </td>
@@ -307,7 +307,7 @@ const ReportEntryForm = () => {
               <button
                 onClick={() => handleSubmitEntry(index)}
                 disabled={submitting}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white ${entry.id ? "bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-400" : "bg-green-600 hover:bg-green-700 focus:ring-green-500"} shadow-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50`}>
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white ${entry.id ? "bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-400" : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"} shadow-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50`}>
                 <Save size={15} />
                 {submitting
                   ? entry.id
@@ -320,7 +320,7 @@ const ReportEntryForm = () => {
               <button
                 onClick={() => handleDelete(index)}
                 disabled={submitting}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-all duration-fast shadow-md hover:shadow-lg disabled:opacity-50 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <Trash2 size={15} />
                 Delete
@@ -334,7 +334,7 @@ const ReportEntryForm = () => {
         <button
           type="button"
           onClick={addEmptyEntry}
-          className="group relative inline-flex items-center justify-center p-3 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-gray-50"
+          className="group relative inline-flex items-center justify-center p-3 bg-gradient-to-br from-slate-600 to-emerald-600 hover:from-slate-700 hover:to-emerald-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-gray-50"
         >
           <Plus 
             size={18} 
@@ -355,7 +355,7 @@ const ReportEntryForm = () => {
         <button
           onClick={handleSubmitAllEntries}
           disabled={submitting}
-          className="inline-flex items-center gap-2 px-5 py-3 bg-green-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 transition"
+          className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 transition"
         >
           <SaveAll size={15} />
           {submitting ? "Saving All..." : "Save All"}

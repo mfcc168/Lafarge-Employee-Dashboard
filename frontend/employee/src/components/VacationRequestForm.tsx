@@ -23,11 +23,12 @@ const VacationRequestForm = () => {
   } = useVacationRequestForm();
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8 bg-white rounded-3xl shadow-2xl mt-12">
+    <div className="max-w-4xl mx-auto px-8 py-10 bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-normal mt-12 animate-fadeInUp border border-gray-100">
       {/* Form Header */}
-      <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-        Vacation Request
-      </h2>
+      <div className="mb-8 animate-fadeIn">
+        <h2 className="text-3xl font-bold text-slate-800 mb-2 font-display">Vacation Request</h2>
+        <p className="text-slate-600">Submit your vacation request with flexible date options</p>
+      </div>
 
       {/* Date Items Section */}
       <div className="space-y-4">
@@ -40,7 +41,7 @@ const VacationRequestForm = () => {
           return (
             <div
               key={index}
-              className="border border-gray-200 p-4 rounded-xl bg-gray-50 shadow-sm"
+              className="border border-gray-200 p-6 rounded-xl bg-gradient-to-r from-gray-50 to-emerald-50/30 shadow-sm hover:shadow-md transition-all duration-fast animate-scaleIn"
             >
               {/* Vacation Type Selector */}
               <div className="flex items-center justify-between mb-3">
@@ -55,7 +56,7 @@ const VacationRequestForm = () => {
                         : { type: 'half', single_date: '', half_day_period: 'AM' }
                     );
                   }}
-                  className="bg-white border border-gray-300 rounded px-3 py-1 text-sm"
+                  className="bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-20 transition-colors duration-fast font-medium"
                   aria-label="Vacation type"
                 >
                   <option value="full">Full Day</option>
@@ -70,7 +71,7 @@ const VacationRequestForm = () => {
                       leave_type: e.target.value as 'Annual Leave' | 'Sick Leave'
                     })
                   }}
-                  className="bg-white border border-gray-300 rounded px-3 py-1 text-sm"
+                  className="bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-20 transition-colors duration-fast font-medium"
                   aria-label="Vacation type"
                 >
                   <option value="Annual Leave">Annual Leave</option>
@@ -95,7 +96,7 @@ const VacationRequestForm = () => {
                           from_date: e.target.value,
                         })
                       }
-                      className="bg-white w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="bg-white w-full px-2 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                       aria-required="true"
                     />
                   </div>
@@ -113,7 +114,7 @@ const VacationRequestForm = () => {
                           to_date: e.target.value,
                         })
                       }
-                      className="bg-white w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="bg-white w-full px-2 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                       aria-required="true"
                       min={item.from_date} // Prevent selecting end date before start date
                     />
@@ -134,7 +135,7 @@ const VacationRequestForm = () => {
                           single_date: e.target.value,
                         })
                       }
-                      className="bg-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="bg-white w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                       aria-required="true"
                     />
                   </div>
@@ -149,7 +150,7 @@ const VacationRequestForm = () => {
                           half_day_period: e.target.value as 'AM' | 'PM',
                         })
                       }
-                      className="bg-white w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="bg-white w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                       aria-label="Half day period"
                     >
                       <option value="AM">AM</option>
@@ -162,7 +163,7 @@ const VacationRequestForm = () => {
               {/* Remove Item Button */}
               <button
                 onClick={() => removeItem(index)}
-                className="mt-4 flex items-center text-sm text-red-600 hover:underline"
+                className="mt-4 flex items-center text-sm text-error-600 hover:text-error-700 hover:underline transition-colors duration-fast"
                 aria-label={`Remove vacation item ${index + 1}`}
               >
                 <Trash2 className="w-4 h-4 mr-1" />
@@ -177,7 +178,7 @@ const VacationRequestForm = () => {
       <div className="flex flex-wrap gap-6 mt-6 items-center justify-between">
         <button
           onClick={addItem}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white text-sm font-medium transition-all duration-fast shadow-md hover:shadow-lg transform hover:scale-105"
           aria-label="Add another vacation date"
         >
           <Plus className="w-4 h-4" />
@@ -186,7 +187,7 @@ const VacationRequestForm = () => {
 
         <button
           onClick={handleSubmit}
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white text-sm font-medium transition-all duration-fast shadow-md hover:shadow-lg disabled:opacity-50 transform hover:scale-105"
           disabled={submitting}
           aria-label="Submit vacation request"
         >
@@ -204,20 +205,20 @@ const VacationRequestForm = () => {
       {/* Vacation Day Summary */}
       {typeof getVacationDayLeft === 'number' && (
         <div className="mt-6">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4 border-b border-gray-300 pb-2">
+          <h3 className="text-xl font-semibold text-slate-800 mb-4 border-b border-slate-300 pb-2">
             Vacation Summary
           </h3>
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm text-slate-600 mt-2">
             Total Requested:{' '}
-            <span className="font-semibold text-blue-600">
+            <span className="font-semibold text-emerald-600">
               {getTotalVacationDay}
             </span>{' '}
             {getTotalVacationDay === 1 ? 'day' : 'days'}
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-slate-600">
             You have{' '}
             <span
-              className={getVacationDayLeft < 0 ? 'text-red-600' : 'text-green-600'}
+              className={getVacationDayLeft < 0 ? 'text-error-600' : 'text-emerald-600'}
             >
               {getVacationDayLeft}
             </span>{' '}

@@ -79,8 +79,22 @@ const EmployeeDetail = () => {
 
   if (!hasPermission) {
     return (
-      <div className="max-w-md mx-auto mt-6 text-red-600 font-semibold text-center">
-        You do not have permission to access this page.
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 animate-fadeIn">
+        <div className="max-w-md w-full bg-white shadow-soft rounded-2xl p-8 animate-scaleIn border border-gray-100 text-center">
+          <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-error-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Access Denied</h2>
+          <p className="text-slate-600 mb-6">You do not have permission to access this page.</p>
+          <button 
+            onClick={() => navigate("/")}
+            className="w-full py-3 px-6 bg-slate-600 text-white rounded-xl hover:bg-slate-700 transition-all duration-fast font-medium shadow-md hover:shadow-lg"
+          >
+            Go to Home
+          </button>
+        </div>
       </div>
     );
   }
@@ -91,35 +105,61 @@ const EmployeeDetail = () => {
 
   if (error || !employee) {
     return (
-      <div className="max-w-md mx-auto mt-6 text-red-600 text-center">
-        <p>Error loading employee details.</p>
-        <button 
-          onClick={() => navigate("/employees")}
-          className="mt-4 text-blue-600 hover:text-blue-800"
-        >
-          Back to Employees
-        </button>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 animate-fadeIn">
+        <div className="max-w-md w-full bg-white shadow-soft rounded-2xl p-8 animate-scaleIn border border-gray-100 text-center">
+          <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-error-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Error</h2>
+          <p className="text-slate-600 mb-6">Error loading employee details.</p>
+          <button 
+            onClick={() => navigate("/employees")}
+            className="w-full py-3 px-6 bg-slate-600 text-white rounded-xl hover:bg-slate-700 transition-all duration-fast font-medium shadow-md hover:shadow-lg"
+          >
+            Back to Employees
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="min-h-screen space-y-8 animate-fadeIn">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate("/employees")}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="text-2xl font-bold text-gray-800">Employee Details</h1>
+      <div className="bg-gradient-to-r from-slate-700 to-emerald-600 rounded-2xl p-8 text-white shadow-soft animate-fadeInDown">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate("/employees")}
+              className="p-2 rounded-xl hover:bg-white/20 transition-colors backdrop-blur-sm"
+            >
+              <ArrowLeft size={20} className="text-white" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold font-display mb-2">Employee Details</h1>
+              <p className="text-slate-100 text-lg">Manage employee information and settings</p>
+            </div>
+          </div>
+          <div className="hidden md:block">
+            <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Content Container */}
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+        <div></div>
         {!isEditing && (
           <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-xl hover:bg-slate-700 transition-all duration-fast font-medium shadow-md hover:shadow-lg"
           >
             <Edit2 size={16} />
             Edit
@@ -127,8 +167,8 @@ const EmployeeDetail = () => {
         )}
       </div>
 
-      {/* Employee Info Card */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        {/* Employee Info Card */}
+        <div className="bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-normal p-8 border border-gray-100 animate-scaleIn">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">
@@ -139,7 +179,7 @@ const EmployeeDetail = () => {
           </div>
           <div className={`px-3 py-1 rounded-full text-sm ${
             employee.is_active 
-              ? "bg-green-100 text-green-700" 
+              ? "bg-emerald-100 text-emerald-700" 
               : "bg-red-100 text-red-700"
           }`}>
             {employee.is_active ? "Active" : "Inactive"}
@@ -159,7 +199,7 @@ const EmployeeDetail = () => {
                 value={formData.role || ""}
                 onChange={handleInputChange}
                 disabled={!isEditing}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 disabled:bg-gray-100"
               >
                 <option value="SALESMAN">Salesman</option>
                 <option value="CLERK">Clerk</option>
@@ -180,7 +220,7 @@ const EmployeeDetail = () => {
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 disabled:bg-gray-100"
               />
             </div>
 
@@ -196,7 +236,7 @@ const EmployeeDetail = () => {
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 disabled:bg-gray-100"
               />
             </div>
 
@@ -212,7 +252,7 @@ const EmployeeDetail = () => {
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 disabled:bg-gray-100"
               />
             </div>
 
@@ -228,7 +268,7 @@ const EmployeeDetail = () => {
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 disabled:bg-gray-100"
               />
             </div>
 
@@ -244,7 +284,7 @@ const EmployeeDetail = () => {
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 step="0.5"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 disabled:bg-gray-100"
               />
             </div>
 
@@ -257,7 +297,7 @@ const EmployeeDetail = () => {
                   checked={formData.is_mpf_exempt || false}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-slate-600 border-gray-300 rounded focus:ring-slate-500"
                 />
                 <span className="text-sm font-medium text-gray-700">
                   MPF Exempt
@@ -272,7 +312,7 @@ const EmployeeDetail = () => {
               <button
                 type="submit"
                 disabled={updateMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all duration-fast font-medium shadow-md hover:shadow-lg disabled:opacity-50"
               >
                 {updateMutation.isPending ? (
                   <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
@@ -295,7 +335,7 @@ const EmployeeDetail = () => {
                     role: employee.role,
                   });
                 }}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-slate-50 transition-all duration-fast font-medium"
               >
                 <X size={16} />
                 Cancel
@@ -303,6 +343,7 @@ const EmployeeDetail = () => {
             </div>
           )}
         </form>
+        </div>
       </div>
     </div>
   );
