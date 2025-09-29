@@ -161,71 +161,140 @@ const WeeklySamplesSummary = ({
           <p className="text-slate-400 text-sm mt-1">Try selecting a different week or salesman</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 shadow-sm">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-gradient-to-r from-slate-700 to-slate-800">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Time Range</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Client Info</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Samples</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-slate-100">
-              {isLoading ? (
-                // Loading skeleton
-                [...Array(5)].map((_, i) => (
-                  <SkeletonRow key={i} columns={4} />
-                ))
-              ) : (
-                // Data rows
-                filteredEntries.map((e: ReportEntry) => (
-                  <tr key={e.id} className="hover:bg-slate-50 transition-all duration-fast">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
-                        {format(parseISO(e.date), 'MMM dd')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-gradient-to-r from-slate-700 to-slate-800">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Time Range</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Client Info</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Samples</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-slate-100">
+                {isLoading ? (
+                  // Loading skeleton
+                  [...Array(5)].map((_, i) => (
+                    <SkeletonRow key={i} columns={4} />
+                  ))
+                ) : (
+                  // Data rows
+                  filteredEntries.map((e: ReportEntry) => (
+                    <tr key={e.id} className="hover:bg-slate-50 transition-all duration-fast">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
-                          {e.district}
+                          {format(parseISO(e.date), 'MMM dd')}
                         </span>
-                        <span className="text-slate-600 font-medium">{e.time_range}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-2">
+                      </td>
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
-                            {e.client_type === 'doctor' ? 'Doctor' : e.client_type === 'nurse' ? 'Nurse' : e.client_type}
+                            {e.district}
                           </span>
-                          <span className="text-slate-800 font-medium">{e.doctor_name}</span>
+                          <span className="text-slate-600 font-medium">{e.time_range}</span>
                         </div>
-                        {e.new_client && (
-                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
-                            <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            New Client
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                              {e.client_type === 'doctor' ? 'Doctor' : e.client_type === 'nurse' ? 'Nurse' : e.client_type}
+                            </span>
+                            <span className="text-slate-800 font-medium">{e.doctor_name}</span>
+                          </div>
+                          {e.new_client && (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
+                              <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                              </svg>
+                              New Client
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                            Samples
                           </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
-                          Samples
-                        </span>
-                        <div className="whitespace-pre-line text-slate-700 text-sm leading-relaxed ml-1">{e.samples}</div>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                          <div className="whitespace-pre-line text-slate-700 text-sm leading-relaxed ml-1">{e.samples}</div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-4">
+            {isLoading ? (
+              // Loading skeleton for mobile
+              [...Array(3)].map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 animate-pulse">
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <div className="h-6 bg-slate-200 rounded w-16"></div>
+                      <div className="h-6 bg-slate-200 rounded w-20"></div>
+                    </div>
+                    <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                    <div className="h-16 bg-slate-200 rounded"></div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              // Mobile cards
+              filteredEntries.map((e: ReportEntry) => (
+                <div
+                  key={e.id}
+                  className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 transition-all duration-200"
+                >
+                  {/* Date, Time and Location */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                      {format(parseISO(e.date), 'MMM dd')}
+                    </span>
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                      {e.district}
+                    </span>
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                      {e.time_range}
+                    </span>
+                  </div>
+
+                  {/* Client Information */}
+                  <div className="mb-4">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                        {e.client_type === 'doctor' ? 'Doctor' : e.client_type === 'nurse' ? 'Nurse' : e.client_type}
+                      </span>
+                      <span className="text-slate-800 font-medium">{e.doctor_name}</span>
+                    </div>
+                    {e.new_client && (
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
+                        <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        New Client
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Samples */}
+                  <div className="space-y-1">
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                      Samples
+                    </span>
+                    <div className="whitespace-pre-line text-slate-700 text-sm leading-relaxed">{e.samples}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
       )}
     </div>
   );
