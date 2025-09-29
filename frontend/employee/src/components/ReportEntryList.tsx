@@ -197,7 +197,7 @@ const ReportEntryList = ({
         </div>
       )}
 
-      {/* Main content table */}
+      {/* Main content */}
       {filteredEntries.length === 0 && !isLoading ? (
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -209,77 +209,207 @@ const ReportEntryList = ({
           <p className="text-slate-400 text-sm mt-1">Try selecting a different date</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 shadow-sm">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-gradient-to-r from-slate-700 to-slate-800">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Time Range</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[200px]">Client Info</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Order Info</th>
-                {!isLimitedView && <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Product Discussion</th>}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-slate-100">
-              {isLoading ? (
-                // Loading skeleton
-                [...Array(5)].map((_, i) => (
-                  <SkeletonRow key={i} columns={isLimitedView ? 3 : 4} />
-                ))
-              ) : (
-                // Filtered and sorted entries
-                (isLimitedView
-                  ? sortedEntries.filter((entry) => entry.orders || entry.samples || entry.tel_orders)
-                  : sortedEntries
-                ).map((entry, idx) => (
-                  <tr
-                    key={entry.id ?? `${entry.salesman_name}-${entry.date}-${idx}`}
-                    onClick={() => entry.id && toggleRowCross(Number(entry.id))}
-                    className={`transition-all duration-fast hover:bg-slate-50 ${
-                      isLimitedView ? 'cursor-pointer' : ''
-                    } ${
-                      isLimitedView && crossedRows.has(Number(entry.id)) ? 'line-through text-slate-400 bg-slate-50' : ''
-                    }`}
-                    aria-label={isLimitedView ? "Mark as completed" : undefined}
-                  >
-                    {/* Time and District */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
-                          {entry.district}
-                        </span>
-                        <span className="text-slate-600 font-medium">{entry.time_range}</span>
-                      </div>
-                    </td>
-
-                    {/* Client Information */}
-                    <td className="px-6 py-4">
-                      <div className="space-y-2">
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-gradient-to-r from-slate-700 to-slate-800">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Time Range</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[200px]">Client Info</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Order Info</th>
+                  {!isLimitedView && <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Product Discussion</th>}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-slate-100">
+                {isLoading ? (
+                  // Loading skeleton
+                  [...Array(5)].map((_, i) => (
+                    <SkeletonRow key={i} columns={isLimitedView ? 3 : 4} />
+                  ))
+                ) : (
+                  // Filtered and sorted entries
+                  (isLimitedView
+                    ? sortedEntries.filter((entry) => entry.orders || entry.samples || entry.tel_orders)
+                    : sortedEntries
+                  ).map((entry, idx) => (
+                    <tr
+                      key={entry.id ?? `${entry.salesman_name}-${entry.date}-${idx}`}
+                      onClick={() => entry.id && toggleRowCross(Number(entry.id))}
+                      className={`transition-all duration-fast hover:bg-slate-50 ${
+                        isLimitedView ? 'cursor-pointer' : ''
+                      } ${
+                        isLimitedView && crossedRows.has(Number(entry.id)) ? 'line-through text-slate-400 bg-slate-50' : ''
+                      }`}
+                      aria-label={isLimitedView ? "Mark as completed" : undefined}
+                    >
+                      {/* Time and District */}
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
-                            {entry.client_type === 'doctor' ? 'Doctor' : entry.client_type === 'nurse' ? 'Nurse' : entry.client_type}
+                            {entry.district}
                           </span>
-                          <span className="text-slate-800 font-medium">{entry.doctor_name}</span>
+                          <span className="text-slate-600 font-medium">{entry.time_range}</span>
                         </div>
-                        {entry.new_client && (
-                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
-                            <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            New Client
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Order Information */}
-                    <td className="px-6 py-4">
+                      {/* Client Information */}
+                      <td className="px-6 py-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                              {entry.client_type === 'doctor' ? 'Doctor' : entry.client_type === 'nurse' ? 'Nurse' : entry.client_type}
+                            </span>
+                            <span className="text-slate-800 font-medium">{entry.doctor_name}</span>
+                          </div>
+                          {entry.new_client && (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
+                              <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                              </svg>
+                              New Client
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Order Information */}
+                      <td className="px-6 py-4">
+                        <div className="space-y-3 text-sm">
+                          {entry.orders && (
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                                Orders
+                              </span>
+                              <p className="text-slate-700 ml-1">{entry.orders}</p>
+                            </div>
+                          )}
+                          {entry.tel_orders && (
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                                Tel Orders
+                              </span>
+                              <p className="text-slate-700 ml-1">{entry.tel_orders}</p>
+                            </div>
+                          )}
+                          {entry.samples && (
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                                Samples
+                              </span>
+                              <p className="text-slate-700 ml-1">{entry.samples}</p>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Product Discussion (hidden for limited view) */}
+                      {!isLimitedView && (
+                        <td className="px-6 py-4">
+                          <div className="space-y-3 text-sm">
+                            {entry.new_product_intro && (
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                                  New Product Intro
+                                </span>
+                                <p className="text-slate-700 ml-1">{entry.new_product_intro}</p>
+                              </div>
+                            )}
+                            {entry.old_product_followup && (
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                                  Follow-up
+                                </span>
+                                <p className="text-slate-700 ml-1">{entry.old_product_followup}</p>
+                              </div>
+                            )}
+                            {entry.delivery_time_update && (
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                                  Delivery Update
+                                </span>
+                                <p className="text-slate-700 ml-1">{entry.delivery_time_update}</p>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-4">
+            {isLoading ? (
+              // Loading skeleton for mobile
+              [...Array(3)].map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 animate-pulse">
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <div className="h-6 bg-slate-200 rounded w-16"></div>
+                      <div className="h-6 bg-slate-200 rounded w-20"></div>
+                    </div>
+                    <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                    <div className="h-16 bg-slate-200 rounded"></div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              // Mobile cards
+              (isLimitedView
+                ? sortedEntries.filter((entry) => entry.orders || entry.samples || entry.tel_orders)
+                : sortedEntries
+              ).map((entry, idx) => (
+                <div
+                  key={entry.id ?? `${entry.salesman_name}-${entry.date}-${idx}`}
+                  onClick={() => entry.id && toggleRowCross(Number(entry.id))}
+                  className={`bg-white rounded-xl border border-slate-200 shadow-sm p-4 transition-all duration-200 ${
+                    isLimitedView ? 'cursor-pointer hover:shadow-md' : ''
+                  } ${
+                    isLimitedView && crossedRows.has(Number(entry.id)) ? 'line-through text-slate-400 bg-slate-50' : ''
+                  }`}
+                >
+                  {/* Time and Location */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                      {entry.district}
+                    </span>
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                      {entry.time_range}
+                    </span>
+                  </div>
+
+                  {/* Client Information */}
+                  <div className="mb-4">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                        {entry.client_type === 'doctor' ? 'Doctor' : entry.client_type === 'nurse' ? 'Nurse' : entry.client_type}
+                      </span>
+                      <span className="text-slate-800 font-medium">{entry.doctor_name}</span>
+                    </div>
+                    {entry.new_client && (
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
+                        <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        New Client
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Order Information */}
+                  {(entry.orders || entry.tel_orders || entry.samples) && (
+                    <div className="mb-4">
                       <div className="space-y-3 text-sm">
                         {entry.orders && (
                           <div className="space-y-1">
                             <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
                               Orders
                             </span>
-                            <p className="text-slate-700 ml-1">{entry.orders}</p>
+                            <p className="text-slate-700 text-sm leading-relaxed">{entry.orders}</p>
                           </div>
                         )}
                         {entry.tel_orders && (
@@ -287,7 +417,7 @@ const ReportEntryList = ({
                             <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
                               Tel Orders
                             </span>
-                            <p className="text-slate-700 ml-1">{entry.tel_orders}</p>
+                            <p className="text-slate-700 text-sm leading-relaxed">{entry.tel_orders}</p>
                           </div>
                         )}
                         {entry.samples && (
@@ -295,49 +425,49 @@ const ReportEntryList = ({
                             <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
                               Samples
                             </span>
-                            <p className="text-slate-700 ml-1">{entry.samples}</p>
+                            <p className="text-slate-700 text-sm leading-relaxed">{entry.samples}</p>
                           </div>
                         )}
                       </div>
-                    </td>
+                    </div>
+                  )}
 
-                    {/* Product Discussion (hidden for limited view) */}
-                    {!isLimitedView && (
-                      <td className="px-6 py-4">
-                        <div className="space-y-3 text-sm">
-                          {entry.new_product_intro && (
-                            <div className="space-y-1">
-                              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
-                                New Product Intro
-                              </span>
-                              <p className="text-slate-700 ml-1">{entry.new_product_intro}</p>
-                            </div>
-                          )}
-                          {entry.old_product_followup && (
-                            <div className="space-y-1">
-                              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
-                                Follow-up
-                              </span>
-                              <p className="text-slate-700 ml-1">{entry.old_product_followup}</p>
-                            </div>
-                          )}
-                          {entry.delivery_time_update && (
-                            <div className="space-y-1">
-                              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
-                                Delivery Update
-                              </span>
-                              <p className="text-slate-700 ml-1">{entry.delivery_time_update}</p>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                  {/* Product Discussion (hidden for limited view) */}
+                  {!isLimitedView && (entry.new_product_intro || entry.old_product_followup || entry.delivery_time_update) && (
+                    <div className="border-t border-slate-100 pt-4">
+                      <div className="space-y-3 text-sm">
+                        {entry.new_product_intro && (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                              New Product Intro
+                            </span>
+                            <p className="text-slate-700 text-sm leading-relaxed">{entry.new_product_intro}</p>
+                          </div>
+                        )}
+                        {entry.old_product_followup && (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                              Follow-up
+                            </span>
+                            <p className="text-slate-700 text-sm leading-relaxed">{entry.old_product_followup}</p>
+                          </div>
+                        )}
+                        {entry.delivery_time_update && (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                              Delivery Update
+                            </span>
+                            <p className="text-slate-700 text-sm leading-relaxed">{entry.delivery_time_update}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </>
       )}
     </div>
   );
