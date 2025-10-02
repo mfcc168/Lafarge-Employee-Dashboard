@@ -42,7 +42,7 @@ services:
     build: ./backend/employee
     command: bash -c "
       python manage.py makemigrations && python manage.py migrate &&
-      gunicorn --bind 0.0.0.0:8000 --workers 5 --timeout 120 --threads 2 core.wsgi:application
+      gunicorn --bind 0.0.0.0:8000 --workers 2 --timeout 120 --threads 2 core.wsgi:application
       "
     ports:
       - "8000:8000"
