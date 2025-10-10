@@ -60,15 +60,24 @@ const EmployeeDetail = () => {
         annual_leave_days: employee.annual_leave_days,
         is_mpf_exempt: employee.is_mpf_exempt,
         role: employee.role,
+        deployment_date: employee.deployment_date || null,
       });
     }
   }, [employee]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    let updatedValue: string | number | boolean | null = value;
+
+    if (type === 'checkbox') {
+      updatedValue = (e.target as HTMLInputElement).checked;
+    } else if (type === 'date') {
+      updatedValue = value ? value : null;
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: updatedValue,
     }));
   };
 
@@ -288,6 +297,21 @@ const EmployeeDetail = () => {
               />
             </div>
 
+            {/* Deployment Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Deployment Date
+              </label>
+              <input
+                type="date"
+                name="deployment_date"
+                value={formData.deployment_date ?? ""}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 disabled:bg-gray-100"
+              />
+            </div>
+
             {/* MPF Exempt */}
             <div className="md:col-span-2">
               <label className="flex items-center gap-2">
@@ -333,6 +357,7 @@ const EmployeeDetail = () => {
                     annual_leave_days: employee.annual_leave_days,
                     is_mpf_exempt: employee.is_mpf_exempt,
                     role: employee.role,
+                    deployment_date: employee.deployment_date || null,
                   });
                 }}
                 className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-slate-50 transition-all duration-fast font-medium"

@@ -17,5 +17,6 @@ export type EmployeeProfile = {
     is_mpf_exempt: boolean;
     is_active: boolean;
     annual_leave_days: number;
+    deployment_date?: string | null;
   }
   

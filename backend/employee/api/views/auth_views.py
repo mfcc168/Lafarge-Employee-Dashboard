@@ -113,13 +113,16 @@ class ProtectedView(APIView):
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         try:
-            role = request.user.profile.role
-            annual_leave_days = request.user.profile.annual_leave_days
+            profile = request.user.profile
+            role = profile.role
+            annual_leave_days = profile.annual_leave_days
+            deployment_date = profile.deployment_date.isoformat() if profile.deployment_date else None
             logger.info(f"User {request.user.username} has role: {role}")
         except Exception as e:
             logger.error(f"Error getting profile data for user {request.user.username}: {str(e)}")
             role = None
             annual_leave_days = 7.0
+            deployment_date = None
         
         data = {
             "username": request.user.username,
@@ -128,6 +131,7 @@ class ProtectedView(APIView):
             "email": request.user.email,
             "role": role,
             "annual_leave_days": annual_leave_days,
+            "deployment_date": deployment_date,
         }
         
         # Cache the user data

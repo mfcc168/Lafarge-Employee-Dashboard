@@ -112,6 +112,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email: res.data.email,
         role: res.data.role,
         annual_leave_days: res.data.annual_leave_days,
+        deployment_date: res.data.deployment_date ?? null,
       } as User;
       
       // Cache the role for immediate access on next load
