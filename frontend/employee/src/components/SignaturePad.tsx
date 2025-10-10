@@ -96,6 +96,7 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
+    event.preventDefault();
     canvas.setPointerCapture(event.pointerId);
     const { x, y } = getCursorPosition(event);
     isDrawingRef.current = true;
@@ -120,6 +121,18 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
     if (!isDrawingRef.current) return;
     event.preventDefault();
 
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+
+    canvas.releasePointerCapture(event.pointerId);
+    ctx.closePath();
+    isDrawingRef.current = false;
+    commitStroke();
+  };
+
+  const handlePointerLeave = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
@@ -160,15 +173,15 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
     <div className="space-y-3">
       <div
         ref={containerRef}
-        className="w-full h-56 sm:h-64 border-2 border-dashed border-emerald-300 bg-white rounded-2xl shadow-inner overflow-hidden touch-pan-y"
+        className="w-full h-56 sm:h-64 border-2 border-dashed border-emerald-300 bg-white rounded-2xl shadow-inner overflow-hidden touch-none select-none"
       >
         <canvas
           ref={canvasRef}
-          className="w-full h-full cursor-crosshair"
+          className="w-full h-full cursor-crosshair touch-none select-none"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerCancel}
+          onPointerLeave={handlePointerLeave}
           onPointerCancel={handlePointerCancel}
           aria-label="Signature input canvas"
         />
