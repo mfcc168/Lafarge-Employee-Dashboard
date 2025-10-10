@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuth } from '@context/AuthContext';
+import { useToast } from '@context/ToastContext';
 import { DateItem } from '@interfaces/index';
 import { backendUrl } from '@configs/DotEnv';
 
@@ -9,7 +10,9 @@ export const useVacationRequestForm = () => {
   const queryClient = useQueryClient();
   const [dateItems, setDateItems] = useState<DateItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [signatureData, setSignatureData] = useState<string>('');
   const { user, accessToken, refreshUser } = useAuth();
+  const { showWarning, showError, showSuccess } = useToast();
 
   const addItem = () => {
     setDateItems([...dateItems, { type: 'full', from_date: '', to_date: '' }]);
@@ -59,7 +62,18 @@ export const useVacationRequestForm = () => {
         return false;
       })
     ) {
-      alert('Please fill in all vacation dates before submitting.');
+      showWarning(
+        'Missing Vacation Dates',
+        'Please complete all vacation date details before submitting.'
+      );
+      return false;
+    }
+
+    if (!signatureData) {
+      showWarning(
+        'Signature Required',
+        'Please provide your signature before submitting your request.'
+      );
       return false;
     }
 
@@ -67,7 +81,8 @@ export const useVacationRequestForm = () => {
       user?.annual_leave_days != null &&
       getTotalVacationDay > user.annual_leave_days
     ) {
-      alert(
+      showError(
+        'Vacation Limit Exceeded',
         `You only have ${user.annual_leave_days} days left, but requested ${getTotalVacationDay}.`
       );
       return false;
@@ -77,7 +92,7 @@ export const useVacationRequestForm = () => {
     try {
       await axios.post(
         `${backendUrl}/api/vacation/create`,
-        { date_items: dateItems },
+        { date_items: dateItems, signature_data: signatureData },
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -87,10 +102,24 @@ export const useVacationRequestForm = () => {
       await queryClient.invalidateQueries({
         queryKey: ['vacationRequests']
       });
+      if (user?.username) {
+        await queryClient.invalidateQueries({
+          queryKey: ['vacationRequests', user.username]
+        });
+      }
       await refreshUser();
       setDateItems([]);
+      setSignatureData('');
+      showSuccess(
+        'Request Submitted',
+        'Your vacation request has been sent for approval.'
+      );
       return true;
     } catch {
+      showError(
+        'Submission Failed',
+        'We could not submit your vacation request. Please try again.'
+      );
       return false;
     } finally {
       setSubmitting(false);
@@ -106,6 +135,9 @@ export const useVacationRequestForm = () => {
     handleSubmit,
     getTotalVacationDay,
     getVacationDayLeft,
+    signatureData,
+    setSignatureData,
+    clearSignature: () => setSignatureData(''),
     user,
   };
 }

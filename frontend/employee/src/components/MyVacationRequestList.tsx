@@ -127,6 +127,21 @@ const MyVacationRequestList = () => {
                 </ul>
               </div>
 
+              {req.signature_data && (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Your Signature
+                  </p>
+                  <div className="mt-2 bg-white border border-gray-200 rounded-xl p-2">
+                    <img
+                      src={req.signature_data}
+                      alt="Submitted signature"
+                      className="w-full h-32 object-contain"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Status Indicator */}
               <p
                 className={`text-xs font-semibold uppercase tracking-wide ${

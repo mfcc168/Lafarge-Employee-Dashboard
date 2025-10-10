@@ -1,5 +1,6 @@
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { useVacationRequestForm } from '@hooks/useVacationRequestForm';
+import SignaturePad from '@components/SignaturePad';
 
 /**
  * VacationRequestForm Component
@@ -20,6 +21,9 @@ const VacationRequestForm = () => {
     handleSubmit,
     getTotalVacationDay,
     getVacationDayLeft,
+    signatureData,
+    setSignatureData,
+    clearSignature,
   } = useVacationRequestForm();
 
   return (
@@ -30,8 +34,23 @@ const VacationRequestForm = () => {
         <p className="text-slate-600">Submit your vacation request with flexible date options</p>
       </div>
 
+      {/* Signature Section */}
+      <div className="mt-10">
+        <h3 className="text-xl font-semibold text-slate-800 mb-2 border-b border-slate-200 pb-2">
+          Employee Signature
+        </h3>
+        <p className="text-sm text-slate-600 mb-4">
+          Please sign below to confirm that this vacation request is accurate. Use your mouse or finger on touch devices.
+        </p>
+        <SignaturePad
+          value={signatureData}
+          onChange={setSignatureData}
+          onClear={clearSignature}
+        />
+      </div>
+
       {/* Date Items Section */}
-      <div className="space-y-4">
+      <div className="mt-8 space-y-4">
         {dateItems.map((item, index) => {
           // Refs for date picker inputs
           let fromDateInput: HTMLInputElement | null = null;

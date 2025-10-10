@@ -13,6 +13,10 @@ class VacationRequest(models.Model):
         ],
         default="pending"
     )
+    signature_data = models.TextField(
+        blank=True,
+        help_text="Base64 encoded representation of the employee's handwritten signature."
+    )
 
     def get_total_days(self):
         total = 0

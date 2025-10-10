@@ -5,9 +5,7 @@ from rest_framework import generics
 from vacation.models import VacationRequest
 from vacation.serializers import VacationRequestSerializer
 from rest_framework.exceptions import ValidationError
-from django.views.decorators.cache import cache_page
-from django.utils.decorators import method_decorator
-from core.redis_config import safe_cache_delete
+from core.redis_config import safe_cache_delete, safe_cache_get, safe_cache_set
 from django.conf import settings
 from core.permissions import require_roles, get_permission_message
 
@@ -35,20 +33,27 @@ class VacationRequestCreateView(generics.CreateAPIView):
         safe_cache_delete('vacation_requests')
         safe_cache_delete(f'vacation_requests_user_{self.request.user.id}')
 
-@method_decorator(cache_page(settings.CACHE_TIMEOUTS['vacation_requests']), name='get')
 class VacationRequestListView(generics.ListAPIView):
     queryset = VacationRequest.objects.all()
     serializer_class = VacationRequestSerializer
     permission_classes = [IsAuthenticated]
     
-    def get(self, request, *args, **kwargs):
+    def list(self, request, *args, **kwargs):
         # Only management can view all vacation requests
         if request.user.profile.role not in ['MANAGER', 'ADMIN', 'DIRECTOR', 'CEO']:
             return Response(
                 {"detail": get_permission_message('approve_vacation')},
                 status=status.HTTP_403_FORBIDDEN
             )
-        return super().get(request, *args, **kwargs)
+        
+        cache_key = 'vacation_requests'
+        cached_data = safe_cache_get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+
+        response = super().list(request, *args, **kwargs)
+        safe_cache_set(cache_key, response.data, settings.CACHE_TIMEOUTS['vacation_requests'])
+        return response
     
 class VacationRequestUpdateAPIView(generics.UpdateAPIView):
     queryset = VacationRequest.objects.all()
@@ -78,7 +83,6 @@ class VacationRequestUpdateAPIView(generics.UpdateAPIView):
 
         return Response(self.get_serializer(vacation_request).data, status=status.HTTP_200_OK)
     
-@method_decorator(cache_page(settings.CACHE_TIMEOUTS['vacation_requests']), name='get')
 class MyVacationRequestListView(generics.ListAPIView):
     serializer_class = VacationRequestSerializer
     permission_classes = [IsAuthenticated]
@@ -86,3 +90,13 @@ class MyVacationRequestListView(generics.ListAPIView):
     def get_queryset(self):
         user_profile = self.request.user.profile
         return VacationRequest.objects.filter(employee=user_profile)
+
+    def list(self, request, *args, **kwargs):
+        cache_key = f'vacation_requests_user_{request.user.id}'
+        cached_data = safe_cache_get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+
+        response = super().list(request, *args, **kwargs)
+        safe_cache_set(cache_key, response.data, settings.CACHE_TIMEOUTS['vacation_requests'])
+        return response
