@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='employeeprofile',
-            name='deployment_date',
-            field=models.DateField(blank=True, help_text='Date when the employee was deployed to their current role.', null=True),
+            name='employment_date',
+            field=models.DateField(blank=True, help_text='Employee employment start date used for annual leave calculations.', null=True),
         ),
     ]

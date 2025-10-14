@@ -5,7 +5,7 @@ export type User = {
     email?: string;
     role?: string;
     annual_leave_days?: number;
-    deployment_date?: string | null;
+    employment_date?: string | null;
   };
   
 export type AuthContextType = {

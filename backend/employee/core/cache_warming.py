@@ -25,7 +25,7 @@ def warm_user_caches():
                     "email": user.email,
                     "role": user.profile.role,
                     "annual_leave_days": user.profile.annual_leave_days,
-                    "deployment_date": user.profile.deployment_date.isoformat() if user.profile.deployment_date else None,
+                    "employment_date": user.profile.employment_date.isoformat() if user.profile.employment_date else None,
                 }
                 cache.set(cache_key, profile_data, 60 * 30)  # 30 minutes
                 
