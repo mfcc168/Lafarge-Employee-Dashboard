@@ -35,8 +35,47 @@ const AllEmployeePayroll = () => {
     return <LoadingSpinner />;
   }
 
+  // Calculate total net payroll for active employees
+  const totalNetPayroll = profiles
+    .filter(profile => profile.is_active) // Only active employees
+    .reduce((total, profile) => {
+      const commission = commissions[profile.user.username] || 0;
+      const grossPayment =
+        parseFloat(profile.base_salary) +
+        parseFloat(profile.bonus_payment) +
+        parseFloat(profile.year_end_bonus) +
+        (parseFloat(profile.transportation_allowance) || 0) +
+        (commission || 0);
+      
+      const mpfDeduction = profile.is_mpf_exempt ? 0 : 0.05;
+      const mpfDeductionAmount = Math.min(1500, grossPayment * mpfDeduction);
+      const netPayment = grossPayment - mpfDeductionAmount;
+      
+      return total + netPayment;
+    }, 0);
+
+  const activeEmployeeCount = profiles.filter(profile => profile.is_active).length;
+
   return (
     <div className="space-y-8">
+      {/* Total Payroll Summary */}
+      <div className="bg-gradient-to-br from-emerald-50 to-blue-50 border border-emerald-200 rounded-2xl p-6 shadow-soft">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 mb-1">Total Net Payroll</h2>
+            <p className="text-slate-600 text-sm">For {activeEmployeeCount} active employee{activeEmployeeCount !== 1 ? 's' : ''}</p>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-bold text-emerald-600">
+              ${totalNetPayroll.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="text-sm text-slate-500 mt-1">
+              {new Date(year, month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Enhanced Header */}
       <div className="flex items-center gap-4 mb-8">
         <div className="w-12 h-12 bg-gradient-to-br from-slate-600 to-emerald-600 rounded-xl flex items-center justify-center shadow-md">
