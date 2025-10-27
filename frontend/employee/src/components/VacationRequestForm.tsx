@@ -21,6 +21,7 @@ const VacationRequestForm = () => {
     handleSubmit,
     getTotalVacationDay,
     getVacationDayLeft,
+    excludedDates,
     signatureData,
     setSignatureData,
     clearSignature,
@@ -243,6 +244,36 @@ const VacationRequestForm = () => {
             </span>{' '}
             {getVacationDayLeft === 1 ? 'day' : 'days'} left.
           </p>
+          
+          {/* Excluded Dates Information */}
+          {excludedDates.length > 0 && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="text-sm font-semibold text-blue-800 mb-2">
+                📅 Excluded Dates (Not counted as vacation days)
+              </h4>
+              <div className="space-y-1">
+                {excludedDates.map((excludedDate, index) => (
+                  <p key={index} className="text-xs text-blue-700">
+                    <span className="font-medium">
+                      {new Date(excludedDate.date).toLocaleDateString('en-HK', {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </span>
+                    {' - '}
+                    <span>
+                      {excludedDate.reason === 'Weekend' ? 'Weekend' : `Holiday: ${excludedDate.name}`}
+                    </span>
+                  </p>
+                ))}
+              </div>
+              <p className="text-xs text-blue-600 mt-2 italic">
+                These dates are automatically excluded from your vacation day count.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

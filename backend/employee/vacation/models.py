@@ -1,5 +1,6 @@
 from django.db import models
 from employee.models import EmployeeProfile
+from .business_days import BusinessDaysCalculator
 
 class VacationRequest(models.Model):
     employee = models.ForeignKey(EmployeeProfile, on_delete=models.CASCADE)
@@ -24,10 +25,16 @@ class VacationRequest(models.Model):
             if item.leave_type == 'Sick Leave':
                 continue
             if item.type == 'half' and item.single_date:
-                total += 0.5
+                # For half days, check if it's a business day
+                business_days = BusinessDaysCalculator.calculate_business_days(
+                    item.single_date, item.single_date
+                )
+                total += 0.5 if business_days > 0 else 0
             elif item.type == 'full' and item.from_date and item.to_date:
-                delta = (item.to_date - item.from_date).days + 1
-                total += max(delta, 0)
+                business_days = BusinessDaysCalculator.calculate_business_days(
+                    item.from_date, item.to_date
+                )
+                total += business_days
         return total
 
 
