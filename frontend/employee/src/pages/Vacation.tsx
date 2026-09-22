@@ -8,7 +8,7 @@ const Vacation = () => {
 
   const { user } = useAuth(); 
   const canApproveVacations = hasRole(user?.role, ALL_MANAGEMENT);
-  const isRegularEmployee = user?.role && !canApproveVacations;
+  const isRegularEmployee = Boolean(user?.role && !canApproveVacations);
 
   return (
     <div className="min-h-screen animate-fadeIn">

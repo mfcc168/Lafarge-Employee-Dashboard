@@ -15,6 +15,11 @@ const EmployeeDetail = () => {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<EmployeeProfile>>({});
+  const formatEmploymentDate = (date?: string | null) => {
+    if (!date) return "Not set";
+    const parsed = new Date(date);
+    return Number.isNaN(parsed.getTime()) ? "Not set" : parsed.toLocaleDateString();
+  };
 
   // Check if user has permission to view this page
   const hasPermission = ["ADMIN", "DIRECTOR"].includes(user?.role || "");
@@ -60,15 +65,24 @@ const EmployeeDetail = () => {
         annual_leave_days: employee.annual_leave_days,
         is_mpf_exempt: employee.is_mpf_exempt,
         role: employee.role,
+        employment_date: employee.employment_date || null,
       });
     }
   }, [employee]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    let updatedValue: string | number | boolean | null = value;
+
+    if (type === 'checkbox') {
+      updatedValue = (e.target as HTMLInputElement).checked;
+    } else if (type === 'date') {
+      updatedValue = value ? value : null;
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: updatedValue,
     }));
   };
 
@@ -176,6 +190,9 @@ const EmployeeDetail = () => {
             </h2>
             <p className="text-gray-600">@{employee.user.username}</p>
             <p className="text-gray-500">{employee.user.email}</p>
+            <p className="text-gray-500 text-sm mt-2">
+              Employment Date: {formatEmploymentDate(employee.employment_date)}
+            </p>
           </div>
           <div className={`px-3 py-1 rounded-full text-sm ${
             employee.is_active 
@@ -288,6 +305,21 @@ const EmployeeDetail = () => {
               />
             </div>
 
+            {/* Employment Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Employment Date
+              </label>
+              <input
+                type="date"
+                name="employment_date"
+                value={formData.employment_date ?? ""}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 disabled:bg-gray-100"
+              />
+            </div>
+
             {/* MPF Exempt */}
             <div className="md:col-span-2">
               <label className="flex items-center gap-2">
@@ -333,6 +365,7 @@ const EmployeeDetail = () => {
                     annual_leave_days: employee.annual_leave_days,
                     is_mpf_exempt: employee.is_mpf_exempt,
                     role: employee.role,
+                    employment_date: employee.employment_date || null,
                   });
                 }}
                 className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-slate-50 transition-all duration-fast font-medium"

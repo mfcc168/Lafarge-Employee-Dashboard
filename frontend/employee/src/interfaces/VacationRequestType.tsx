@@ -5,4 +5,5 @@ export type VacationRequest = {
   id: number;
   date_items: DateItem[];
   status: string;
+  signature_data: string;
 };

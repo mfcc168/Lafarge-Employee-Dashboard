@@ -62,7 +62,8 @@ const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProp
       case 'success':
         return {
           icon: <CheckCircle size={20} />,
-          bgColor: 'bg-gradient-to-r from-emerald-600 to-emerald-700',
+          bgColor: 'bg-slate-900/95 border border-slate-700',
+          accentColor: 'bg-success-500',
           iconBg: 'bg-white/20 backdrop-blur-sm',
           iconColor: 'text-white',
           titleColor: 'text-white',
@@ -72,7 +73,8 @@ const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProp
       case 'error':
         return {
           icon: <XCircle size={20} />,
-          bgColor: 'bg-gradient-to-r from-slate-700 to-error-600',
+          bgColor: 'bg-slate-900/95 border border-slate-700',
+          accentColor: 'bg-error-500',
           iconBg: 'bg-white/20 backdrop-blur-sm',
           iconColor: 'text-white',
           titleColor: 'text-white',
@@ -82,7 +84,8 @@ const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProp
       case 'warning':
         return {
           icon: <AlertCircle size={20} />,
-          bgColor: 'bg-gradient-to-r from-slate-700 to-warning-600',
+          bgColor: 'bg-slate-900/95 border border-slate-700',
+          accentColor: 'bg-warning-500',
           iconBg: 'bg-white/20 backdrop-blur-sm',
           iconColor: 'text-white',
           titleColor: 'text-white',
@@ -92,7 +95,8 @@ const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProp
       case 'info':
         return {
           icon: <Info size={20} />,
-          bgColor: 'bg-gradient-to-r from-slate-700 to-emerald-600',
+          bgColor: 'bg-slate-900/95 border border-slate-700',
+          accentColor: 'bg-info-500',
           iconBg: 'bg-white/20 backdrop-blur-sm',
           iconColor: 'text-white',
           titleColor: 'text-white',
@@ -102,7 +106,8 @@ const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProp
       default:
         return {
           icon: <Info size={20} />,
-          bgColor: 'bg-gradient-to-r from-slate-700 to-slate-600',
+          bgColor: 'bg-slate-900/95 border border-slate-700',
+          accentColor: 'bg-slate-500',
           iconBg: 'bg-white/20 backdrop-blur-sm',
           iconColor: 'text-white',
           titleColor: 'text-white',
@@ -117,7 +122,7 @@ const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProp
   return (
     <div
       className={`
-        max-w-md w-full ${styles.bgColor} rounded-2xl shadow-soft hover:shadow-strong p-6 text-white
+        relative overflow-hidden max-w-md w-full ${styles.bgColor} rounded-2xl shadow-soft hover:shadow-strong p-6 text-white
         transform transition-all duration-300 ease-out
         ${isVisible && !isLeaving 
           ? 'translate-x-0 opacity-100 scale-100' 
@@ -126,6 +131,7 @@ const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProp
         animate-slideInRight
       `}
     >
+      <div className={`absolute inset-y-0 left-0 w-1 ${styles.accentColor || 'bg-slate-500'}`} />
       <div className="flex items-start gap-4">
         {/* Icon Container */}
         <div className={`flex-shrink-0 w-10 h-10 ${styles.iconBg} rounded-xl flex items-center justify-center ${styles.iconColor}`}>

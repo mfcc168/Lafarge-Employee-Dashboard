@@ -119,7 +119,7 @@ const ReportEntryForm = () => {
   }
   
   return (
-    <div className="space-y-6" ref={entriesRef}>
+    <div className="flex flex-col h-full space-y-6 overflow-hidden" ref={entriesRef}>
       {/* Pagination Controls */}
       <div className="flex justify-center items-center gap-6 mt-8 mb-4">
         <button
@@ -150,14 +150,23 @@ const ReportEntryForm = () => {
           <ChevronRight size={20} />
         </button>
       </div>
-
+            
       <div className="flex-grow min-h-0 overflow-y-auto space-y-4">
         {entries.length === 0 && (
           <div className="px-6 py-4 text-center text-gray-500 italic bg-white rounded-lg shadow">
             No entries available for this date.
           </div>
         )}
-
+        <div className="flex flex-wrap gap-4 mt-4">
+          <button
+            onClick={handleSubmitAllEntries}
+            disabled={submitting}
+            className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 transition"
+          >
+            <SaveAll size={15} />
+            {submitting ? "Saving All..." : "Save All"}
+          </button> 
+        </div>
         {entries.map((entry, index) => (
           <div
             key={entry.id || `new-${index}`}
@@ -329,7 +338,7 @@ const ReportEntryForm = () => {
           </div>
         ))}
       </div>
-
+    <div className="flex-none space-y-4 pb-4">
       <div>
         <button
           type="button"
@@ -362,6 +371,7 @@ const ReportEntryForm = () => {
         </button>
       </div>
     </div>
+  </div>
   );
 };
 

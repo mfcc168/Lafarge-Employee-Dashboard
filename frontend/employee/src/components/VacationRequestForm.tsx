@@ -1,5 +1,6 @@
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { useVacationRequestForm } from '@hooks/useVacationRequestForm';
+import SignaturePad from '@components/SignaturePad';
 
 /**
  * VacationRequestForm Component
@@ -20,6 +21,10 @@ const VacationRequestForm = () => {
     handleSubmit,
     getTotalVacationDay,
     getVacationDayLeft,
+    excludedDates,
+    signatureData,
+    setSignatureData,
+    clearSignature,
   } = useVacationRequestForm();
 
   return (
@@ -30,8 +35,23 @@ const VacationRequestForm = () => {
         <p className="text-slate-600">Submit your vacation request with flexible date options</p>
       </div>
 
+      {/* Signature Section */}
+      <div className="mt-10">
+        <h3 className="text-xl font-semibold text-slate-800 mb-2 border-b border-slate-200 pb-2">
+          Employee Signature
+        </h3>
+        <p className="text-sm text-slate-600 mb-4">
+          Please sign below to confirm that this vacation request is accurate. Use your mouse or finger on touch devices.
+        </p>
+        <SignaturePad
+          value={signatureData}
+          onChange={setSignatureData}
+          onClear={clearSignature}
+        />
+      </div>
+
       {/* Date Items Section */}
-      <div className="space-y-4">
+      <div className="mt-8 space-y-4">
         {dateItems.map((item, index) => {
           // Refs for date picker inputs
           let fromDateInput: HTMLInputElement | null = null;
@@ -224,6 +244,36 @@ const VacationRequestForm = () => {
             </span>{' '}
             {getVacationDayLeft === 1 ? 'day' : 'days'} left.
           </p>
+          
+          {/* Excluded Dates Information */}
+          {excludedDates.length > 0 && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="text-sm font-semibold text-blue-800 mb-2">
+                📅 Excluded Dates (Not counted as vacation days)
+              </h4>
+              <div className="space-y-1">
+                {excludedDates.map((excludedDate, index) => (
+                  <p key={index} className="text-xs text-blue-700">
+                    <span className="font-medium">
+                      {new Date(excludedDate.date).toLocaleDateString('en-HK', {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </span>
+                    {' - '}
+                    <span>
+                      {excludedDate.reason === 'Weekend' ? 'Weekend' : `Holiday: ${excludedDate.name}`}
+                    </span>
+                  </p>
+                ))}
+              </div>
+              <p className="text-xs text-blue-600 mt-2 italic">
+                These dates are automatically excluded from your vacation day count.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -5,6 +5,9 @@ import { backendUrl } from '@configs/DotEnv';
 import { useAuth } from '@context/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { DateItem, VacationRequest } from '@interfaces/index';
+import { LazyVacationRequestForm as VacationRequestForm } from '@components/LazyComponents';
+import MyVacationRequestList from '@components/MyVacationRequestList';
+import { ALL_MANAGEMENT, hasRole } from '@utils/permissions';
 
 /**
  * VacationRequestList Component
@@ -20,9 +23,10 @@ import { DateItem, VacationRequest } from '@interfaces/index';
  */
 const VacationRequestList = () => {
   // Authentication and state management
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'pendingOrRejected' | 'approvedOrRejected'>('pendingOrRejected');
+  const isManagement = hasRole(user?.role, ALL_MANAGEMENT);
+  const [activeTab, setActiveTab] = useState<'pending' | 'approvedOrRejected' | 'myRequests'>('pending');
 
   /**
    * Fetches vacation requests from the API
@@ -109,20 +113,34 @@ const VacationRequestList = () => {
 
   // Filter requests based on active tab
   const filteredRequests = requests?.filter((req) => {
-    if (activeTab === 'pendingOrRejected') {
-      return req.status === 'pending';
-    } else {
-      return req.status === 'approved' || req.status === 'rejected';
+    if (activeTab === 'pending') {
+      return req.status === 'pending' && (isManagement || req.employee === user?.username);
     }
+
+    if (activeTab === 'approvedOrRejected') {
+      const isApprovedOrRejected = req.status === 'approved' || req.status === 'rejected';
+      if (!isApprovedOrRejected) return false;
+      return isManagement || req.employee === user?.username;
+    }
+
+    if (activeTab === 'myRequests') {
+      return req.employee === user?.username;
+    }
+
+    return false;
   });
 
   // Set default tab based on request statuses
   useEffect(() => {
-    if (!requests) return;
+    if (!requests || activeTab !== 'pending') return;
 
     const hasPending = requests.some((req) => req.status === 'pending');
-    setActiveTab(hasPending ? 'pendingOrRejected' : 'approvedOrRejected');
-  }, [requests]);
+    if (!hasPending) {
+      setActiveTab('approvedOrRejected');
+    }
+  }, [requests, activeTab]);
+
+  const isMyRequestsTab = activeTab === 'myRequests';
   
   return (
     <div className="max-w-5xl mx-auto px-8 py-8 bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-normal border border-gray-100 animate-scaleIn">
@@ -133,13 +151,13 @@ const VacationRequestList = () => {
         <div className="inline-flex rounded-xl bg-gray-100 p-1" role="tablist">
           <button
             role="tab"
-            aria-selected={activeTab === 'pendingOrRejected'}
+            aria-selected={activeTab === 'pending'}
             className={`px-6 py-2 rounded-xl text-sm font-medium transition ${
-              activeTab === 'pendingOrRejected'
+              activeTab === 'pending'
                 ? 'bg-white shadow text-emerald-600'
                 : 'text-gray-500 hover:text-emerald-600'
             }`}
-            onClick={() => setActiveTab('pendingOrRejected')}
+            onClick={() => setActiveTab('pending')}
           >
             Pending
           </button>
@@ -155,11 +173,30 @@ const VacationRequestList = () => {
           >
             Approved / Rejected
           </button>
+          {user && (
+            <button
+              role="tab"
+              aria-selected={activeTab === 'myRequests'}
+              className={`px-6 py-2 rounded-xl text-sm font-medium transition ${
+                activeTab === 'myRequests'
+                  ? 'bg-white shadow text-emerald-600'
+                  : 'text-gray-500 hover:text-emerald-600'
+              }`}
+              onClick={() => setActiveTab('myRequests')}
+            >
+              My Requests
+            </button>
+          )}
         </div>
       </div>
 
       {/* Content Area */}
-      {isLoading ? (
+      {isMyRequestsTab ? (
+        <div className="space-y-10">
+          <VacationRequestForm />
+          <MyVacationRequestList />
+        </div>
+      ) : isLoading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="w-8 h-8 animate-spin text-slate-600" />
         </div>
@@ -188,6 +225,21 @@ const VacationRequestList = () => {
                   ))}
                 </ul>
               </div>
+
+              {req.signature_data && (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Employee Signature
+                  </p>
+                  <div className="mt-2 bg-white border border-gray-200 rounded-xl p-2">
+                    <img
+                      src={req.signature_data}
+                      alt={`Signature from ${req.employee}`}
+                      className="w-full h-32 object-contain"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Status Indicator */}
               {req.status !== 'pending' && (
@@ -218,7 +270,7 @@ const VacationRequestList = () => {
                   </button>
                   <button
                     onClick={() => handleApproveReject(req.id, 'rejected')}
-                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-slate-600 to-error-600 hover:from-slate-700 hover:to-error-700 text-white text-sm font-medium transition-all duration-fast shadow-md hover:shadow-lg disabled:opacity-50 transform hover:scale-105"
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium transition-all duration-fast shadow-md hover:shadow-lg disabled:opacity-50 transform hover:scale-105"
                     disabled={mutation.isPending}
                     aria-label={`Reject request from ${req.employee}`}
                   >
