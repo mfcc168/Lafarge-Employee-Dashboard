@@ -14,16 +14,30 @@ export const useReportEntryForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const { user, accessToken } = useAuth();
-  const { showError, showWarning } = useToast();
+  const { showSuccess, showError, showWarning } = useToast();
   const today = new Date().toISOString().split('T')[0];
   const unsavedEntriesRef = useRef<ReportEntry[]>([]);
   const accessTokenRef = useRef(accessToken);
+  const inFlightEntriesRef = useRef<Set<ReportEntry>>(new Set());
+  const activeSubmissionsRef = useRef(0);
   const queryClient = useQueryClient();
 
   // Update access token ref
   useEffect(() => {
     accessTokenRef.current = accessToken;
   }, [accessToken]);
+
+  const beginSubmission = useCallback(() => {
+    activeSubmissionsRef.current += 1;
+    setSubmitting(true);
+  }, []);
+
+  const endSubmission = useCallback(() => {
+    activeSubmissionsRef.current = Math.max(0, activeSubmissionsRef.current - 1);
+    if (activeSubmissionsRef.current === 0) {
+      setSubmitting(false);
+    }
+  }, []);
 
   // Memoized calculations
   const groupedEntriesByDate = useMemo(() => {
@@ -174,10 +188,14 @@ export const useReportEntryForm = () => {
     );
   }, []);
 
-  const handleSubmitEntry = useCallback(async (index: number, skipBlankCheck = false) => {
+  const handleSubmitEntry = useCallback(async (
+    index: number,
+    skipBlankCheck = false,
+    showSuccessMessage = true
+  ): Promise<boolean> => {
     const globalIndex = getGlobalIndex(index);
     const entry = entries[globalIndex];
-    if (!entry) return;
+    if (!entry) return false;
 
     // For single submission, show warning if blank
     if (!skipBlankCheck && isBlankEntry(entry)) {
@@ -186,11 +204,20 @@ export const useReportEntryForm = () => {
         'Please fill in at least one field before submitting.',
         5000
       );
-      return;
+      return false;
     }
 
+    // React state updates are asynchronous, so a fast double-click can invoke
+    // this handler twice before the disabled state is rendered. Keep a
+    // synchronous per-entry lock to prevent duplicate POST/PUT requests.
+    if (inFlightEntriesRef.current.has(entry)) {
+      return true;
+    }
+
+    inFlightEntriesRef.current.add(entry);
+    beginSubmission();
+
     try {
-      setSubmitting(true);
       const isUpdate = !!entry.id;
       const url = isUpdate
         ? `${backendUrl}/api/report-entries/${entry.id}/`
@@ -225,6 +252,18 @@ export const useReportEntryForm = () => {
       await queryClient.invalidateQueries({ 
         queryKey: ['report-entries'] 
       });
+
+      if (showSuccessMessage) {
+        showSuccess(
+          isUpdate ? 'Report Updated' : 'Report Saved',
+          isUpdate
+            ? 'Your report entry has been updated successfully.'
+            : 'Your report entry has been saved successfully.',
+          3000
+        );
+      }
+
+      return true;
     } catch (error) {
       console.error('Error submitting entry:', error);
       showError(
@@ -232,10 +271,22 @@ export const useReportEntryForm = () => {
         'Failed to submit entry. Please check your connection and try again.',
         6000
       );
+      return false;
     } finally {
-      setSubmitting(false);
+      inFlightEntriesRef.current.delete(entry);
+      endSubmission();
     }
-  }, [entries, getGlobalIndex, isBlankEntry, queryClient]);
+  }, [
+    entries,
+    getGlobalIndex,
+    isBlankEntry,
+    queryClient,
+    beginSubmission,
+    endSubmission,
+    showSuccess,
+    showError,
+    showWarning,
+  ]);
 
   const handleDelete = useCallback(async (index: number) => {
     const globalIndex = getGlobalIndex(index);
@@ -251,7 +302,7 @@ export const useReportEntryForm = () => {
     }
 
     try {
-      setSubmitting(true);
+      beginSubmission();
       await axios.delete(`${backendUrl}/api/report-entries/${entry.id}/`, {
         headers: {
           Authorization: `Bearer ${accessTokenRef.current}`,
@@ -275,9 +326,9 @@ export const useReportEntryForm = () => {
         6000
       );
     } finally {
-      setSubmitting(false);
+      endSubmission();
     }
-  }, [entries, getGlobalIndex, queryClient]);
+  }, [entries, getGlobalIndex, queryClient, beginSubmission, endSubmission, showError]);
 
   const handleSubmitAllEntries = useCallback(async () => {
     if (entriesForCurrentPage.length === 0) {
@@ -304,16 +355,36 @@ export const useReportEntryForm = () => {
       return;
     }
 
-    setSubmitting(true);
+    beginSubmission();
     try {
-      // Submit only non-blank entries, passing skipBlankCheck=true
-      await Promise.all(nonBlankIndices.map(async (index) => {
-        await handleSubmitEntry(index, true);
-      }));
-      
+      // Submit only non-blank entries. Individual success toasts are suppressed
+      // so the user gets one clear confirmation for the whole batch.
+      const results = await Promise.all(
+        nonBlankIndices.map((index) => handleSubmitEntry(index, true, false))
+      );
+
+      const savedCount = results.filter(Boolean).length;
+      const failedCount = nonBlankIndices.length - savedCount;
       const skippedCount = entriesForCurrentPage.length - nonBlankIndices.length;
+
+      if (savedCount > 0) {
+        showSuccess(
+          'Reports Saved',
+          `${savedCount} report entr${savedCount === 1 ? 'y was' : 'ies were'} saved successfully.`,
+          3500
+        );
+      }
+
+      if (failedCount > 0) {
+        showWarning(
+          'Some Reports Were Not Saved',
+          `${failedCount} report entr${failedCount === 1 ? 'y' : 'ies'} could not be saved. Please try again.`,
+          6000
+        );
+      }
+
       if (skippedCount > 0) {
-        console.log(`Submitted ${nonBlankIndices.length} entries. Skipped ${skippedCount} blank entries.`);
+        console.log(`Submitted ${savedCount} entries. Skipped ${skippedCount} blank entries.`);
       }
     } catch (error) {
       console.error("Error submitting entries:", error);
@@ -323,9 +394,18 @@ export const useReportEntryForm = () => {
         6000
       );
     } finally {
-      setSubmitting(false);
+      endSubmission();
     }
-  }, [entriesForCurrentPage, handleSubmitEntry, isBlankEntry]);
+  }, [
+    entriesForCurrentPage,
+    handleSubmitEntry,
+    isBlankEntry,
+    beginSubmission,
+    endSubmission,
+    showSuccess,
+    showWarning,
+    showError,
+  ]);
 
   // Suggestion functions
   const getUniqueSuggestions = useCallback((field: keyof ReportEntry): string[] => {
