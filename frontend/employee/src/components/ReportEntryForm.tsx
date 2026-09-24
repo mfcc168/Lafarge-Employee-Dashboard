@@ -4,6 +4,7 @@ import AutocompleteInput from "@components/AutoCompleteInput";
 import { useEffect, useRef, useCallback } from "react";
 import { useReportEntryForm } from "@hooks/useReportEntryForm";
 import LoadingSpinner from "@components/LoadingSpinner";
+import { isBlankEntry } from "@utils/reportEntryDraft";
 
 /**
  * ReportEntryForm Component
@@ -24,10 +25,10 @@ import LoadingSpinner from "@components/LoadingSpinner";
 const ReportEntryForm = () => {
   const {
     entries,
-    unsavedEntriesRef,
-    newestEntryIndex,
     isLoading,
-    submitting,
+    savingAll,
+    focusedEntryIdRef,
+    handleFocus,
     currentPage,
     sortedDates,
     doctorNameSuggestions,
@@ -44,7 +45,6 @@ const ReportEntryForm = () => {
   const { user } = useAuth();
 
   const entriesRef = useRef<HTMLDivElement>(null);
-  const focusedEntryIndex = useRef<number | null>(null);
 
   /**
    * Adjusts textarea height based on content - Memoized for performance
@@ -64,12 +64,13 @@ const ReportEntryForm = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        if (focusedEntryIndex.current === null) return;
+        const focusedIndex = entries.findIndex(entry => entry.clientId === focusedEntryIdRef.current);
+        if (focusedIndex < 0) return;
         
         e.preventDefault();
         
         const direction = e.key === 'ArrowUp' ? -1 : 1;
-        const newIndex = focusedEntryIndex.current + direction;
+        const newIndex = focusedIndex + direction;
         
         if (newIndex >= 0 && newIndex < entries.length) {
           const entryElements = entriesRef.current?.querySelectorAll('.entry-container');
@@ -83,33 +84,7 @@ const ReportEntryForm = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [entries]);
-
-  /**
-   * Handles focus events on form fields - Memoized for performance
-   * @param {number} index - The index of the focused entry
-   */
-  const handleFocus = useCallback(async (index: number) => {
-    // Add new entry if focusing on the newest row
-    if (index === newestEntryIndex) {
-      addEmptyEntry();
-    }
-    
-    // Save previous entry if it was modified
-    const prevIndex = focusedEntryIndex.current;
-
-    if (prevIndex !== null && prevIndex !== index) {
-      const prevEntry = entries[prevIndex];
-
-      const isUnsaved = !prevEntry?.id && unsavedEntriesRef.current.includes(prevEntry);
-
-      if (isUnsaved) {
-        await handleSubmitEntry(prevIndex);
-      }
-    }
-
-    focusedEntryIndex.current = index;
-  }, [newestEntryIndex, addEmptyEntry, entries, unsavedEntriesRef, handleSubmitEntry]);
+  }, [entries, focusedEntryIdRef]);
 
   // Loading state
   if (isLoading) {
@@ -160,16 +135,17 @@ const ReportEntryForm = () => {
         <div className="flex flex-wrap gap-4 mt-4">
           <button
             onClick={handleSubmitAllEntries}
-            disabled={submitting}
+            disabled={savingAll}
             className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 transition"
           >
             <SaveAll size={15} />
-            {submitting ? "Saving All..." : "Save All"}
+            {savingAll ? "Saving All..." : "Save All"}
           </button> 
         </div>
-        {entries.map((entry, index) => (
+        {entries.map((entry) => (
           <div
-            key={entry.id || `new-${index}`}
+            key={entry.clientId}
+            onFocusCapture={() => handleFocus(entry.clientId)}
             className={`entry-container rounded-lg shadow-md overflow-hidden border-l-4 ${
               entry.id ? "border-emerald-400" : "border-emerald-500"
             }`}
@@ -195,32 +171,29 @@ const ReportEntryForm = () => {
                       <input
                         type="text"
                         value={entry.time_range}
-                        onChange={(e) => handleChange(index, 'time_range', e.target.value)}
+                        onChange={(e) => handleChange(entry.clientId, 'time_range', e.target.value)}
                         className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
-                        onFocus={() => handleFocus(index)}
                       />
                     </td>
                     <td className="px-1 py-4">
                       <AutocompleteInput
                         value={entry.doctor_name}
-                        onChange={(e) => handleChange(index, 'doctor_name', e.target.value)}
+                        onChange={(e) => handleChange(entry.clientId, 'doctor_name', e.target.value)}
                         suggestions={doctorNameSuggestions}
                         className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         inputProps={{ 
                           maxLength: 20,
-                          onFocus: () => handleFocus(index)
                         }}
                       />
                     </td>
                     <td className="px-1 py-4">
                       <AutocompleteInput
                         value={entry.district}
-                        onChange={(e) => handleChange(index, 'district', e.target.value)}
+                        onChange={(e) => handleChange(entry.clientId, 'district', e.target.value)}
                         suggestions={districtSuggestions}
                         className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         inputProps={{ 
                           maxLength: 20,
-                          onFocus: () => handleFocus(index)
                         }}
                       />
                     </td>
@@ -228,57 +201,51 @@ const ReportEntryForm = () => {
                     <td className="px-1 py-4">
                       <textarea
                         value={entry.orders}
-                        onChange={(e) => {handleChange(index, 'orders', e.target.value);adjustTextareaHeight(e);}}
+                        onChange={(e) => {handleChange(entry.clientId, 'orders', e.target.value);adjustTextareaHeight(e);}}
                         className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         rows={2}
-                        onFocus={() => handleFocus(index)}
                       />
                     </td>
                     <td className="px-1 py-4">
                       <textarea
                         value={entry.tel_orders}
-                        onChange={(e) => {handleChange(index, 'tel_orders', e.target.value);adjustTextareaHeight(e);}}
+                        onChange={(e) => {handleChange(entry.clientId, 'tel_orders', e.target.value);adjustTextareaHeight(e);}}
                         className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         rows={2}
-                        onFocus={() => handleFocus(index)}
                       />
                       {/* <AutocompleteInput
                         value={entry.tel_orders}
-                        onChange={(e) => {handleChange(index, "tel_orders", e.target.value);adjustTextareaHeight(e);}}
+                        onChange={(e) => {handleChange(entry.clientId, "tel_orders", e.target.value);adjustTextareaHeight(e);}}
                         suggestions={getTelOrderSuggestions(entry.doctor_name)}
                         isTextarea={true}
                         openOnFocus={true}
                         className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         textareaProps={{
-                          onFocus: () => handleFocus(index)
                         }}
                       /> */}
                     </td>
                     <td className="px-1 py-4">
                       <textarea
                         value={entry.samples}
-                        onChange={(e) => {handleChange(index, 'samples', e.target.value);adjustTextareaHeight(e);}}
+                        onChange={(e) => {handleChange(entry.clientId, 'samples', e.target.value);adjustTextareaHeight(e);}}
                         className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         rows={2}
-                        onFocus={() => handleFocus(index)}
                       />
                     </td>
                     <td className="px-1 py-4">
                       <textarea
                         value={entry.new_product_intro || ''}
-                        onChange={(e) => {handleChange(index, 'new_product_intro', e.target.value);adjustTextareaHeight(e);}}
+                        onChange={(e) => {handleChange(entry.clientId, 'new_product_intro', e.target.value);adjustTextareaHeight(e);}}
                         className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         rows={2}
-                        onFocus={() => handleFocus(index)}
                       />
                     </td>
                     <td className="px-1 py-4">
                       <textarea
                         value={entry.old_product_followup || ''}
-                        onChange={(e) => {handleChange(index, 'old_product_followup', e.target.value);adjustTextareaHeight(e);}}
+                        onChange={(e) => {handleChange(entry.clientId, 'old_product_followup', e.target.value);adjustTextareaHeight(e);}}
                         className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
                         rows={2}
-                        onFocus={() => handleFocus(index)}
                       />
                     </td>
                   </tr>
@@ -288,9 +255,8 @@ const ReportEntryForm = () => {
                     <td className="px-1 py-3 font-medium text-sm text-gray-700" colSpan={3}>
                       <select
                         value={entry.client_type}
-                        onChange={(e) => handleChange(index, 'client_type', e.target.value as 'doctor' | 'nurse')}
+                        onChange={(e) => handleChange(entry.clientId, 'client_type', e.target.value as 'doctor' | 'nurse')}
                         className="w-36 px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500 bg-white bg-white"
-                        onFocus={() => handleFocus(index)}
                       >
                         <option value="doctor">Doctor</option>
                         <option value="nurse">Nurse</option>
@@ -301,9 +267,8 @@ const ReportEntryForm = () => {
                       <input
                         type="checkbox"
                         checked={entry.new_client}
-                        onChange={(e) => handleChange(index, 'new_client', e.target.checked)}
+                        onChange={(e) => handleChange(entry.clientId, 'new_client', e.target.checked)}
                         className="ml-3 h-5 w-5 text-slate-600 focus:ring-slate-500 border-gray-300 rounded"
-                        onFocus={() => handleFocus(index)}
                       />
                     </td>
                   </tr>
@@ -312,13 +277,19 @@ const ReportEntryForm = () => {
             </div>
 
             {/* Actions outside the table */}
-            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-gray-50 flex items-center justify-end gap-3">
+              <span role="status" className={`mr-auto text-sm ${entry.status === 'error' ? 'text-red-700' : 'text-gray-600'}`}>
+                {entry.status === 'saving' ? 'Saving...' : entry.status === 'error'
+                  ? 'Not saved — click Save or Save All to retry.' : entry.status === 'deleting' ? 'Deleting...'
+                  : entry.id && entry.revision === entry.savedRevision ? 'Saved'
+                  : !entry.id && isBlankEntry(entry) ? 'New entry' : 'Unsaved changes'}
+              </span>
               <button
-                onClick={() => handleSubmitEntry(index)}
-                disabled={submitting}
+                onClick={() => handleSubmitEntry(entry.clientId)}
+                disabled={entry.status === 'saving' || entry.status === 'deleting'}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white ${entry.id ? "bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-400" : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"} shadow-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50`}>
                 <Save size={15} />
-                {submitting
+                {entry.status === 'saving'
                   ? entry.id
                     ? "Updating..."
                     : "Saving..."
@@ -327,8 +298,8 @@ const ReportEntryForm = () => {
                   : "Save"}
               </button>
               <button
-                onClick={() => handleDelete(index)}
-                disabled={submitting}
+                onClick={() => handleDelete(entry.clientId)}
+                disabled={entry.status === 'saving' || entry.status === 'deleting'}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-all duration-fast shadow-md hover:shadow-lg disabled:opacity-50 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <Trash2 size={15} />
@@ -363,11 +334,11 @@ const ReportEntryForm = () => {
       <div className="flex flex-wrap gap-4 mt-4">
         <button
           onClick={handleSubmitAllEntries}
-          disabled={submitting}
+          disabled={savingAll}
           className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 transition"
         >
           <SaveAll size={15} />
-          {submitting ? "Saving All..." : "Save All"}
+          {savingAll ? "Saving All..." : "Save All"}
         </button>
       </div>
     </div>

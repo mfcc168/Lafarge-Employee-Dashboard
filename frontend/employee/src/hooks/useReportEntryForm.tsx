@@ -5,51 +5,34 @@ import { useAuth } from '@context/AuthContext';
 import { useToast } from '@context/ToastContext';
 import { backendUrl } from '@configs/DotEnv';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { FormEntry, createEmptyEntry, fromServer, isBlankEntry, isDirty, toPayload } from '@utils/reportEntryDraft';
+
+const REQUEST_TIMEOUT = 30000;
 
 export const useReportEntryForm = () => {
-  // State declarations
-  const [entries, setEntries] = useState<ReportEntry[]>([]);
-  const [newestEntryIndex, setNewestEntryIndex] = useState<number | null>(null);
+  const [entries, setEntries] = useState<FormEntry[]>([]);
+  const entriesRef = useRef<FormEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [savingAll, setSavingAll] = useState(false);
+  const [currentPage, updateCurrentPage] = useState(0);
   const { user, accessToken } = useAuth();
   const { showSuccess, showError, showWarning } = useToast();
-  const today = new Date().toISOString().split('T')[0];
-  const unsavedEntriesRef = useRef<ReportEntry[]>([]);
   const accessTokenRef = useRef(accessToken);
-  const inFlightEntriesRef = useRef<Set<ReportEntry>>(new Set());
-  const activeSubmissionsRef = useRef(0);
+  const inFlightEntriesRef = useRef(new Map<string, Promise<boolean>>());
+  const bulkSaveRef = useRef<Promise<void> | null>(null);
+  const deletedIdsRef = useRef(new Set<string>());
+  const focusedEntryIdRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
+  const today = new Date().toISOString().split('T')[0];
 
-  // Update access token ref
-  useEffect(() => {
-    accessTokenRef.current = accessToken;
-  }, [accessToken]);
+  useEffect(() => { accessTokenRef.current = accessToken; }, [accessToken]);
 
-  const beginSubmission = useCallback(() => {
-    activeSubmissionsRef.current += 1;
-    setSubmitting(true);
+  // Event handlers and network completions always use the latest draft, even
+  // before React renders. A row's clientId never changes when it gets a DB id.
+  const updateEntries = useCallback((update: (current: FormEntry[]) => FormEntry[]) => {
+    entriesRef.current = update(entriesRef.current);
+    setEntries(entriesRef.current);
   }, []);
-
-  const endSubmission = useCallback(() => {
-    activeSubmissionsRef.current = Math.max(0, activeSubmissionsRef.current - 1);
-    if (activeSubmissionsRef.current === 0) {
-      setSubmitting(false);
-    }
-  }, []);
-
-  // Memoized calculations
-  const groupedEntriesByDate = useMemo(() => {
-    const groups: { [date: string]: ReportEntry[] } = {};
-    for (const entry of entries) {
-      if (!groups[entry.date]) {
-        groups[entry.date] = [];
-      }
-      groups[entry.date].push(entry);
-    }
-    return groups;
-  }, [entries]);
 
   const sortedDates = useMemo(() => {
     const recentDates = Array.from({ length: 7 }, (_, i) => {
@@ -57,397 +40,233 @@ export const useReportEntryForm = () => {
       date.setDate(date.getDate() - i);
       return date.toISOString().split('T')[0];
     });
-
-    const allDates = new Set([
-      ...recentDates,
-      ...Object.keys(groupedEntriesByDate),
-    ]);
-
-    return Array.from(allDates).sort((a, b) => b.localeCompare(a));
-  }, [groupedEntriesByDate]);
-
+    return [...new Set([...recentDates, ...entries.map(entry => entry.date)])]
+      .sort((a, b) => b.localeCompare(a));
+  }, [entries]);
   const pagedDate = sortedDates[currentPage] || today;
-  const entriesForCurrentPage = useMemo(() => {
-    return groupedEntriesByDate[pagedDate] || [];
-  }, [groupedEntriesByDate, pagedDate]);
+  const entriesForCurrentPage = useMemo(() => entries.filter(entry => entry.date === pagedDate), [entries, pagedDate]);
 
-  
   const { data: allEntriesData = [], isLoading: isLoadingSuggestions } = useQuery({
-      queryKey: ['report-entries', user?.username],
-      queryFn: async () => {
-        if (!accessToken) throw new Error('No token');
-        const response = await axios.get(`${backendUrl}/api/report-entries/`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        return response.data as ReportEntry[];
-      },
-      enabled: !!accessToken, // only run when token is available
-      staleTime: 1000 * 60 * 5, // 5 minutes cache
-      gcTime: 1000 * 60 * 10, // 10 minutes total cache time
-    });
-
-
-
-
-  const fetchEntries = useCallback(async (date: string) => {
-    const token = accessTokenRef.current;
-    if (!token) return;
-    
-    try {
-      setIsLoading(true);
+    queryKey: ['report-entries', user?.username],
+    queryFn: async () => {
       const response = await axios.get(`${backendUrl}/api/report-entries/`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        params: { date }
+        headers: { Authorization: `Bearer ${accessTokenRef.current}` },
+        timeout: REQUEST_TIMEOUT,
       });
+      return response.data as ReportEntry[];
+    },
+    enabled: !!accessToken,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+  });
 
-      // Merge with unsaved entries for this date
-      const unsavedForDate = unsavedEntriesRef.current.filter(e => e.date === date);
-      const mergedEntries = [...response.data, ...unsavedForDate];
-      setEntries(mergedEntries);
-
-    } catch (error) {
-      console.error('Error fetching entries:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Load data when date changes
   useEffect(() => {
-    fetchEntries(pagedDate);
-  }, [pagedDate, fetchEntries]);
+    if (!accessToken) return;
+    let cancelled = false;
+    const controller = new AbortController();
+    const atStart = new Map(entriesRef.current.map(entry => [entry.clientId, entry]));
+    setIsLoading(true);
+    axios.get<ReportEntry[]>(`${backendUrl}/api/report-entries/`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: { date: pagedDate },
+      timeout: REQUEST_TIMEOUT,
+      signal: controller.signal,
+    }).then(response => {
+      if (cancelled) return;
+      updateEntries(current => {
+        const local = current.filter(entry => entry.date === pagedDate);
+        const merged = response.data
+          .filter(entry => !deletedIdsRef.current.has(String(entry.id)))
+          .map(entry => {
+            const existing = local.find(draft => String(draft.id) === String(entry.id) ||
+              (entry.client_request_id && draft.client_request_id === entry.client_request_id));
+            if (!existing) return fromServer(entry);
+            // Never let a late GET replace a draft changed/saved during the GET.
+            if (isDirty(existing) || existing.status !== 'idle' || existing !== atStart.get(existing.clientId)) {
+              return existing;
+            }
+            return fromServer(entry, existing.clientId);
+          });
+        const keys = new Set(merged.map(entry => entry.clientId));
+        for (const draft of local) {
+          if (!keys.has(draft.clientId) && (isDirty(draft) || draft.status !== 'idle' || draft !== atStart.get(draft.clientId))) {
+            merged.push(draft);
+          }
+        }
+        return [...current.filter(entry => entry.date !== pagedDate), ...merged];
+      });
+    }).catch(error => {
+      if (!cancelled) {
+        console.error('Error fetching entries:', error);
+        showError('Could Not Load Reports', 'Please check your connection and try again.', 6000);
+      }
+    }).finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [accessToken, pagedDate, updateEntries, showError]);
 
-  // Entry manipulation functions
+  // A refresh is background work. Its failure must never hold a save lock or
+  // make a successfully persisted report look like a failed submission.
+  const refreshReports = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['report-entries'] })
+      .catch(error => console.error('Error refreshing report cache:', error));
+  }, [queryClient]);
+
   const addEmptyEntry = useCallback(() => {
-    const newEntry: ReportEntry = {
-      date: pagedDate,
-      time_range: '',
-      doctor_name: '',
-      district: '',
-      client_type: 'doctor',
-      new_client: false,
-      orders: '',
-      samples: '',
-      tel_orders: '',
-      new_product_intro: '',
-      old_product_followup: '',
-      delivery_time_update: '',
-      salesman_name: '',
-    };
-
-    setEntries(prev => [...prev, newEntry]);
-    unsavedEntriesRef.current = [...unsavedEntriesRef.current, newEntry];
-    setNewestEntryIndex(entries.length);
-    if (!sortedDates.includes(pagedDate)) {
-      setCurrentPage(0);
-    }
-  }, [pagedDate, sortedDates, entries.length]);
-
-  const getGlobalIndex = useCallback((localIndex: number): number => {
-    const entry = entriesForCurrentPage[localIndex];
-    return entries.findIndex(e => e === entry);
-  }, [entriesForCurrentPage, entries]);
-
-  const handleChange = useCallback(<T extends keyof ReportEntry>(
-    index: number,
-    field: T,
-    value: ReportEntry[T]
-  ) => {
-    setEntries(prevEntries => {
-      const updatedEntries = [...prevEntries];
-      const updatedEntry = {
-        ...updatedEntries[index],
-        [field]: value
-      };
-      updatedEntries[index] = updatedEntry;
-
-      // Update unsaved entries
-      unsavedEntriesRef.current = unsavedEntriesRef.current.map(entry => 
-        entry === prevEntries[index] ? updatedEntry : entry
-      );
-
-      return updatedEntries;
+    updateEntries(current => {
+      const page = current.filter(entry => entry.date === pagedDate);
+      if (page.some(entry => !entry.id && isBlankEntry(entry))) return current;
+      return [...current, createEmptyEntry(pagedDate)];
     });
-  }, []);
+  }, [pagedDate, updateEntries]);
 
-  // CRUD operations
-  // Memoized helper function to check if entry is blank
-  const isBlankEntry = useCallback((entry: ReportEntry) => {
-    return (
-      !entry.time_range?.trim() &&
-      !entry.doctor_name?.trim() &&
-      !entry.district?.trim() &&
-      !entry.orders?.trim() &&
-      !entry.samples?.trim() &&
-      !entry.tel_orders?.trim() &&
-      !entry.new_product_intro?.trim() &&
-      !entry.old_product_followup?.trim() &&
-      !entry.delivery_time_update?.trim()
-    );
-  }, []);
-
-  const handleSubmitEntry = useCallback(async (
-    index: number,
-    skipBlankCheck = false,
-    showSuccessMessage = true
-  ): Promise<boolean> => {
-    const globalIndex = getGlobalIndex(index);
-    const entry = entries[globalIndex];
-    if (!entry) return false;
-
-    // For single submission, show warning if blank
-    if (!skipBlankCheck && isBlankEntry(entry)) {
-      showWarning(
-        'Cannot Submit Entry',
-        'Please fill in at least one field before submitting.',
-        5000
-      );
-      return false;
-    }
-
-    // React state updates are asynchronous, so a fast double-click can invoke
-    // this handler twice before the disabled state is rendered. Keep a
-    // synchronous per-entry lock to prevent duplicate POST/PUT requests.
-    if (inFlightEntriesRef.current.has(entry)) {
-      return true;
-    }
-
-    inFlightEntriesRef.current.add(entry);
-    beginSubmission();
-
-    try {
-      const isUpdate = !!entry.id;
-      const url = isUpdate
-        ? `${backendUrl}/api/report-entries/${entry.id}/`
-        : `${backendUrl}/api/report-entries/`;
-      const method = isUpdate ? 'PUT' : 'POST';
-
-      const response = await axios({
-        method,
-        url,
-        headers: {
-          Authorization: `Bearer ${accessTokenRef.current}`,
-        },
-        data: entry,
-      });
-
-      if (!entry.id && response.data?.id) {
-        const updatedEntry = { ...entry, id: response.data.id };
-        setEntries(prev => {
-          const updated = [...prev];
-          updated[globalIndex] = updatedEntry;
-          return updated;
-        });
-        
-        // Remove from unsaved entries
-        unsavedEntriesRef.current = unsavedEntriesRef.current.filter(
-          e => e !== entry
-        );
+  const handleChange = useCallback(<T extends keyof ReportEntry>(clientId: string, field: T, value: ReportEntry[T]) => {
+    updateEntries(current => {
+      const changed = current.map(entry => entry.clientId === clientId && entry[field] !== value
+        ? { ...entry, [field]: value, revision: entry.revision + 1 }
+        : entry);
+      const entry = changed.find(draft => draft.clientId === clientId);
+      if (entry && !isBlankEntry(entry) && !changed.some(draft => draft.date === entry.date && !draft.id && isBlankEntry(draft))) {
+        changed.push(createEmptyEntry(entry.date));
       }
-      
-      // Invalidate cache for report entries to ensure fresh data
-      // This will update the home page and any other views showing report data
-      await queryClient.invalidateQueries({ 
-        queryKey: ['report-entries'] 
-      });
+      return changed;
+    });
+  }, [updateEntries]);
 
-      if (showSuccessMessage) {
-        showSuccess(
-          isUpdate ? 'Report Updated' : 'Report Saved',
-          isUpdate
-            ? 'Your report entry has been updated successfully.'
-            : 'Your report entry has been saved successfully.',
-          3000
-        );
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error submitting entry:', error);
-      showError(
-        'Submission Failed',
-        'Failed to submit entry. Please check your connection and try again.',
-        6000
-      );
-      return false;
-    } finally {
-      inFlightEntriesRef.current.delete(entry);
-      endSubmission();
+  const handleSubmitEntry = useCallback((clientId: string, skipBlankCheck = false, showSuccessMessage = true): Promise<boolean> => {
+    // All callers join the actual result. An in-progress save is not a success.
+    const existing = inFlightEntriesRef.current.get(clientId);
+    if (existing) return existing;
+    const initial = entriesRef.current.find(entry => entry.clientId === clientId);
+    if (!initial || initial.status === 'deleting') return Promise.resolve(false);
+    if (isBlankEntry(initial)) {
+      if (!skipBlankCheck) showWarning('Cannot Submit Entry', 'Please fill in at least one field before submitting.', 5000);
+      return Promise.resolve(false);
     }
-  }, [
-    entries,
-    getGlobalIndex,
-    isBlankEntry,
-    queryClient,
-    beginSubmission,
-    endSubmission,
-    showSuccess,
-    showError,
-    showWarning,
-  ]);
+    if (!isDirty(initial)) return Promise.resolve(true);
 
-  const handleDelete = useCallback(async (index: number) => {
-    const globalIndex = getGlobalIndex(index);
-    const entry = entries[globalIndex];
-    if (!entry) return;
+    // Start in a microtask so the shared promise is registered synchronously,
+    // before any request can finish or another save handler can run.
+    const operation = Promise.resolve().then(async () => {
+      try {
+        updateEntries(current => current.map(entry => entry.clientId === clientId ? { ...entry, status: 'saving' } : entry));
+        while (true) {
+          const snapshot = entriesRef.current.find(entry => entry.clientId === clientId);
+          if (!snapshot) return false;
+          if (!isDirty(snapshot)) break;
+          const response = await axios<ReportEntry>({
+            method: snapshot.id ? 'PUT' : 'POST',
+            url: snapshot.id ? `${backendUrl}/api/report-entries/${snapshot.id}/` : `${backendUrl}/api/report-entries/`,
+            headers: { Authorization: `Bearer ${accessTokenRef.current}` },
+            data: toPayload(snapshot),
+            timeout: REQUEST_TIMEOUT,
+          });
+          if (!response.data?.id) throw new Error('The server did not confirm the saved report ID.');
+          updateEntries(current => current.map(entry => entry.clientId === clientId ? {
+            ...entry,
+            id: response.data.id,
+            // A 200 POST replays an earlier create whose response was lost.
+            // Follow it with a PUT so any edits since that attempt are saved.
+            savedRevision: !snapshot.id && response.status === 200 ? snapshot.revision - 1 : snapshot.revision,
+          } : entry));
+          // If typing continued while this snapshot was saving, persist the
+          // latest revision next, using PUT and the returned database ID.
+        }
+        updateEntries(current => current.map(entry => entry.clientId === clientId ? { ...entry, status: 'idle' } : entry));
+        refreshReports();
+        if (showSuccessMessage) showSuccess(initial.id ? 'Report Updated' : 'Report Saved', 'Your report entry has been saved successfully.', 3000);
+        return true;
+      } catch (error) {
+        console.error('Error submitting entry:', error);
+        updateEntries(current => current.map(entry => entry.clientId === clientId ? { ...entry, status: 'error' } : entry));
+        showError('Submission Failed', 'Your changes are still in this form. Check your connection and use Save or Save All to retry.', 6000);
+        return false;
+      } finally {
+        inFlightEntriesRef.current.delete(clientId);
+      }
+    });
+    inFlightEntriesRef.current.set(clientId, operation);
+    return operation;
+  }, [updateEntries, refreshReports, showSuccess, showError, showWarning]);
 
+  const saveIfDirty = useCallback((clientId: string | null) => {
+    const entry = entriesRef.current.find(draft => draft.clientId === clientId);
+    if (entry && isDirty(entry) && !isBlankEntry(entry)) void handleSubmitEntry(entry.clientId, true, false);
+  }, [handleSubmitEntry]);
+
+  const handleFocus = useCallback((clientId: string) => {
+    const previous = focusedEntryIdRef.current;
+    // Update immediately: a slow save must not delay tracking the next row.
+    focusedEntryIdRef.current = clientId;
+    if (previous !== clientId) saveIfDirty(previous);
+  }, [saveIfDirty]);
+
+  const setCurrentPage = useCallback((page: number) => {
+    saveIfDirty(focusedEntryIdRef.current);
+    focusedEntryIdRef.current = null;
+    updateCurrentPage(page);
+  }, [saveIfDirty]);
+
+  const handleDelete = useCallback(async (clientId: string) => {
+    const entry = entriesRef.current.find(draft => draft.clientId === clientId);
+    if (!entry || entry.status === 'deleting' || inFlightEntriesRef.current.has(clientId)) return;
     if (!entry.id) {
-      setEntries(prev => prev.filter((_, i) => i !== globalIndex));
-      unsavedEntriesRef.current = unsavedEntriesRef.current.filter(
-        e => e !== entry
-      );
+      updateEntries(current => current.filter(draft => draft.clientId !== clientId));
       return;
     }
-
+    updateEntries(current => current.map(draft => draft.clientId === clientId ? { ...draft, status: 'deleting' } : draft));
     try {
-      beginSubmission();
       await axios.delete(`${backendUrl}/api/report-entries/${entry.id}/`, {
-        headers: {
-          Authorization: `Bearer ${accessTokenRef.current}`,
-        },
+        headers: { Authorization: `Bearer ${accessTokenRef.current}` },
+        timeout: REQUEST_TIMEOUT,
       });
-
-      setEntries(prev => prev.filter((_, i) => i !== globalIndex));
-      unsavedEntriesRef.current = unsavedEntriesRef.current.filter(
-        e => e.id !== entry.id
-      );
-      
-      // Invalidate cache after deletion
-      await queryClient.invalidateQueries({ 
-        queryKey: ['report-entries'] 
-      });
+      deletedIdsRef.current.add(String(entry.id));
+      updateEntries(current => current.filter(draft => draft.clientId !== clientId));
+      refreshReports();
     } catch (error) {
       console.error('Error deleting entry:', error);
-      showError(
-        'Deletion Failed',
-        'Failed to delete entry. Please check your connection and try again.',
-        6000
-      );
-    } finally {
-      endSubmission();
+      updateEntries(current => current.map(draft => draft.clientId === clientId ? { ...draft, status: entry.status } : draft));
+      showError('Deletion Failed', 'Failed to delete entry. Please check your connection and try again.', 6000);
     }
-  }, [entries, getGlobalIndex, queryClient, beginSubmission, endSubmission, showError]);
+  }, [updateEntries, refreshReports, showError]);
 
-  const handleSubmitAllEntries = useCallback(async () => {
-    if (entriesForCurrentPage.length === 0) {
-      showWarning(
-        'No Entries Found',
-        'There are no entries to submit on this page.',
-        4000
-      );
-      return;
+  const handleSubmitAllEntries = useCallback((): Promise<void> => {
+    if (bulkSaveRef.current) return bulkSaveRef.current;
+    const nonBlank = entriesRef.current.filter(entry => entry.date === pagedDate && !isBlankEntry(entry));
+    if (!nonBlank.length) {
+      showWarning('No Data to Submit', 'All entries on this page are blank. Please fill in at least one field.', 5000);
+      return Promise.resolve();
     }
-
-    // Filter out blank entries
-    const nonBlankIndices = entriesForCurrentPage
-      .map((entry, index) => ({ entry, index }))
-      .filter(({ entry }) => !isBlankEntry(entry))
-      .map(({ index }) => index);
-
-    if (nonBlankIndices.length === 0) {
-      showWarning(
-        'No Data to Submit',
-        'All entries on this page are blank. Please fill in at least one field.',
-        5000
-      );
-      return;
-    }
-
-    beginSubmission();
-    try {
-      // Submit only non-blank entries. Individual success toasts are suppressed
-      // so the user gets one clear confirmation for the whole batch.
-      const results = await Promise.all(
-        nonBlankIndices.map((index) => handleSubmitEntry(index, true, false))
-      );
-
-      const savedCount = results.filter(Boolean).length;
-      const failedCount = nonBlankIndices.length - savedCount;
-      const skippedCount = entriesForCurrentPage.length - nonBlankIndices.length;
-
-      if (savedCount > 0) {
-        showSuccess(
-          'Reports Saved',
-          `${savedCount} report entr${savedCount === 1 ? 'y was' : 'ies were'} saved successfully.`,
-          3500
-        );
+    setSavingAll(true);
+    const operation = Promise.resolve().then(async () => {
+      try {
+        const results = await Promise.all(nonBlank.map(entry => handleSubmitEntry(entry.clientId, true, false)));
+        const savedCount = results.filter(Boolean).length;
+        const failedCount = results.length - savedCount;
+        if (savedCount > 0) showSuccess('Reports Saved', `${savedCount} report entr${savedCount === 1 ? 'y was' : 'ies were'} saved successfully.`, 3500);
+        if (failedCount > 0) showWarning('Some Reports Were Not Saved', `${failedCount} report entr${failedCount === 1 ? 'y' : 'ies'} could not be saved. Please try again.`, 6000);
+      } finally {
+        bulkSaveRef.current = null;
+        setSavingAll(false);
       }
+    });
+    bulkSaveRef.current = operation;
+    return operation;
+  }, [pagedDate, handleSubmitEntry, showSuccess, showWarning]);
 
-      if (failedCount > 0) {
-        showWarning(
-          'Some Reports Were Not Saved',
-          `${failedCount} report entr${failedCount === 1 ? 'y' : 'ies'} could not be saved. Please try again.`,
-          6000
-        );
-      }
-
-      if (skippedCount > 0) {
-        console.log(`Submitted ${savedCount} entries. Skipped ${skippedCount} blank entries.`);
-      }
-    } catch (error) {
-      console.error("Error submitting entries:", error);
-      showError(
-        'Bulk Submission Failed',
-        'Failed to submit some entries. Please check your connection and try again.',
-        6000
-      );
-    } finally {
-      endSubmission();
-    }
-  }, [
-    entriesForCurrentPage,
-    handleSubmitEntry,
-    isBlankEntry,
-    beginSubmission,
-    endSubmission,
-    showSuccess,
-    showWarning,
-    showError,
-  ]);
-
-  // Suggestion functions
   const getUniqueSuggestions = useCallback((field: keyof ReportEntry): string[] => {
-    const values = allEntriesData
-      .map(entry => entry[field])
-      .filter(v => typeof v === 'string' && v.trim() !== '') as string[];
-    return Array.from(new Set(values));
+    const values = allEntriesData.map(entry => entry[field])
+      .filter(value => typeof value === 'string' && value.trim() !== '') as string[];
+    return [...new Set(values)];
   }, [allEntriesData]);
-
-  const getTelOrderSuggestions = (doctorName: string): string[] => {
-    const matches = allEntriesData.length > 0 
-      ? allEntriesData.filter(e => e.doctor_name === doctorName && e.tel_orders?.trim())
-      : entries.filter(e => e.doctor_name === doctorName && e.tel_orders?.trim());
-    
-    return [...new Set(matches.map(e => e.tel_orders.trim()))];
-  };
-
-  // Memoized suggestions
   const timeRangeSuggestions = useMemo(() => getUniqueSuggestions('time_range'), [getUniqueSuggestions]);
   const doctorNameSuggestions = useMemo(() => getUniqueSuggestions('doctor_name'), [getUniqueSuggestions]);
   const districtSuggestions = useMemo(() => getUniqueSuggestions('district'), [getUniqueSuggestions]);
 
   return {
-    unsavedEntriesRef,
-    entries: entriesForCurrentPage,
-    newestEntryIndex,
-    isLoading,
-    isLoadingSuggestions,
-    submitting,
-    currentPage,
-    sortedDates,
-    pagedDate,
-    timeRangeSuggestions,
-    doctorNameSuggestions,
-    districtSuggestions,
-    getTelOrderSuggestions,
-    addEmptyEntry,
-    handleChange,
-    handleSubmitAllEntries,
-    handleSubmitEntry,
-    handleDelete,
-    setCurrentPage,
-    totalPages: sortedDates.length,
+    entries: entriesForCurrentPage, isLoading, isLoadingSuggestions, savingAll,
+    currentPage, sortedDates, pagedDate, focusedEntryIdRef,
+    timeRangeSuggestions, doctorNameSuggestions, districtSuggestions,
+    addEmptyEntry, handleChange, handleFocus, handleSubmitEntry, handleSubmitAllEntries,
+    handleDelete, setCurrentPage, totalPages: sortedDates.length,
   };
 };
