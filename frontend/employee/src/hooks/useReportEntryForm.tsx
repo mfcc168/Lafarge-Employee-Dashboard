@@ -9,17 +9,22 @@ import { FormEntry, createEmptyEntry, fromServer, isBlankEntry, isDirty, toPaylo
 
 const REQUEST_TIMEOUT = 30000;
 
+type BulkSaveBatch = {
+  promise: Promise<void>;
+  requests: Map<string, Promise<boolean>>;
+};
+
 export const useReportEntryForm = () => {
   const [entries, setEntries] = useState<FormEntry[]>([]);
   const entriesRef = useRef<FormEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [savingAll, setSavingAll] = useState(false);
+  const [savingDates, setSavingDates] = useState<Set<string>>(new Set());
   const [currentPage, updateCurrentPage] = useState(0);
   const { user, accessToken } = useAuth();
   const { showSuccess, showError, showWarning } = useToast();
   const accessTokenRef = useRef(accessToken);
   const inFlightEntriesRef = useRef(new Map<string, Promise<boolean>>());
-  const bulkSaveRef = useRef<Promise<void> | null>(null);
+  const bulkSavesRef = useRef(new Map<string, BulkSaveBatch>());
   const deletedIdsRef = useRef(new Set<string>());
   const focusedEntryIdRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
@@ -44,6 +49,7 @@ export const useReportEntryForm = () => {
       .sort((a, b) => b.localeCompare(a));
   }, [entries]);
   const pagedDate = sortedDates[currentPage] || today;
+  const savingAll = savingDates.has(pagedDate);
   const entriesForCurrentPage = useMemo(() => entries.filter(entry => entry.date === pagedDate), [entries, pagedDate]);
 
   const { data: allEntriesData = [], isLoading: isLoadingSuggestions } = useQuery({
@@ -137,12 +143,19 @@ export const useReportEntryForm = () => {
     const existing = inFlightEntriesRef.current.get(clientId);
     if (existing) return existing;
     const initial = entriesRef.current.find(entry => entry.clientId === clientId);
-    if (!initial || initial.status === 'deleting') return Promise.resolve(false);
+    if (!initial) return Promise.resolve(false);
+    if (initial.status === 'deleting') {
+      if (showSuccessMessage) showWarning('Report Is Being Deleted', 'This report is being deleted. You can save it again if deletion fails.', 5000);
+      return Promise.resolve(false);
+    }
     if (isBlankEntry(initial)) {
       if (!skipBlankCheck) showWarning('Cannot Submit Entry', 'Please fill in at least one field before submitting.', 5000);
       return Promise.resolve(false);
     }
-    if (!isDirty(initial)) return Promise.resolve(true);
+    if (!isDirty(initial)) {
+      if (showSuccessMessage) showSuccess('Report Saved', 'This report entry is already saved.', 3000);
+      return Promise.resolve(true);
+    }
 
     // Start in a microtask so the shared promise is registered synchronously,
     // before any request can finish or another save handler can run.
@@ -185,6 +198,10 @@ export const useReportEntryForm = () => {
       }
     });
     inFlightEntriesRef.current.set(clientId, operation);
+    // A manual retry also replaces the failed result in any ongoing Save All.
+    for (const batch of bulkSavesRef.current.values()) {
+      if (batch.requests.has(clientId)) batch.requests.set(clientId, operation);
+    }
     return operation;
   }, [updateEntries, refreshReports, showSuccess, showError, showWarning]);
 
@@ -230,27 +247,46 @@ export const useReportEntryForm = () => {
   }, [updateEntries, refreshReports, showError]);
 
   const handleSubmitAllEntries = useCallback((): Promise<void> => {
-    if (bulkSaveRef.current) return bulkSaveRef.current;
     const nonBlank = entriesRef.current.filter(entry => entry.date === pagedDate && !isBlankEntry(entry));
     if (!nonBlank.length) {
       showWarning('No Data to Submit', 'All entries on this page are blank. Please fill in at least one field.', 5000);
       return Promise.resolve();
     }
-    setSavingAll(true);
-    const operation = Promise.resolve().then(async () => {
+    // Every click includes the current rows and retries failed saves, even
+    // while a previous batch is pending. Each row still shares one request.
+    const requests = nonBlank.map(entry => [entry.clientId, handleSubmitEntry(entry.clientId, true, false)] as const);
+    const existing = bulkSavesRef.current.get(pagedDate);
+    if (existing) {
+      for (const [clientId, request] of requests) existing.requests.set(clientId, request);
+      return existing.promise;
+    }
+
+    const batch: BulkSaveBatch = { promise: Promise.resolve(), requests: new Map(requests) };
+    bulkSavesRef.current.set(pagedDate, batch);
+    setSavingDates(current => new Set(current).add(pagedDate));
+    batch.promise = Promise.resolve().then(async () => {
       try {
-        const results = await Promise.all(nonBlank.map(entry => handleSubmitEntry(entry.clientId, true, false)));
-        const savedCount = results.filter(Boolean).length;
-        const failedCount = results.length - savedCount;
-        if (savedCount > 0) showSuccess('Reports Saved', `${savedCount} report entr${savedCount === 1 ? 'y was' : 'ies were'} saved successfully.`, 3500);
-        if (failedCount > 0) showWarning('Some Reports Were Not Saved', `${failedCount} report entr${failedCount === 1 ? 'y' : 'ies'} could not be saved. Please try again.`, 6000);
+        while (true) {
+          const pending = [...batch.requests];
+          const results = await Promise.all(pending.map(([, request]) => request));
+          // Include rows/retries added by clicks made while we were waiting.
+          if (pending.length !== batch.requests.size || pending.some(([clientId, request]) => batch.requests.get(clientId) !== request)) continue;
+          const savedCount = results.filter(Boolean).length;
+          const failedCount = results.length - savedCount;
+          if (savedCount > 0) showSuccess('Reports Saved', `${savedCount} report entr${savedCount === 1 ? 'y was' : 'ies were'} saved successfully.`, 3500);
+          if (failedCount > 0) showWarning('Some Reports Were Not Saved', `${failedCount} report entr${failedCount === 1 ? 'y' : 'ies'} could not be saved. Please try again.`, 6000);
+          break;
+        }
       } finally {
-        bulkSaveRef.current = null;
-        setSavingAll(false);
+        bulkSavesRef.current.delete(pagedDate);
+        setSavingDates(current => {
+          const remaining = new Set(current);
+          remaining.delete(pagedDate);
+          return remaining;
+        });
       }
     });
-    bulkSaveRef.current = operation;
-    return operation;
+    return batch.promise;
   }, [pagedDate, handleSubmitEntry, showSuccess, showWarning]);
 
   const getUniqueSuggestions = useCallback((field: keyof ReportEntry): string[] => {

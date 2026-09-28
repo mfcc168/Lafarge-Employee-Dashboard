@@ -245,4 +245,108 @@ describe('report save workflow', () => {
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     expect(request.mock.calls[0][0].data.new_client).toBe(true);
   });
+
+  it('keeps Save and both Save All buttons enabled throughout a pending save and failure', async () => {
+    const pending = deferred<{ data: { id: string } }>();
+    request.mockReturnValueOnce(pending.promise);
+    await setup();
+    type(0, '09:00');
+    fireEvent.click(save(0));
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    expect((save(0) as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(save(0));
+    for (const button of screen.getAllByRole<HTMLButtonElement>('button', { name: /^(Save All|Saving All\.\.\.)$/ })) {
+      expect(button.disabled).toBe(false);
+      fireEvent.click(button);
+      expect(button.disabled).toBe(false);
+    }
+    await act(async () => pending.reject(new Error('offline')));
+    expect(request).toHaveBeenCalledTimes(1);
+    expect((save(0) as HTMLButtonElement).disabled).toBe(false);
+    expect(saveAll().disabled).toBe(false);
+    fireEvent.click(save(0));
+    await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it('includes newly typed rows when Save All is clicked again during a pending batch', async () => {
+    const first = deferred<{ data: { id: string } }>();
+    const second = deferred<{ data: { id: string } }>();
+    request.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    await setup();
+    type(0, '09:00');
+    fireEvent.click(saveAll());
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    type(1, '10:00');
+    fireEvent.click(saveAll());
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    expect(request.mock.calls[1][0].data.time_range).toBe('10:00');
+    await act(async () => first.resolve({ data: { id: 'first-report' } }));
+    expect(toast.showSuccess).not.toHaveBeenCalled();
+    await act(async () => second.resolve({ data: { id: 'second-report' } }));
+    expect(toast.showSuccess).toHaveBeenCalledExactlyOnceWith('Reports Saved', '2 report entries were saved successfully.', 3500);
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(['Save All', 'Save'])('retries a failed row immediately with %s while another row is still saving', async (action) => {
+    const slow = deferred<{ data: { id: string } }>();
+    request.mockReturnValueOnce(slow.promise).mockRejectedValueOnce(new Error('offline'));
+    await setup();
+    type(0, '09:00');
+    type(1, '10:00');
+    fireEvent.click(saveAll());
+    await waitFor(() => expect(toast.showError).toHaveBeenCalled());
+    expect(request).toHaveBeenCalledTimes(2);
+    fireEvent.click(action === 'Save' ? save(1) : saveAll());
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(3));
+    expect(request.mock.calls[2][0].data.time_range).toBe('10:00');
+    await act(async () => slow.resolve({ data: { id: 'slow-report' } }));
+    expect(toast.showSuccess).toHaveBeenCalledWith('Reports Saved', '2 report entries were saved successfully.', 3500);
+    expect(toast.showSuccess.mock.calls.filter(([title]) => title === 'Reports Saved')).toHaveLength(1);
+    expect(toast.showWarning).not.toHaveBeenCalled();
+  });
+
+  it('lets Save All on another date proceed while the previous date is still saving', async () => {
+    const pending = deferred<{ data: { id: string } }>();
+    request.mockReturnValueOnce(pending.promise);
+    await setup();
+    type(0, '09:00');
+    fireEvent.click(saveAll());
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Prev date' }));
+    await screen.findByRole('button', { name: 'Add New Entry' });
+    fireEvent.click(screen.getByRole('button', { name: 'Add New Entry' }));
+    type(0, '10:00');
+    fireEvent.click(saveAll());
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(saveAll().textContent).toBe('Save All'));
+    expect(request.mock.calls[1][0].data.date).not.toBe(request.mock.calls[0][0].data.date);
+    await act(async () => pending.resolve({ data: { id: 'old-date-report' } }));
+    expect(toast.showSuccess).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the form and save controls usable while reports are loading', async () => {
+    const loading = deferred<{ data: never[] }>();
+    vi.mocked(axios.get).mockReturnValue(loading.promise);
+    await setup();
+    type(0, '09:00');
+    expect((save(0) as HTMLButtonElement).disabled).toBe(false);
+    expect(saveAll().disabled).toBe(false);
+    fireEvent.click(save(0));
+    await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
+    await act(async () => loading.resolve({ data: [] }));
+    expect((input(0) as HTMLInputElement).value).toBe('09:00');
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('confirms a click on an already saved entry without sending a duplicate request', async () => {
+    await setup();
+    type(0, '09:00');
+    fireEvent.click(save(0));
+    await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
+    toast.showSuccess.mockClear();
+    fireEvent.click(save(0));
+    expect(toast.showSuccess).toHaveBeenCalledExactlyOnceWith('Report Saved', 'This report entry is already saved.', 3000);
+    expect(request).toHaveBeenCalledTimes(1);
+  });
 });

@@ -3,7 +3,6 @@ import { ChevronLeft, ChevronRight, Plus, SaveAll, Save, Trash2 } from "lucide-r
 import AutocompleteInput from "@components/AutoCompleteInput";
 import { useEffect, useRef, useCallback } from "react";
 import { useReportEntryForm } from "@hooks/useReportEntryForm";
-import LoadingSpinner from "@components/LoadingSpinner";
 import { isBlankEntry } from "@utils/reportEntryDraft";
 
 /**
@@ -86,13 +85,6 @@ const ReportEntryForm = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [entries, focusedEntryIdRef]);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <LoadingSpinner />
-    )
-  }
-  
   return (
     <div className="flex flex-col h-full space-y-6 overflow-hidden" ref={entriesRef}>
       {/* Pagination Controls */}
@@ -127,16 +119,18 @@ const ReportEntryForm = () => {
       </div>
             
       <div className="flex-grow min-h-0 overflow-y-auto space-y-4">
-        {entries.length === 0 && (
+        {isLoading && <p role="status" className="px-6 py-2 text-sm text-gray-500">Loading reports...</p>}
+        {!isLoading && entries.length === 0 && (
           <div className="px-6 py-4 text-center text-gray-500 italic bg-white rounded-lg shadow">
             No entries available for this date.
           </div>
         )}
         <div className="flex flex-wrap gap-4 mt-4">
           <button
+            type="button"
             onClick={handleSubmitAllEntries}
-            disabled={savingAll}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 transition"
+            aria-busy={savingAll}
+            className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
           >
             <SaveAll size={15} />
             {savingAll ? "Saving All..." : "Save All"}
@@ -285,9 +279,10 @@ const ReportEntryForm = () => {
                   : !entry.id && isBlankEntry(entry) ? 'New entry' : 'Unsaved changes'}
               </span>
               <button
+                type="button"
                 onClick={() => handleSubmitEntry(entry.clientId)}
-                disabled={entry.status === 'saving' || entry.status === 'deleting'}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white ${entry.id ? "bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-400" : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"} shadow-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50`}>
+                aria-busy={entry.status === 'saving'}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white ${entry.id ? "bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-400" : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"} shadow-sm transition-all focus:outline-none focus:ring-2`}>
                 <Save size={15} />
                 {entry.status === 'saving'
                   ? entry.id
@@ -333,9 +328,10 @@ const ReportEntryForm = () => {
       
       <div className="flex flex-wrap gap-4 mt-4">
         <button
+          type="button"
           onClick={handleSubmitAllEntries}
-          disabled={savingAll}
-          className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 transition"
+          aria-busy={savingAll}
+          className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
         >
           <SaveAll size={15} />
           {savingAll ? "Saving All..." : "Save All"}
