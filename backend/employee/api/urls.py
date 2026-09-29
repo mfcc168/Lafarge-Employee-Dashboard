@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views.auth_views import TokenObtainPairViewCustom, TokenRefreshViewCustom, ProtectedView, ChangePassword
 from .views.employee_views import DownloadPaySlipPDFView, GetOwnSalaryView, GetAllEmployeeSalary, GetOwnEmployeeProfile, GetEmployeeProfileAPIView, UpdateEmployeeProfileAPIView, ToggleEmployeeStatusView, GetAllEmployeesView
 from .views.vacation_views import MyVacationRequestListView, VacationRequestCreateView, VacationRequestListView, VacationRequestUpdateAPIView
-from .views.report_views import ReportEntryDatesView, ReportEntryViewSet, AllReportEntriesView, ReportEntriesByDateView
+from .views.report_views import ReportEntryDatesView, ReportEntryViewSet, ReportEntrySuggestionsView, AllReportEntriesView, ReportEntriesByDateView
 from .views.dashboard_views import DashboardReportEntriesView, DashboardReportEntriesByDateView
 from .views.health import redis_health, app_health, redis_metrics, cache_warm, cache_stats
 
@@ -33,6 +33,7 @@ urlpatterns = [
 
     # Report management endpoints (sales team only)
     path('all-report-entries/', AllReportEntriesView.as_view(), name='all-report-entries'),
+    path('report-entry-suggestions/', ReportEntrySuggestionsView.as_view(), name='report-entry-suggestions'),
     path("report-entry-dates/", ReportEntryDatesView.as_view()),
     path('report-entries-by-date/', ReportEntriesByDateView.as_view(), name='report-entries-by-date'),
     
