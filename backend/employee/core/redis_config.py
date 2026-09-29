@@ -48,3 +48,16 @@ def safe_cache_delete(key):
     except Exception as e:
         logger.warning(f"Cache delete failed for key {key}: {e}")
         return False
+
+def safe_cache_delete_pattern(pattern):
+    """Safely delete all cache keys matching a django-redis pattern."""
+    try:
+        from django.core.cache import cache
+        delete_pattern = getattr(cache, 'delete_pattern', None)
+        if delete_pattern is None:
+            logger.warning("Cache backend does not support delete_pattern for %s", pattern)
+            return 0
+        return delete_pattern(pattern)
+    except Exception as e:
+        logger.warning(f"Cache pattern delete failed for pattern {pattern}: {e}")
+        return 0
