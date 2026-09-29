@@ -24,10 +24,9 @@ import LoadingSpinner from "@components/LoadingSpinner";
 const ReportEntryForm = () => {
   const {
     entries,
-    unsavedEntriesRef,
     newestEntryIndex,
     isLoading,
-    submitting,
+    isSavingAll,
     currentPage,
     sortedDates,
     doctorNameSuggestions,
@@ -39,6 +38,7 @@ const ReportEntryForm = () => {
     handleSubmitAllEntries,
     handleDelete,
     addEmptyEntry,
+    getEntryStatus,
   } = useReportEntryForm();
 
   const { user } = useAuth();
@@ -89,27 +89,27 @@ const ReportEntryForm = () => {
    * Handles focus events on form fields - Memoized for performance
    * @param {number} index - The index of the focused entry
    */
-  const handleFocus = useCallback(async (index: number) => {
-    // Add new entry if focusing on the newest row
+  const handleFocus = useCallback((index: number) => {
+    // Add the next blank row as soon as the user starts working in the newest
+    // row. This is local-only and never waits on the network.
     if (index === newestEntryIndex) {
       addEmptyEntry();
     }
-    
-    // Save previous entry if it was modified
+
     const prevIndex = focusedEntryIndex.current;
 
-    if (prevIndex !== null && prevIndex !== index) {
-      const prevEntry = entries[prevIndex];
-
-      const isUnsaved = !prevEntry?.id && unsavedEntriesRef.current.includes(prevEntry);
-
-      if (isUnsaved) {
-        await handleSubmitEntry(prevIndex);
-      }
+    if (
+      prevIndex !== null &&
+      prevIndex !== index &&
+      getEntryStatus(prevIndex) === 'dirty'
+    ) {
+      // Autosave in the background. Focus/typing in the next row must never
+      // wait for the previous network request to complete.
+      void handleSubmitEntry(prevIndex);
     }
 
     focusedEntryIndex.current = index;
-  }, [newestEntryIndex, addEmptyEntry, entries, unsavedEntriesRef, handleSubmitEntry]);
+  }, [newestEntryIndex, addEmptyEntry, getEntryStatus, handleSubmitEntry]);
 
   // Loading state
   if (isLoading) {
@@ -160,18 +160,18 @@ const ReportEntryForm = () => {
         <div className="flex flex-wrap gap-4 mt-4">
           <button
             onClick={handleSubmitAllEntries}
-            disabled={submitting}
+            disabled={isSavingAll}
             className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 transition"
           >
             <SaveAll size={15} />
-            {submitting ? "Saving All..." : "Save All"}
+            {isSavingAll ? "Saving changes..." : "Save All"}
           </button> 
         </div>
         {entries.map((entry, index) => (
           <div
-            key={entry.id || `new-${index}`}
-            className={`entry-container rounded-lg shadow-md overflow-hidden border-l-4 ${
-              entry.id ? "border-emerald-400" : "border-emerald-500"
+            key={entry.clientId}
+            className={`entry-container rounded-lg shadow-sm overflow-hidden border ${
+              getEntryStatus(index) === 'dirty' ? "border-slate-300" : "border-slate-200"
             }`}
           >
             <div className="overflow-x-auto max-w-full">
@@ -312,23 +312,35 @@ const ReportEntryForm = () => {
             </div>
 
             {/* Actions outside the table */}
-            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-gray-50 flex items-center gap-3">
+              <div className="mr-auto text-sm text-slate-500 min-w-28">
+                {getEntryStatus(index) === 'dirty' && 'Unsaved changes'}
+                {getEntryStatus(index) === 'saving' && 'Saving…'}
+                {getEntryStatus(index) === 'saved' && 'Saved'}
+              </div>
               <button
                 onClick={() => handleSubmitEntry(index)}
-                disabled={submitting}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white ${entry.id ? "bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-400" : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"} shadow-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50`}>
+                disabled={
+                  getEntryStatus(index) === 'saving' ||
+                  getEntryStatus(index) === 'deleting'
+                }
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white ${entry.id ? "bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-400" : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"} shadow-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50`}
+              >
                 <Save size={15} />
-                {submitting
+                {getEntryStatus(index) === 'saving'
                   ? entry.id
-                    ? "Updating..."
+                    ? "Saving changes..."
                     : "Saving..."
                   : entry.id
-                  ? "Update"
+                  ? "Save changes"
                   : "Save"}
               </button>
               <button
                 onClick={() => handleDelete(index)}
-                disabled={submitting}
+                disabled={
+                  getEntryStatus(index) === 'saving' ||
+                  getEntryStatus(index) === 'deleting'
+                }
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-all duration-fast shadow-md hover:shadow-lg disabled:opacity-50 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <Trash2 size={15} />
