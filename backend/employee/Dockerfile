@@ -23,4 +23,4 @@ RUN mkdir -p /app/staticfiles
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS} --threads ${GUNICORN_THREADS} --timeout ${GUNICORN_TIMEOUT} --pythonpath /app core.wsgi:application"]
+CMD ["sh", "-c", "if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then python manage.py migrate --noinput; else echo 'Skipping Django migrations (RUN_MIGRATIONS=false)'; fi && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS} --threads ${GUNICORN_THREADS} --timeout ${GUNICORN_TIMEOUT} --pythonpath /app core.wsgi:application"]
