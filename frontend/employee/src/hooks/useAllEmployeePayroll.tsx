@@ -56,7 +56,7 @@ export const useAllEmployeePayroll = () => {
     isError: isProfilesError,
     error: profilesError 
   } = useQuery<EmployeeProfile[]>({
-    queryKey: ['employee-salaries', accessToken],
+    queryKey: ['employee-salaries'],
     queryFn: async () => {
       const res = await axios.get(`${backendUrl}/api/salaries/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -77,7 +77,7 @@ export const useAllEmployeePayroll = () => {
     isError: isCommissionsError,
     error: commissionsError 
   } = useQuery<Record<string, number>>({
-    queryKey: ['sales-commissions', prevYear, prevMonth, accessToken],
+    queryKey: ['sales-commissions', prevYear, prevMonth],
     queryFn: async () => {
       // Map salesman names to usernames
       const nameToUsernameMap: Record<string, string> = {
