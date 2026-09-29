@@ -4,7 +4,7 @@ from core.redis_config import get_redis_client
 from core.cache_monitoring import RedisMonitor, log_cache_metrics
 from core.cache_warming import warm_essential_caches
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 import logging
 
@@ -141,3 +141,9 @@ def cache_stats(request):
         'connected_clients': stats.get('connected_clients', 0),
         'key_patterns': key_patterns
     })
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def liveness(request):
+    """Unauthenticated container liveness check."""
+    return JsonResponse({'status': 'ok'})

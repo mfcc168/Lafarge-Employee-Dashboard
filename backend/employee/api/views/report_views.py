@@ -1,55 +1,19 @@
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import viewsets, generics
-from report.models import ReportEntry
-from report.serializers import ReportEntrySerializer
-from django.db.models import DateField
-from django.db.models.functions import TruncDate
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.utils.dateparse import parse_date
-from rest_framework.exceptions import ValidationError
 from datetime import timedelta
-from api.pagination import OptimizedPageNumberPagination, DailyReportPagination
-from django.core.cache import cache
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from datetime import datetime, timedelta
-from django.conf import settings
-from core.redis_config import safe_cache_get, safe_cache_set, safe_cache_delete
-from core.permissions import IsSalesTeam
 
-def get_cache_timeout_for_date(date_param):
-    """
-    Determine cache timeout based on how old the data is:
-    - Current date: No cache (0 seconds)
-    - 1-7 days old: 2 minutes
-    - 8+ days old: 60 minutes
-    """
-    if not date_param:
-        return settings.CACHE_TIMEOUTS['report_recent']
-    
-    try:
-        query_date = parse_date(date_param)
-        if not query_date:
-            return settings.CACHE_TIMEOUTS['report_recent']
-        
-        today = datetime.now().date()
-        days_old = (today - query_date).days
-        
-        if days_old == 0:
-            return settings.CACHE_TIMEOUTS['report_current_date']  # No cache
-        elif days_old <= 7:
-            return settings.CACHE_TIMEOUTS['report_recent']  # 2 minutes
-        else:
-            return settings.CACHE_TIMEOUTS['report_historical']  # 60 minutes
-    except:
-        return settings.CACHE_TIMEOUTS['report_recent']
-
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import viewsets
+from django.db.models import Count, Max, Q
+from django.db.models.functions import TruncDate
 from django.utils.dateparse import parse_date
+from rest_framework import generics, viewsets
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from api.pagination import DailyReportPagination
+from core.permissions import IsSalesTeam
 from report.models import ReportEntry
 from report.serializers import ReportEntrySerializer
+
 
 class ReportEntryViewSet(viewsets.ModelViewSet):
     queryset = ReportEntry.objects.select_related('salesman', 'salesman__profile').filter(salesman__profile__is_active=True).order_by('-date')
@@ -69,13 +33,45 @@ class ReportEntryViewSet(viewsets.ModelViewSet):
         return queryset.order_by('-date')
 
     def perform_create(self, serializer):
+        # Cache invalidation is centralized in report.signals so create/update/
+        # delete all follow the same rules.
         serializer.save(salesman=self.request.user)
-        # Invalidate report caches when new entry is created
-        safe_cache_delete('report_entry_dates')
-        # Clear date-specific caches for today
-        today = datetime.now().date().strftime('%Y-%m-%d')
-        safe_cache_delete(f'report_entries_date:{today}:salesman:all')
-        safe_cache_delete(f'report_entries_date:{today}:salesman:{self.request.user.username}')
+
+
+class ReportEntrySuggestionsView(APIView):
+    """Small autocomplete payload for the report editor.
+
+    The old frontend downloaded the user's complete report history just to
+    build a few autocomplete lists. Limit the scan and return only distinct
+    strings so opening the editor stays fast as report history grows.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        recent_values = (
+            ReportEntry.objects
+            .filter(salesman=request.user)
+            .order_by('-date', '-created_at')
+            .values_list('time_range', 'doctor_name', 'district')[:1000]
+        )
+
+        time_ranges = set()
+        doctor_names = set()
+        districts = set()
+
+        for time_range, doctor_name, district in recent_values:
+            if time_range:
+                time_ranges.add(time_range)
+            if doctor_name:
+                doctor_names.add(doctor_name)
+            if district:
+                districts.add(district)
+
+        return Response({
+            'time_ranges': sorted(time_ranges),
+            'doctor_names': sorted(doctor_names),
+            'districts': sorted(districts),
+        })
 
 
 class AllReportEntriesView(generics.ListAPIView):
@@ -116,36 +112,19 @@ class AllReportEntriesView(generics.ListAPIView):
         return qs
     
     def get(self, request, *args, **kwargs):
-        """Override to conditionally apply pagination and variable caching"""
-        date_param = request.query_params.get("date")
-        cache_timeout = get_cache_timeout_for_date(date_param)
-        
-        # Only cache if timeout > 0
-        if cache_timeout > 0:
-            cache_key = f"report_entries_date:{date_param}:salesman:{request.query_params.get('salesman_name', 'all')}"
-            cached_response = safe_cache_get(cache_key)
-            
-            if cached_response is not None:
-                return Response(cached_response)
-            
-            # Get the response and cache it
-            response = super().get(request, *args, **kwargs)
-            if response.status_code == 200:
-                safe_cache_set(cache_key, response.data, cache_timeout)
-            return response
-        
-        # No caching for current date
+        # Report CRUD is already backed by indexed PostgreSQL queries. Avoid
+        # Redis here so writes do not need expensive cache-pattern cleanup.
         if request.query_params.get('paginate') == 'true':
             self.pagination_class = DailyReportPagination()
         return super().get(request, *args, **kwargs)
 
     
-@method_decorator(cache_page(60 * 15), name='get')  # Cache for 15 minutes
 class ReportEntryDatesView(APIView):
     permission_classes = [IsSalesTeam]
 
     def get(self, request):
-        # Only include dates from active employees
+        # This query is small and indexed. Keeping it uncached prevents Redis
+        # health from affecting report create/update/delete latency.
         dates = list(
             ReportEntry.objects.select_related('salesman__profile')
             .filter(salesman__profile__is_active=True)
@@ -196,35 +175,78 @@ class ReportEntriesByDateView(generics.ListAPIView):
         # Optional salesman filter
         salesman_param = self.request.query_params.get("salesman_name")
         if salesman_param:
-            qs = qs.filter(salesman_name=salesman_param)
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(salesman__first_name__icontains=salesman_param) |
+                Q(salesman__last_name__icontains=salesman_param) |
+                Q(salesman__username=salesman_param)
+            )
 
         return qs
     
     def get(self, request, *args, **kwargs):
-        """Apply variable caching based on date range"""
-        start_date_param = request.query_params.get("start_date")
-        end_date_param = request.query_params.get("end_date")
-        
-        # Use the most recent date to determine cache timeout
-        cache_timeout = max(
-            get_cache_timeout_for_date(start_date_param),
-            get_cache_timeout_for_date(end_date_param)
-        )
-        
-        # Only cache if timeout > 0
-        if cache_timeout > 0:
-            salesman_param = request.query_params.get("salesman_name", "all")
-            cache_key = f"report_entries_range:{start_date_param}:{end_date_param}:salesman:{salesman_param}"
-            cached_response = safe_cache_get(cache_key)
-            
-            if cached_response is not None:
-                return Response(cached_response)
-            
-            # Get the response and cache it
-            response = super().get(request, *args, **kwargs)
-            if response.status_code == 200:
-                safe_cache_set(cache_key, response.data, cache_timeout)
-            return response
-        
-        # No caching for current date ranges
+        # Keep range reads simple and always fresh. For this internal app the
+        # indexed PostgreSQL query is cheaper than synchronizing Redis on every
+        # report edit.
         return super().get(request, *args, **kwargs)
+
+
+class ClientDirectoryView(APIView):
+    """Return a compact aggregated client directory instead of full report history."""
+
+    permission_classes = [IsSalesTeam]
+
+    def get(self, request):
+        queryset = (
+            ReportEntry.objects
+            .select_related('salesman', 'salesman__profile')
+            .filter(salesman__profile__is_active=True)
+            .exclude(doctor_name='')
+        )
+
+        if request.user.profile.role == 'SALESMAN':
+            queryset = queryset.filter(salesman=request.user)
+
+        search = request.query_params.get('q', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(doctor_name__icontains=search) |
+                Q(district__icontains=search)
+            )
+
+        rows = (
+            queryset
+            .values(
+                'doctor_name',
+                'district',
+                'client_type',
+                'salesman__first_name',
+                'salesman__last_name',
+                'salesman__username',
+            )
+            .annotate(
+                visits=Count('id'),
+                last_visit=Max('date'),
+            )
+            .order_by('-last_visit', 'doctor_name')[:250]
+        )
+
+        results = []
+        for row in rows:
+            full_name = (
+                f"{row['salesman__first_name']} {row['salesman__last_name']}"
+            ).strip()
+            results.append({
+                'doctor_name': row['doctor_name'],
+                'district': row['district'],
+                'client_type': row['client_type'],
+                'salesman_name': full_name or row['salesman__username'],
+                'visits': row['visits'],
+                'last_visit': (
+                    row['last_visit'].isoformat()
+                    if row['last_visit']
+                    else ''
+                ),
+            })
+
+        return Response(results)

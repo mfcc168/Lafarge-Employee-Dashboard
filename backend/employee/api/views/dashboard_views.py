@@ -8,9 +8,6 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.utils.dateparse import parse_date
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.conf import settings
 from datetime import datetime, timedelta
 from rest_framework.exceptions import ValidationError
 
@@ -43,7 +40,6 @@ class DashboardReportEntriesView(generics.ListAPIView):
         return qs
 
 
-@method_decorator(cache_page(settings.CACHE_TIMEOUTS.get('report_recent', 120)), name='get')
 class DashboardReportEntriesByDateView(generics.ListAPIView):
     """
     Dashboard view for report entries by date range - accessible to all authenticated users.

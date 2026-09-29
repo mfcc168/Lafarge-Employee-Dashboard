@@ -1,8 +1,7 @@
-FROM python:3.9-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# Set environment variables
 ENV PYTHONPATH=/app \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -11,29 +10,17 @@ ENV PYTHONPATH=/app \
     GUNICORN_THREADS=2 \
     GUNICORN_TIMEOUT=120
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
 COPY . .
-
-# Create staticfiles directory and migrate and collect static files
-RUN mkdir -p /app/staticfiles \
-    && python manage.py makemigrations && python manage.py migrate && python manage.py collectstatic --noinput
+RUN chmod +x /app/docker-entrypoint.sh && mkdir -p /app/staticfiles
 
 EXPOSE 8000
 
-CMD ["sh", "-c", \
-    "gunicorn --bind 0.0.0.0:8000 \
-    --workers ${GUNICORN_WORKERS} \
-    --threads ${GUNICORN_THREADS} \
-    --timeout ${GUNICORN_TIMEOUT} \
-    --pythonpath /app \
-    core.wsgi:application"]
+CMD ["/app/docker-entrypoint.sh"]

@@ -1,49 +1,68 @@
 services:
   db:
-    image: postgres:13-alpine
+    image: postgres:16-alpine
     environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-lafarge}
+      POSTGRES_USER: ${DB_USER:-lafarge}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-lafarge_dev_password}
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - postgres16_data:/var/lib/postgresql/data/
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-lafarge} -d ${DB_NAME:-lafarge}"]
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
     networks:
-          - app-network
+      - app-network
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD:-localredis}
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - allkeys-lru
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-localredis}
     volumes:
       - redis_data:/data
-    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    networks:
-      - app-network
-    deploy:
-      resources:
-        limits:
-          memory: 512M
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - app-network
 
   backend:
-    build: ./backend/employee
-    command: bash -c "
-      python manage.py makemigrations && python manage.py migrate &&
-      gunicorn --bind 0.0.0.0:8000 --workers 2 --timeout 120 --threads 2 core.wsgi:application
-      "
+    build:
+      context: ./backend/employee
+    environment:
+      DB_NAME: ${DB_NAME:-lafarge}
+      DB_USER: ${DB_USER:-lafarge}
+      DB_PASSWORD: ${DB_PASSWORD:-lafarge_dev_password}
+      # Defaults to the bundled database. Override DB_HOST/DB_PORT/DB_SSLMODE
+      # in .env when testing against an existing PostgreSQL server.
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+      DB_CONN_MAX_AGE: "60"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-localredis}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-docker-development-key-change-me}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost,http://127.0.0.1}
+      CORS_ALLOW_ALL_ORIGINS: "True"
     ports:
       - "8000:8000"
     depends_on:
@@ -51,22 +70,48 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/live/', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     restart: unless-stopped
     networks:
       - app-network
 
   frontend:
-    build: ./frontend/employee
+    build:
+      context: ./frontend/next-app
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8000
+      SALES_API_URL: ${SALES_API_URL:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     ports:
-      - "80:80"
+      - "80:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -qO-
+        - http://localhost:3000/api/health
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     restart: unless-stopped
     networks:
       - app-network
 
 volumes:
-  postgres_data:
+  postgres16_data:
   redis_data:
 
 networks:

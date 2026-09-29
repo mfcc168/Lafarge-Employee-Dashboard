@@ -15,10 +15,10 @@ if not SECRET_KEY:
     raise ValueError("DJANGO_SECRET_KEY environment variable is not set!")
 
 
-DEBUG = os.getenv('DJANGO_DEBUG')
+DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+ALLOWED_HOSTS = [value for value in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,backend').split(',') if value]
+CSRF_TRUSTED_ORIGINS = [value for value in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if value]
 
 
 INSTALLED_APPS = [
@@ -77,8 +77,13 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
+        # Reuse PostgreSQL connections instead of paying connection + SSL
+        # setup cost on every API request. Override with DB_CONN_MAX_AGE=0
+        # if a deployment uses an external transaction pooler.
+        'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+        'CONN_HEALTH_CHECKS': True,
         'OPTIONS': {
-            'sslmode': 'require',
+            'sslmode': os.getenv('DB_SSLMODE', 'prefer'),
         },
     }
 }
