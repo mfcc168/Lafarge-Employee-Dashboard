@@ -241,6 +241,36 @@ The application implements a sophisticated multi-layer caching strategy:
 - **Session Caching**: User session and permission caching
 - **API Response Caching**: Configurable per-endpoint caching
 
+#### Report Editing and Synchronization
+
+Report create/update/delete and report list/date endpoints read and write the
+indexed database directly. They do not call Redis or cache HTTP responses; a
+cache outage therefore cannot hold a report save open. Other application caches
+remain in use.
+
+The editor requests one date at a time. `/api/report-entries/suggestions/` returns
+only distinct autocomplete strings for the authenticated user, including older
+clients, instead of downloading full report history. On a confirmed mutation,
+React updates matching daily, weekly, and client-list caches from the response,
+cancels older reads, and marks affected lists for revalidation on a later visit.
+Suggestions are refreshed on the next focus/mount. Report snapshots are not
+persisted to localStorage; unsaved drafts remain in the current editor only.
+
+The existing per-row save queue, retry UUIDs, editable pending rows, and enabled
+Save/Save All controls are retained. Deploy the backend before or together with
+the frontend so the suggestions endpoint is available. No new migration is
+required by this change.
+
+Regression checks:
+```bash
+cd frontend/employee && npm test && npm run build
+# From the repository root:
+cd backend/employee && python manage.py test report --settings=core.test_settings
+```
+Use `REPORT_TEST_POSTGRES=1` with the isolated PostgreSQL test service to run the
+concurrent-create test as CI does. Local SQLite runs skip that one test. Tests
+verify request/cache behavior; production latency still needs runtime measurement.
+
 #### Cache Debugging
 ```javascript
 // Browser console commands

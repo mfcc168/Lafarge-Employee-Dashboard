@@ -5,6 +5,7 @@ import { useAuth } from '@context/AuthContext';
 import { useToast } from '@context/ToastContext';
 import { backendUrl } from '@configs/DotEnv';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { emptyReportSuggestions, reportKeys, syncReportCaches, type ReportSuggestions } from '@utils/reportCache';
 import { FormEntry, createEmptyEntry, fromServer, isBlankEntry, isDirty, toPayload } from '@utils/reportEntryDraft';
 
 const REQUEST_TIMEOUT = 30000;
@@ -52,16 +53,17 @@ export const useReportEntryForm = () => {
   const savingAll = savingDates.has(pagedDate);
   const entriesForCurrentPage = useMemo(() => entries.filter(entry => entry.date === pagedDate), [entries, pagedDate]);
 
-  const { data: allEntriesData = [], isLoading: isLoadingSuggestions } = useQuery({
-    queryKey: ['report-entries', user?.username],
-    queryFn: async () => {
-      const response = await axios.get(`${backendUrl}/api/report-entries/`, {
+  const { data: suggestions = emptyReportSuggestions, isLoading: isLoadingSuggestions } = useQuery({
+    queryKey: reportKeys.suggestions(user?.username),
+    queryFn: async ({ signal }) => {
+      const response = await axios.get<ReportSuggestions>(`${backendUrl}/api/report-entries/suggestions/`, {
         headers: { Authorization: `Bearer ${accessTokenRef.current}` },
         timeout: REQUEST_TIMEOUT,
+        signal,
       });
-      return response.data as ReportEntry[];
+      return response.data;
     },
-    enabled: !!accessToken,
+    enabled: !!accessToken && !!user?.username,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
   });
@@ -110,12 +112,15 @@ export const useReportEntryForm = () => {
     return () => { cancelled = true; controller.abort(); };
   }, [accessToken, pagedDate, updateEntries, showError]);
 
-  // A refresh is background work. Its failure must never hold a save lock or
-  // make a successfully persisted report look like a failed submission.
-  const refreshReports = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['report-entries'] })
-      .catch(error => console.error('Error refreshing report cache:', error));
-  }, [queryClient]);
+  const publishReport = useCallback((entry: ReportEntry, deleted = false) => {
+    // Cache synchronization must never turn an acknowledged write into a
+    // failed save, even if an optional background refresh fails.
+    try {
+      syncReportCaches(queryClient, user?.username, entry, deleted);
+    } catch (error) {
+      console.error('Error synchronizing report cache:', error);
+    }
+  }, [queryClient, user?.username]);
 
   const addEmptyEntry = useCallback(() => {
     updateEntries(current => {
@@ -174,18 +179,21 @@ export const useReportEntryForm = () => {
             timeout: REQUEST_TIMEOUT,
           });
           if (!response.data?.id) throw new Error('The server did not confirm the saved report ID.');
+          const replay = !snapshot.id && response.status === 200;
+          const saved = { ...toPayload(snapshot), ...response.data };
           updateEntries(current => current.map(entry => entry.clientId === clientId ? {
             ...entry,
+            // Apply canonical server values only if no newer typing exists.
+            // A replay is an old snapshot and must be followed by a PUT.
+            ...(entry.revision === snapshot.revision && !replay ? saved : {}),
             id: response.data.id,
-            // A 200 POST replays an earlier create whose response was lost.
-            // Follow it with a PUT so any edits since that attempt are saved.
-            savedRevision: !snapshot.id && response.status === 200 ? snapshot.revision - 1 : snapshot.revision,
+            savedRevision: replay ? snapshot.revision - 1 : snapshot.revision,
           } : entry));
+          publishReport(saved);
           // If typing continued while this snapshot was saving, persist the
           // latest revision next, using PUT and the returned database ID.
         }
         updateEntries(current => current.map(entry => entry.clientId === clientId ? { ...entry, status: 'idle' } : entry));
-        refreshReports();
         if (showSuccessMessage) showSuccess(initial.id ? 'Report Updated' : 'Report Saved', 'Your report entry has been saved successfully.', 3000);
         return true;
       } catch (error) {
@@ -203,7 +211,7 @@ export const useReportEntryForm = () => {
       if (batch.requests.has(clientId)) batch.requests.set(clientId, operation);
     }
     return operation;
-  }, [updateEntries, refreshReports, showSuccess, showError, showWarning]);
+  }, [updateEntries, publishReport, showSuccess, showError, showWarning]);
 
   const saveIfDirty = useCallback((clientId: string | null) => {
     const entry = entriesRef.current.find(draft => draft.clientId === clientId);
@@ -238,13 +246,13 @@ export const useReportEntryForm = () => {
       });
       deletedIdsRef.current.add(String(entry.id));
       updateEntries(current => current.filter(draft => draft.clientId !== clientId));
-      refreshReports();
+      publishReport(toPayload(entry), true);
     } catch (error) {
       console.error('Error deleting entry:', error);
       updateEntries(current => current.map(draft => draft.clientId === clientId ? { ...draft, status: entry.status } : draft));
       showError('Deletion Failed', 'Failed to delete entry. Please check your connection and try again.', 6000);
     }
-  }, [updateEntries, refreshReports, showError]);
+  }, [updateEntries, publishReport, showError]);
 
   const handleSubmitAllEntries = useCallback((): Promise<void> => {
     const nonBlank = entriesRef.current.filter(entry => entry.date === pagedDate && !isBlankEntry(entry));
@@ -289,14 +297,9 @@ export const useReportEntryForm = () => {
     return batch.promise;
   }, [pagedDate, handleSubmitEntry, showSuccess, showWarning]);
 
-  const getUniqueSuggestions = useCallback((field: keyof ReportEntry): string[] => {
-    const values = allEntriesData.map(entry => entry[field])
-      .filter(value => typeof value === 'string' && value.trim() !== '') as string[];
-    return [...new Set(values)];
-  }, [allEntriesData]);
-  const timeRangeSuggestions = useMemo(() => getUniqueSuggestions('time_range'), [getUniqueSuggestions]);
-  const doctorNameSuggestions = useMemo(() => getUniqueSuggestions('doctor_name'), [getUniqueSuggestions]);
-  const districtSuggestions = useMemo(() => getUniqueSuggestions('district'), [getUniqueSuggestions]);
+  const timeRangeSuggestions = suggestions.time_ranges;
+  const doctorNameSuggestions = suggestions.doctor_names;
+  const districtSuggestions = suggestions.districts;
 
   return {
     entries: entriesForCurrentPage, isLoading, isLoadingSuggestions, savingAll,

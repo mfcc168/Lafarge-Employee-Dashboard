@@ -40,6 +40,7 @@ const EmployeeManagement = () => {
       queryClient.invalidateQueries({ queryKey: ["all-employees"] });
       queryClient.invalidateQueries({ queryKey: ["employee-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["employee-salaries"] });
+      queryClient.invalidateQueries({ queryKey: ["reports"] });
     },
   });
 

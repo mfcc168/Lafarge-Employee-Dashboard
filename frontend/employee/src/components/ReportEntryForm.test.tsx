@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ReportEntryForm from './ReportEntryForm';
+import { reportKeys, emptyReportSuggestions } from '@utils/reportCache';
 
 const toast = vi.hoisted(() => ({ showSuccess: vi.fn(), showWarning: vi.fn(), showError: vi.fn() }));
 vi.mock('@context/AuthContext', () => ({ useAuth: () => ({ user: { username: 'tester' }, accessToken: 'test-token' }) }));
@@ -34,7 +35,7 @@ async function setup() {
 }
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.mocked(axios.get).mockResolvedValue({ data: [] });
+  vi.mocked(axios.get).mockImplementation(async url => ({ data: String(url).endsWith('/suggestions/') ? emptyReportSuggestions : [] }));
   vi.mocked(axios.delete).mockResolvedValue({ data: {} });
   request.mockImplementation(async (config: AxiosRequestConfig) => ({ data: { ...config.data, id: config.data.id ?? 'report-1' } }));
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -178,7 +179,7 @@ describe('report save workflow', () => {
     const stored = { id: 'existing', date: new Date().toISOString().split('T')[0], time_range: '08:00',
       doctor_name: '', district: '', client_type: 'doctor', new_client: false, orders: '', tel_orders: '',
       samples: '', new_product_intro: '', old_product_followup: '', delivery_time_update: '', salesman_name: '' };
-    vi.mocked(axios.get).mockImplementation(async (_url, config) => ({ data: config?.params?.date ? [stored] : [] }));
+    vi.mocked(axios.get).mockImplementation(async (url, config) => ({ data: String(url).endsWith('/suggestions/') ? emptyReportSuggestions : config?.params?.date ? [stored] : [] }));
     const pending = deferred<{ data: { id: string } }>();
     request.mockReturnValueOnce(pending.promise);
     await setup();
@@ -327,7 +328,7 @@ describe('report save workflow', () => {
 
   it('keeps the form and save controls usable while reports are loading', async () => {
     const loading = deferred<{ data: never[] }>();
-    vi.mocked(axios.get).mockReturnValue(loading.promise);
+    vi.mocked(axios.get).mockImplementation(url => String(url).endsWith('/suggestions/') ? Promise.resolve({ data: emptyReportSuggestions }) : loading.promise);
     await setup();
     type(0, '09:00');
     expect((save(0) as HTMLButtonElement).disabled).toBe(false);
@@ -349,4 +350,53 @@ describe('report save workflow', () => {
     expect(toast.showSuccess).toHaveBeenCalledExactlyOnceWith('Report Saved', 'This report entry is already saved.', 3000);
     expect(request).toHaveBeenCalledTimes(1);
   });
+
+  it('updates cached dashboard and client lists from save/delete responses without reloading history', async () => {
+    await setup();
+    const today = new Date().toISOString().split('T')[0];
+    const keys = [reportKeys.all('tester'), reportKeys.day('tester', today), reportKeys.week('tester', today, today)];
+    keys.forEach(key => client.setQueryData(key, []));
+    type(0, '09:00');
+    fireEvent.click(save(0));
+    await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
+    keys.forEach(key => expect(client.getQueryData(key)).toMatchObject([{ id: 'report-1', time_range: '09:00' }]));
+    type(0, '10:00');
+    fireEvent.click(save(0));
+    await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
+    keys.forEach(key => expect(client.getQueryData(key)).toMatchObject([{ id: 'report-1', time_range: '10:00' }]));
+    fireEvent.click(within(rows()[0]).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(rows()).toHaveLength(1));
+    keys.forEach(key => expect(client.getQueryData(key)).toEqual([]));
+    expect(axios.get).toHaveBeenCalledTimes(2); // one day + compact suggestions, no follow-up history GET
+    expect(vi.mocked(axios.get).mock.calls.every(([url, config]) =>
+      String(url).endsWith('/suggestions/') || !!config?.params?.date)).toBe(true);
+  });
+
+  it('keeps the row and cached lists on a failed delete, then removes them after a retry', async () => {
+    await setup();
+    client.setQueryData(reportKeys.all('tester'), []);
+    type(0, '09:00');
+    fireEvent.click(save(0));
+    await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
+    vi.mocked(axios.delete).mockRejectedValueOnce(new Error('offline'));
+    fireEvent.click(within(rows()[0]).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(toast.showError).toHaveBeenCalledWith('Deletion Failed', expect.any(String), 6000));
+    expect(rows()).toHaveLength(2);
+    expect(client.getQueryData(reportKeys.all('tester'))).toMatchObject([{ id: 'report-1' }]);
+    fireEvent.click(within(rows()[0]).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(rows()).toHaveLength(1));
+    expect(client.getQueryData(reportKeys.all('tester'))).toEqual([]);
+  });
+
+  it('uses canonical saved values without changing a row identity', async () => {
+    request.mockImplementationOnce(async config => ({ data: { ...config.data, id: 'report-1', time_range: '09:00' } }));
+    await setup();
+    type(0, ' 09:00 ');
+    const originalInput = input(0);
+    fireEvent.click(save(0));
+    await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
+    expect((input(0) as HTMLInputElement).value).toBe('09:00');
+    expect(input(0)).toBe(originalInput);
+  });
+
 });

@@ -5,7 +5,7 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, defaultShouldDehydrateQuery } from '@tanstack/react-query';
 import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 
@@ -26,6 +26,13 @@ const localStoragePersister = createSyncStoragePersister({
 persistQueryClient({
   queryClient,
   persister: localStoragePersister,
+  buster: 'report-cache-v2',
+  dehydrateOptions: {
+    // Report snapshots are live server state, not offline drafts. Avoid
+    // serializing all report history and resurrecting stale rows on reload.
+    shouldDehydrateQuery: query => defaultShouldDehydrateQuery(query) &&
+      !['reports', 'report-entries', 'report-suggestions'].includes(String(query.queryKey[0])),
+  },
 });
 
 createRoot(document.getElementById('root')!).render(
