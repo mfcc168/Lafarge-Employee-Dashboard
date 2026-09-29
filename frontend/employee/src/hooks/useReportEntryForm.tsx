@@ -6,42 +6,89 @@ import { useToast } from '@context/ToastContext';
 import { backendUrl } from '@configs/DotEnv';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
+type LocalReportEntry = ReportEntry & {
+  clientId: string;
+};
+
+type ReportSuggestions = {
+  time_ranges: string[];
+  doctor_names: string[];
+  districts: string[];
+};
+
+type EntryStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'deleting';
+
+const EMPTY_SUGGESTIONS: ReportSuggestions = {
+  time_ranges: [],
+  doctor_names: [],
+  districts: [],
+};
+
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const createClientId = () => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `draft-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
+const withClientId = (entry: ReportEntry): LocalReportEntry => ({
+  ...entry,
+  clientId: entry.id ? `server-${entry.id}` : createClientId(),
+});
+
+const toReportPayload = (entry: LocalReportEntry) => ({
+  date: entry.date,
+  time_range: entry.time_range,
+  doctor_name: entry.doctor_name,
+  district: entry.district,
+  client_type: entry.client_type,
+  new_client: entry.new_client,
+  orders: entry.orders,
+  samples: entry.samples,
+  tel_orders: entry.tel_orders,
+  new_product_intro: entry.new_product_intro,
+  old_product_followup: entry.old_product_followup,
+  delivery_time_update: entry.delivery_time_update,
+});
+
+const uniqueNonEmpty = (values: string[]) =>
+  Array.from(new Set(values.filter((value) => value?.trim())));
+
 export const useReportEntryForm = () => {
-  // State declarations
-  const [entries, setEntries] = useState<ReportEntry[]>([]);
+  const [entries, setEntries] = useState<LocalReportEntry[]>([]);
   const [newestEntryIndex, setNewestEntryIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  const [savingEntryIds, setSavingEntryIds] = useState<Set<string>>(new Set());
+  const [deletingEntryIds, setDeletingEntryIds] = useState<Set<string>>(new Set());
+  const [dirtyEntryIds, setDirtyEntryIds] = useState<Set<string>>(new Set());
+  const [savedEntryIds, setSavedEntryIds] = useState<Set<string>>(new Set());
+  const [isSavingAll, setIsSavingAll] = useState(false);
+
   const { user, accessToken } = useAuth();
   const { showError, showWarning } = useToast();
-  const today = new Date().toISOString().split('T')[0];
-  const unsavedEntriesRef = useRef<ReportEntry[]>([]);
+  const today = formatLocalDate(new Date());
+
   const accessTokenRef = useRef(accessToken);
   const fetchRequestIdRef = useRef(0);
-  const pendingOperationsRef = useRef(0);
+  const savingEntryIdsRef = useRef<Set<string>>(new Set());
+  const dirtyEntriesRef = useRef<Map<string, LocalReportEntry>>(new Map());
+  const entryRevisionRef = useRef<Map<string, number>>(new Map());
   const queryClient = useQueryClient();
 
-  // Update access token ref
   useEffect(() => {
     accessTokenRef.current = accessToken;
   }, [accessToken]);
 
-  const beginSubmitting = useCallback(() => {
-    pendingOperationsRef.current += 1;
-    setSubmitting(true);
-  }, []);
-
-  const endSubmitting = useCallback(() => {
-    pendingOperationsRef.current = Math.max(0, pendingOperationsRef.current - 1);
-    if (pendingOperationsRef.current === 0) {
-      setSubmitting(false);
-    }
-  }, []);
-
-  // Memoized calculations
   const groupedEntriesByDate = useMemo(() => {
-    const groups: { [date: string]: ReportEntry[] } = {};
+    const groups: { [date: string]: LocalReportEntry[] } = {};
     for (const entry of entries) {
       if (!groups[entry.date]) {
         groups[entry.date] = [];
@@ -55,7 +102,7 @@ export const useReportEntryForm = () => {
     const recentDates = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      return date.toISOString().split('T')[0];
+      return formatLocalDate(date);
     });
 
     const allDates = new Set([
@@ -67,50 +114,129 @@ export const useReportEntryForm = () => {
   }, [groupedEntriesByDate]);
 
   const pagedDate = sortedDates[currentPage] || today;
-  const entriesForCurrentPage = useMemo(() => {
-    return groupedEntriesByDate[pagedDate] || [];
-  }, [groupedEntriesByDate, pagedDate]);
 
-  
-  const { data: allEntriesData = [], isLoading: isLoadingSuggestions } = useQuery({
-      queryKey: ['report-entries', user?.username],
-      queryFn: async () => {
-        if (!accessToken) throw new Error('No token');
-        const response = await axios.get(`${backendUrl}/api/report-entries/`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        return response.data as ReportEntry[];
-      },
-      enabled: !!accessToken, // only run when token is available
-      staleTime: 1000 * 60 * 5, // 5 minutes cache
-      gcTime: 1000 * 60 * 10, // 10 minutes total cache time
+  const entriesForCurrentPage = useMemo(
+    () => groupedEntriesByDate[pagedDate] || [],
+    [groupedEntriesByDate, pagedDate]
+  );
+
+  const {
+    data: suggestionsData = EMPTY_SUGGESTIONS,
+    isLoading: isLoadingSuggestions,
+  } = useQuery<ReportSuggestions>({
+    queryKey: ['report-entry-suggestions', user?.username],
+    queryFn: async () => {
+      if (!accessToken) throw new Error('No token');
+      const response = await axios.get(
+        `${backendUrl}/api/report-entry-suggestions/`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      return response.data as ReportSuggestions;
+    },
+    enabled: !!accessToken,
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
+  });
+
+  const markReportDataStale = useCallback(() => {
+    // Mark report data stale without refetching right now. The report editor
+    // already has the authoritative mutation response, so making the user wait
+    // for extra GETs only slows the interaction down.
+    void queryClient.invalidateQueries({
+      queryKey: ['report-entries'],
+      refetchType: 'none',
+    });
+  }, [queryClient]);
+
+  const updateSuggestionsFromEntry = useCallback((entry: ReportEntry) => {
+    queryClient.setQueryData<ReportSuggestions>(
+      ['report-entry-suggestions', user?.username],
+      (current = EMPTY_SUGGESTIONS) => ({
+        time_ranges: uniqueNonEmpty([...current.time_ranges, entry.time_range]),
+        doctor_names: uniqueNonEmpty([...current.doctor_names, entry.doctor_name]),
+        districts: uniqueNonEmpty([...current.districts, entry.district]),
+      })
+    );
+  }, [queryClient, user?.username]);
+
+  const setEntrySaving = useCallback((clientId: string, saving: boolean) => {
+    if (saving) {
+      savingEntryIdsRef.current.add(clientId);
+      setSavingEntryIds((current) => {
+        const next = new Set(current);
+        next.add(clientId);
+        return next;
+      });
+      return;
+    }
+
+    savingEntryIdsRef.current.delete(clientId);
+    setSavingEntryIds((current) => {
+      const next = new Set(current);
+      next.delete(clientId);
+      return next;
+    });
+  }, []);
+
+  const markEntryClean = useCallback((clientId: string) => {
+    dirtyEntriesRef.current.delete(clientId);
+    setDirtyEntryIds((current) => {
+      const next = new Set(current);
+      next.delete(clientId);
+      return next;
+    });
+  }, []);
+
+  const flashEntrySaved = useCallback((clientId: string) => {
+    setSavedEntryIds((current) => {
+      const next = new Set(current);
+      next.add(clientId);
+      return next;
     });
 
-
-
+    window.setTimeout(() => {
+      setSavedEntryIds((current) => {
+        const next = new Set(current);
+        next.delete(clientId);
+        return next;
+      });
+    }, 1400);
+  }, []);
 
   const fetchEntries = useCallback(async (date: string) => {
     const token = accessTokenRef.current;
     if (!token) return;
 
     const requestId = ++fetchRequestIdRef.current;
-    
+
     try {
       setIsLoading(true);
       const response = await axios.get(`${backendUrl}/api/report-entries/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        params: { date }
+        params: { date },
       });
 
-      // Ignore an older request that finished after the user changed dates.
       if (requestId !== fetchRequestIdRef.current) return;
 
-      const unsavedForDate = unsavedEntriesRef.current.filter(e => e.date === date);
-      const mergedEntries = [...response.data, ...unsavedForDate];
-      setEntries(mergedEntries);
+      const serverEntries = (response.data as ReportEntry[]).map(withClientId);
+      const dirtyForDate = Array.from(dirtyEntriesRef.current.values()).filter(
+        (entry) => entry.date === date
+      );
+      const dirtyByServerId = new Map(
+        dirtyForDate
+          .filter((entry) => entry.id)
+          .map((entry) => [String(entry.id), entry])
+      );
 
+      const mergedServerEntries = serverEntries.map(
+        (entry) => dirtyByServerId.get(String(entry.id)) || entry
+      );
+      const unsavedDrafts = dirtyForDate.filter((entry) => !entry.id);
+
+      setEntries([...mergedServerEntries, ...unsavedDrafts]);
+      setNewestEntryIndex(null);
     } catch (error) {
       if (requestId === fetchRequestIdRef.current) {
         console.error('Error fetching entries:', error);
@@ -122,14 +248,13 @@ export const useReportEntryForm = () => {
     }
   }, []);
 
-  // Load data when date changes
   useEffect(() => {
     fetchEntries(pagedDate);
   }, [pagedDate, fetchEntries]);
 
-  // Entry manipulation functions
   const addEmptyEntry = useCallback(() => {
-    const newEntry: ReportEntry = {
+    const newEntry: LocalReportEntry = {
+      clientId: createClientId(),
       date: pagedDate,
       time_range: '',
       doctor_name: '',
@@ -145,79 +270,95 @@ export const useReportEntryForm = () => {
       salesman_name: '',
     };
 
-    setEntries(prev => [...prev, newEntry]);
-    unsavedEntriesRef.current = [...unsavedEntriesRef.current, newEntry];
-    setNewestEntryIndex(entries.length);
+    setEntries((current) => [...current, newEntry]);
+    setNewestEntryIndex(entriesForCurrentPage.length);
+
     if (!sortedDates.includes(pagedDate)) {
       setCurrentPage(0);
     }
-  }, [pagedDate, sortedDates, entries.length]);
-
-  const getGlobalIndex = useCallback((localIndex: number): number => {
-    const entry = entriesForCurrentPage[localIndex];
-    return entries.findIndex(e => e === entry);
-  }, [entriesForCurrentPage, entries]);
+  }, [pagedDate, sortedDates, entriesForCurrentPage.length]);
 
   const handleChange = useCallback(<T extends keyof ReportEntry>(
     index: number,
     field: T,
     value: ReportEntry[T]
   ) => {
-    setEntries(prevEntries => {
-      const updatedEntries = [...prevEntries];
-      const updatedEntry = {
-        ...updatedEntries[index],
-        [field]: value
-      };
-      updatedEntries[index] = updatedEntry;
-
-      // Update unsaved entries
-      unsavedEntriesRef.current = unsavedEntriesRef.current.map(entry => 
-        entry === prevEntries[index] ? updatedEntry : entry
-      );
-
-      return updatedEntries;
-    });
-  }, []);
-
-  // CRUD operations
-  // Memoized helper function to check if entry is blank
-  const isBlankEntry = useCallback((entry: ReportEntry) => {
-    return (
-      !entry.time_range?.trim() &&
-      !entry.doctor_name?.trim() &&
-      !entry.district?.trim() &&
-      !entry.orders?.trim() &&
-      !entry.samples?.trim() &&
-      !entry.tel_orders?.trim() &&
-      !entry.new_product_intro?.trim() &&
-      !entry.old_product_followup?.trim() &&
-      !entry.delivery_time_update?.trim()
-    );
-  }, []);
-
-  const handleSubmitEntry = useCallback(async (index: number, skipBlankCheck = false, invalidateCache = true) => {
-    const globalIndex = getGlobalIndex(index);
-    const entry = entries[globalIndex];
+    const entry = entriesForCurrentPage[index];
     if (!entry) return;
 
-    // For single submission, show warning if blank
+    const updatedEntry: LocalReportEntry = {
+      ...entry,
+      [field]: value,
+    };
+
+    setEntries((current) =>
+      current.map((candidate) =>
+        candidate.clientId === entry.clientId ? updatedEntry : candidate
+      )
+    );
+
+    dirtyEntriesRef.current.set(entry.clientId, updatedEntry);
+    entryRevisionRef.current.set(
+      entry.clientId,
+      (entryRevisionRef.current.get(entry.clientId) || 0) + 1
+    );
+
+    setDirtyEntryIds((current) => {
+      const next = new Set(current);
+      next.add(entry.clientId);
+      return next;
+    });
+
+    setSavedEntryIds((current) => {
+      if (!current.has(entry.clientId)) return current;
+      const next = new Set(current);
+      next.delete(entry.clientId);
+      return next;
+    });
+  }, [entriesForCurrentPage]);
+
+  const isBlankEntry = useCallback((entry: ReportEntry) => (
+    !entry.time_range?.trim() &&
+    !entry.doctor_name?.trim() &&
+    !entry.district?.trim() &&
+    !entry.orders?.trim() &&
+    !entry.samples?.trim() &&
+    !entry.tel_orders?.trim() &&
+    !entry.new_product_intro?.trim() &&
+    !entry.old_product_followup?.trim() &&
+    !entry.delivery_time_update?.trim()
+  ), []);
+
+  const handleSubmitEntry = useCallback(async (
+    index: number,
+    skipBlankCheck = false,
+    invalidateCache = true
+  ) => {
+    const entry = entriesForCurrentPage[index];
+    if (!entry) return false;
+
     if (!skipBlankCheck && isBlankEntry(entry)) {
       showWarning(
         'Cannot Submit Entry',
         'Please fill in at least one field before submitting.',
         5000
       );
-      return;
+      return false;
     }
 
+    if (savingEntryIdsRef.current.has(entry.clientId)) {
+      return true;
+    }
+
+    const revisionAtStart = entryRevisionRef.current.get(entry.clientId) || 0;
+    setEntrySaving(entry.clientId, true);
+
     try {
-      beginSubmitting();
       const isUpdate = !!entry.id;
       const url = isUpdate
         ? `${backendUrl}/api/report-entries/${entry.id}/`
         : `${backendUrl}/api/report-entries/`;
-      const method = isUpdate ? 'PUT' : 'POST';
+      const method = isUpdate ? 'PATCH' : 'POST';
 
       const response = await axios({
         method,
@@ -225,182 +366,258 @@ export const useReportEntryForm = () => {
         headers: {
           Authorization: `Bearer ${accessTokenRef.current}`,
         },
-        data: entry,
+        data: toReportPayload(entry),
       });
 
-      if (!entry.id && response.data?.id) {
-        const updatedEntry = { ...entry, id: response.data.id };
-        setEntries(prev => {
-          const updated = [...prev];
-          updated[globalIndex] = updatedEntry;
-          return updated;
-        });
-        
-        // Remove from unsaved entries
-        unsavedEntriesRef.current = unsavedEntriesRef.current.filter(
-          e => e !== entry
+      const serverEntry = response.data as ReportEntry;
+      const latestRevision = entryRevisionRef.current.get(entry.clientId) || 0;
+
+      if (latestRevision === revisionAtStart) {
+        const savedEntry: LocalReportEntry = {
+          ...serverEntry,
+          clientId: entry.clientId,
+        };
+
+        setEntries((current) =>
+          current.map((candidate) =>
+            candidate.clientId === entry.clientId ? savedEntry : candidate
+          )
+        );
+        markEntryClean(entry.clientId);
+        flashEntrySaved(entry.clientId);
+      } else {
+        // The user kept typing while the request was in flight. Preserve those
+        // newer edits but attach the server ID returned by the first create.
+        const latestDraft = dirtyEntriesRef.current.get(entry.clientId) || entry;
+        const mergedEntry: LocalReportEntry = {
+          ...serverEntry,
+          ...latestDraft,
+          id: serverEntry.id,
+          salesman_name: serverEntry.salesman_name || latestDraft.salesman_name,
+          clientId: entry.clientId,
+        };
+
+        dirtyEntriesRef.current.set(entry.clientId, mergedEntry);
+        setEntries((current) =>
+          current.map((candidate) =>
+            candidate.clientId === entry.clientId ? mergedEntry : candidate
+          )
         );
       }
-      
-      // Invalidate cache for report entries to ensure fresh data
-      // This will update the home page and any other views showing report data
+
+      updateSuggestionsFromEntry(serverEntry);
+
       if (invalidateCache) {
-        await queryClient.invalidateQueries({ 
-          queryKey: ['report-entries'] 
-        });
+        markReportDataStale();
       }
+
       return true;
     } catch (error) {
       console.error('Error submitting entry:', error);
       showError(
         'Submission Failed',
-        'Failed to submit entry. Please check your connection and try again.',
+        'Failed to submit entry. Your changes are still on screen so you can retry.',
         6000
       );
       return false;
     } finally {
-      endSubmitting();
+      setEntrySaving(entry.clientId, false);
     }
-  }, [entries, getGlobalIndex, isBlankEntry, queryClient, beginSubmitting, endSubmitting]);
+  }, [
+    entriesForCurrentPage,
+    isBlankEntry,
+    markEntryClean,
+    flashEntrySaved,
+    markReportDataStale,
+    setEntrySaving,
+    showError,
+    showWarning,
+    updateSuggestionsFromEntry,
+  ]);
 
   const handleDelete = useCallback(async (index: number) => {
-    const globalIndex = getGlobalIndex(index);
-    const entry = entries[globalIndex];
+    const entry = entriesForCurrentPage[index];
     if (!entry) return;
 
-    if (!entry.id) {
-      setEntries(prev => prev.filter((_, i) => i !== globalIndex));
-      unsavedEntriesRef.current = unsavedEntriesRef.current.filter(
-        e => e !== entry
-      );
+    if (savingEntryIdsRef.current.has(entry.clientId)) {
       return;
     }
 
+    const originalIndex = entries.findIndex(
+      (candidate) => candidate.clientId === entry.clientId
+    );
+    const wasDirty = dirtyEntriesRef.current.has(entry.clientId);
+
+    // Optimistic delete: remove the row immediately and put it back only if
+    // the API request fails.
+    setEntries((current) =>
+      current.filter((candidate) => candidate.clientId !== entry.clientId)
+    );
+    dirtyEntriesRef.current.delete(entry.clientId);
+    setDirtyEntryIds((current) => {
+      const next = new Set(current);
+      next.delete(entry.clientId);
+      return next;
+    });
+    setSavedEntryIds((current) => {
+      const next = new Set(current);
+      next.delete(entry.clientId);
+      return next;
+    });
+
+    if (!entry.id) {
+      return;
+    }
+
+    setDeletingEntryIds((current) => {
+      const next = new Set(current);
+      next.add(entry.clientId);
+      return next;
+    });
+
     try {
-      beginSubmitting();
       await axios.delete(`${backendUrl}/api/report-entries/${entry.id}/`, {
         headers: {
           Authorization: `Bearer ${accessTokenRef.current}`,
         },
       });
 
-      setEntries(prev => prev.filter((_, i) => i !== globalIndex));
-      unsavedEntriesRef.current = unsavedEntriesRef.current.filter(
-        e => e.id !== entry.id
-      );
-      
-      // Invalidate cache after deletion
-      await queryClient.invalidateQueries({ 
-        queryKey: ['report-entries'] 
-      });
+      markReportDataStale();
     } catch (error) {
       console.error('Error deleting entry:', error);
+
+      setEntries((current) => {
+        const restored = [...current];
+        restored.splice(Math.max(0, originalIndex), 0, entry);
+        return restored;
+      });
+
+      if (wasDirty) {
+        dirtyEntriesRef.current.set(entry.clientId, entry);
+        setDirtyEntryIds((current) => {
+          const next = new Set(current);
+          next.add(entry.clientId);
+          return next;
+        });
+      }
+
       showError(
         'Deletion Failed',
-        'Failed to delete entry. Please check your connection and try again.',
+        'The entry was restored because the server could not delete it.',
         6000
       );
     } finally {
-      endSubmitting();
+      setDeletingEntryIds((current) => {
+        const next = new Set(current);
+        next.delete(entry.clientId);
+        return next;
+      });
     }
-  }, [entries, getGlobalIndex, queryClient, beginSubmitting, endSubmitting]);
+  }, [entries, entriesForCurrentPage, markReportDataStale, showError]);
 
   const handleSubmitAllEntries = useCallback(async () => {
-    if (entriesForCurrentPage.length === 0) {
-      showWarning(
-        'No Entries Found',
-        'There are no entries to submit on this page.',
-        4000
-      );
-      return;
-    }
-
-    // Filter out blank entries
-    const nonBlankIndices = entriesForCurrentPage
+    const changedEntries = entriesForCurrentPage
       .map((entry, index) => ({ entry, index }))
-      .filter(({ entry }) => !isBlankEntry(entry))
-      .map(({ index }) => index);
+      .filter(({ entry }) =>
+        dirtyEntryIds.has(entry.clientId) && !isBlankEntry(entry)
+      );
 
-    if (nonBlankIndices.length === 0) {
+    if (changedEntries.length === 0) {
       showWarning(
-        'No Data to Submit',
-        'All entries on this page are blank. Please fill in at least one field.',
-        5000
+        'Everything is Saved',
+        'There are no unsaved report changes on this page.',
+        3000
       );
       return;
     }
 
-    beginSubmitting();
+    setIsSavingAll(true);
+
     try {
-      // Child saves participate in the shared pending-operation counter, but
-      // cache invalidation happens once after the complete batch.
       const results = await Promise.all(
-        nonBlankIndices.map((index) => handleSubmitEntry(index, true, false))
+        changedEntries.map(({ index }) =>
+          handleSubmitEntry(index, true, false)
+        )
       );
 
-      await queryClient.invalidateQueries({
-        queryKey: ['report-entries']
-      });
+      markReportDataStale();
 
       if (results.some((result) => result === false)) {
         showError(
-          'Bulk Submission Failed',
-          'Some entries could not be saved. The successful entries were kept.',
+          'Some Changes Were Not Saved',
+          'Successful entries were kept. Entries that failed remain marked as unsaved so you can retry.',
           6000
         );
       }
-
-      const skippedCount = entriesForCurrentPage.length - nonBlankIndices.length;
-      if (skippedCount > 0) {
-        console.log(`Submitted ${nonBlankIndices.length} entries. Skipped ${skippedCount} blank entries.`);
-      }
-    } catch (error) {
-      console.error("Error submitting entries:", error);
-      showError(
-        'Bulk Submission Failed',
-        'Failed to submit some entries. Please check your connection and try again.',
-        6000
-      );
     } finally {
-      endSubmitting();
+      setIsSavingAll(false);
     }
   }, [
+    dirtyEntryIds,
     entriesForCurrentPage,
     handleSubmitEntry,
     isBlankEntry,
-    queryClient,
-    beginSubmitting,
-    endSubmitting,
+    markReportDataStale,
+    showError,
+    showWarning,
   ]);
 
-  // Suggestion functions
-  const getUniqueSuggestions = useCallback((field: keyof ReportEntry): string[] => {
-    const values = allEntriesData
-      .map(entry => entry[field])
-      .filter(v => typeof v === 'string' && v.trim() !== '') as string[];
-    return Array.from(new Set(values));
-  }, [allEntriesData]);
+  const timeRangeSuggestions = useMemo(
+    () => uniqueNonEmpty([
+      ...suggestionsData.time_ranges,
+      ...entries.map((entry) => entry.time_range),
+    ]),
+    [suggestionsData.time_ranges, entries]
+  );
 
-  const getTelOrderSuggestions = (doctorName: string): string[] => {
-    const matches = allEntriesData.length > 0 
-      ? allEntriesData.filter(e => e.doctor_name === doctorName && e.tel_orders?.trim())
-      : entries.filter(e => e.doctor_name === doctorName && e.tel_orders?.trim());
-    
-    return [...new Set(matches.map(e => e.tel_orders.trim()))];
-  };
+  const doctorNameSuggestions = useMemo(
+    () => uniqueNonEmpty([
+      ...suggestionsData.doctor_names,
+      ...entries.map((entry) => entry.doctor_name),
+    ]),
+    [suggestionsData.doctor_names, entries]
+  );
 
-  // Memoized suggestions
-  const timeRangeSuggestions = useMemo(() => getUniqueSuggestions('time_range'), [getUniqueSuggestions]);
-  const doctorNameSuggestions = useMemo(() => getUniqueSuggestions('doctor_name'), [getUniqueSuggestions]);
-  const districtSuggestions = useMemo(() => getUniqueSuggestions('district'), [getUniqueSuggestions]);
+  const districtSuggestions = useMemo(
+    () => uniqueNonEmpty([
+      ...suggestionsData.districts,
+      ...entries.map((entry) => entry.district),
+    ]),
+    [suggestionsData.districts, entries]
+  );
+
+  const getTelOrderSuggestions = useCallback((doctorName: string): string[] => (
+    uniqueNonEmpty(
+      entries
+        .filter((entry) => entry.doctor_name === doctorName)
+        .map((entry) => entry.tel_orders)
+    )
+  ), [entries]);
+
+  const getEntryStatus = useCallback((index: number): EntryStatus => {
+    const entry = entriesForCurrentPage[index];
+    if (!entry) return 'idle';
+
+    if (deletingEntryIds.has(entry.clientId)) return 'deleting';
+    if (savingEntryIds.has(entry.clientId)) return 'saving';
+    if (dirtyEntryIds.has(entry.clientId)) return 'dirty';
+    if (savedEntryIds.has(entry.clientId)) return 'saved';
+    return 'idle';
+  }, [
+    deletingEntryIds,
+    dirtyEntryIds,
+    entriesForCurrentPage,
+    savedEntryIds,
+    savingEntryIds,
+  ]);
 
   return {
-    unsavedEntriesRef,
     entries: entriesForCurrentPage,
     newestEntryIndex,
     isLoading,
     isLoadingSuggestions,
-    submitting,
+    submitting: isSavingAll || savingEntryIds.size > 0 || deletingEntryIds.size > 0,
+    isSavingAll,
     currentPage,
     sortedDates,
     pagedDate,
@@ -408,6 +625,7 @@ export const useReportEntryForm = () => {
     doctorNameSuggestions,
     districtSuggestions,
     getTelOrderSuggestions,
+    getEntryStatus,
     addEmptyEntry,
     handleChange,
     handleSubmitAllEntries,
