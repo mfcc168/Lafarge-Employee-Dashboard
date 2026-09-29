@@ -95,6 +95,7 @@ export default function ReportEditor() {
   const [rows, setRows] = useState<EditorRow[]>([]);
   const [savingAll, setSavingAll] = useState(false);
   const rowsRef = useRef(rows);
+  const hydratedDateRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -131,7 +132,8 @@ export default function ReportEditor() {
   });
 
   useEffect(() => {
-    if (!reports.data) return;
+    if (!reports.data || hydratedDateRef.current === date) return;
+    hydratedDateRef.current = date;
     const nextRows = [
       ...reports.data.map((entry) => ({
         ...entry,
