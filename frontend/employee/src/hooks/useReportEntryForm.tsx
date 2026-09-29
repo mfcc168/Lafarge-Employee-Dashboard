@@ -18,12 +18,26 @@ export const useReportEntryForm = () => {
   const today = new Date().toISOString().split('T')[0];
   const unsavedEntriesRef = useRef<ReportEntry[]>([]);
   const accessTokenRef = useRef(accessToken);
+  const fetchRequestIdRef = useRef(0);
+  const pendingOperationsRef = useRef(0);
   const queryClient = useQueryClient();
 
   // Update access token ref
   useEffect(() => {
     accessTokenRef.current = accessToken;
   }, [accessToken]);
+
+  const beginSubmitting = useCallback(() => {
+    pendingOperationsRef.current += 1;
+    setSubmitting(true);
+  }, []);
+
+  const endSubmitting = useCallback(() => {
+    pendingOperationsRef.current = Math.max(0, pendingOperationsRef.current - 1);
+    if (pendingOperationsRef.current === 0) {
+      setSubmitting(false);
+    }
+  }, []);
 
   // Memoized calculations
   const groupedEntriesByDate = useMemo(() => {
@@ -78,6 +92,8 @@ export const useReportEntryForm = () => {
   const fetchEntries = useCallback(async (date: string) => {
     const token = accessTokenRef.current;
     if (!token) return;
+
+    const requestId = ++fetchRequestIdRef.current;
     
     try {
       setIsLoading(true);
@@ -88,15 +104,21 @@ export const useReportEntryForm = () => {
         params: { date }
       });
 
-      // Merge with unsaved entries for this date
+      // Ignore an older request that finished after the user changed dates.
+      if (requestId !== fetchRequestIdRef.current) return;
+
       const unsavedForDate = unsavedEntriesRef.current.filter(e => e.date === date);
       const mergedEntries = [...response.data, ...unsavedForDate];
       setEntries(mergedEntries);
 
     } catch (error) {
-      console.error('Error fetching entries:', error);
+      if (requestId === fetchRequestIdRef.current) {
+        console.error('Error fetching entries:', error);
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === fetchRequestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -174,7 +196,7 @@ export const useReportEntryForm = () => {
     );
   }, []);
 
-  const handleSubmitEntry = useCallback(async (index: number, skipBlankCheck = false) => {
+  const handleSubmitEntry = useCallback(async (index: number, skipBlankCheck = false, invalidateCache = true) => {
     const globalIndex = getGlobalIndex(index);
     const entry = entries[globalIndex];
     if (!entry) return;
@@ -190,7 +212,7 @@ export const useReportEntryForm = () => {
     }
 
     try {
-      setSubmitting(true);
+      beginSubmitting();
       const isUpdate = !!entry.id;
       const url = isUpdate
         ? `${backendUrl}/api/report-entries/${entry.id}/`
@@ -222,9 +244,12 @@ export const useReportEntryForm = () => {
       
       // Invalidate cache for report entries to ensure fresh data
       // This will update the home page and any other views showing report data
-      await queryClient.invalidateQueries({ 
-        queryKey: ['report-entries'] 
-      });
+      if (invalidateCache) {
+        await queryClient.invalidateQueries({ 
+          queryKey: ['report-entries'] 
+        });
+      }
+      return true;
     } catch (error) {
       console.error('Error submitting entry:', error);
       showError(
@@ -232,10 +257,11 @@ export const useReportEntryForm = () => {
         'Failed to submit entry. Please check your connection and try again.',
         6000
       );
+      return false;
     } finally {
-      setSubmitting(false);
+      endSubmitting();
     }
-  }, [entries, getGlobalIndex, isBlankEntry, queryClient]);
+  }, [entries, getGlobalIndex, isBlankEntry, queryClient, beginSubmitting, endSubmitting]);
 
   const handleDelete = useCallback(async (index: number) => {
     const globalIndex = getGlobalIndex(index);
@@ -251,7 +277,7 @@ export const useReportEntryForm = () => {
     }
 
     try {
-      setSubmitting(true);
+      beginSubmitting();
       await axios.delete(`${backendUrl}/api/report-entries/${entry.id}/`, {
         headers: {
           Authorization: `Bearer ${accessTokenRef.current}`,
@@ -275,9 +301,9 @@ export const useReportEntryForm = () => {
         6000
       );
     } finally {
-      setSubmitting(false);
+      endSubmitting();
     }
-  }, [entries, getGlobalIndex, queryClient]);
+  }, [entries, getGlobalIndex, queryClient, beginSubmitting, endSubmitting]);
 
   const handleSubmitAllEntries = useCallback(async () => {
     if (entriesForCurrentPage.length === 0) {
@@ -304,13 +330,26 @@ export const useReportEntryForm = () => {
       return;
     }
 
-    setSubmitting(true);
+    beginSubmitting();
     try {
-      // Submit only non-blank entries, passing skipBlankCheck=true
-      await Promise.all(nonBlankIndices.map(async (index) => {
-        await handleSubmitEntry(index, true);
-      }));
-      
+      // Child saves participate in the shared pending-operation counter, but
+      // cache invalidation happens once after the complete batch.
+      const results = await Promise.all(
+        nonBlankIndices.map((index) => handleSubmitEntry(index, true, false))
+      );
+
+      await queryClient.invalidateQueries({
+        queryKey: ['report-entries']
+      });
+
+      if (results.some((result) => result === false)) {
+        showError(
+          'Bulk Submission Failed',
+          'Some entries could not be saved. The successful entries were kept.',
+          6000
+        );
+      }
+
       const skippedCount = entriesForCurrentPage.length - nonBlankIndices.length;
       if (skippedCount > 0) {
         console.log(`Submitted ${nonBlankIndices.length} entries. Skipped ${skippedCount} blank entries.`);
@@ -323,9 +362,16 @@ export const useReportEntryForm = () => {
         6000
       );
     } finally {
-      setSubmitting(false);
+      endSubmitting();
     }
-  }, [entriesForCurrentPage, handleSubmitEntry, isBlankEntry]);
+  }, [
+    entriesForCurrentPage,
+    handleSubmitEntry,
+    isBlankEntry,
+    queryClient,
+    beginSubmitting,
+    endSubmitting,
+  ]);
 
   // Suggestion functions
   const getUniqueSuggestions = useCallback((field: keyof ReportEntry): string[] => {
