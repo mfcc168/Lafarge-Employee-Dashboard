@@ -17,7 +17,7 @@ const EmployeeManagement = () => {
 
   // Fetch all employees (including inactive)
   const { data: employees, isLoading, error } = useQuery<EmployeeProfile[]>({
-    queryKey: ["all-employees", accessToken],
+    queryKey: ["all-employees"],
     queryFn: async () => {
       const response = await axios.get(`${backendUrl}/api/employees/all/`, {
         headers: { Authorization: `Bearer ${accessToken}` }
