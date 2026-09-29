@@ -111,6 +111,22 @@ const ReportEntryForm = () => {
     focusedEntryIndex.current = index;
   }, [newestEntryIndex, addEmptyEntry, getEntryStatus, handleSubmitEntry]);
 
+  const handleRowBlur = useCallback((
+    index: number,
+    event: React.FocusEvent<HTMLDivElement>
+  ) => {
+    const nextTarget = event.relatedTarget as Node | null;
+
+    // Moving between controls inside the same row should not save yet.
+    if (nextTarget && event.currentTarget.contains(nextTarget)) {
+      return;
+    }
+
+    if (getEntryStatus(index) === 'dirty') {
+      void handleSubmitEntry(index);
+    }
+  }, [getEntryStatus, handleSubmitEntry]);
+
   // Loading state
   if (isLoading) {
     return (
@@ -170,6 +186,7 @@ const ReportEntryForm = () => {
         {entries.map((entry, index) => (
           <div
             key={entry.clientId}
+            onBlur={(event) => handleRowBlur(index, event)}
             className={`entry-container rounded-lg shadow-sm overflow-hidden border ${
               getEntryStatus(index) === 'dirty' ? "border-slate-300" : "border-slate-200"
             }`}
