@@ -10,9 +10,6 @@ from django.utils.dateparse import parse_date
 from rest_framework.exceptions import ValidationError
 from datetime import timedelta
 from api.pagination import OptimizedPageNumberPagination, DailyReportPagination
-from django.core.cache import cache
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
 from datetime import datetime, timedelta
 from django.conf import settings
 from core.redis_config import safe_cache_get, safe_cache_set, safe_cache_delete
@@ -69,13 +66,9 @@ class ReportEntryViewSet(viewsets.ModelViewSet):
         return queryset.order_by('-date')
 
     def perform_create(self, serializer):
+        # Cache invalidation is centralized in report.signals so create/update/
+        # delete all follow the same rules.
         serializer.save(salesman=self.request.user)
-        # Invalidate report caches when new entry is created
-        safe_cache_delete('report_entry_dates')
-        # Clear date-specific caches for today
-        today = datetime.now().date().strftime('%Y-%m-%d')
-        safe_cache_delete(f'report_entries_date:{today}:salesman:all')
-        safe_cache_delete(f'report_entries_date:{today}:salesman:{self.request.user.username}')
 
 
 class AllReportEntriesView(generics.ListAPIView):
@@ -140,11 +133,16 @@ class AllReportEntriesView(generics.ListAPIView):
         return super().get(request, *args, **kwargs)
 
     
-@method_decorator(cache_page(60 * 15), name='get')  # Cache for 15 minutes
 class ReportEntryDatesView(APIView):
     permission_classes = [IsSalesTeam]
 
     def get(self, request):
+        # Use an explicit key so report.signals can reliably invalidate it.
+        cache_key = 'report_entry_dates'
+        cached_dates = safe_cache_get(cache_key)
+        if cached_dates is not None:
+            return Response(cached_dates)
+
         # Only include dates from active employees
         dates = list(
             ReportEntry.objects.select_related('salesman__profile')
@@ -154,6 +152,7 @@ class ReportEntryDatesView(APIView):
             .distinct()
             .order_by('-date_only')
         )
+        safe_cache_set(cache_key, dates, 60 * 15)
         return Response(dates)
 
 
@@ -205,11 +204,9 @@ class ReportEntriesByDateView(generics.ListAPIView):
         start_date_param = request.query_params.get("start_date")
         end_date_param = request.query_params.get("end_date")
         
-        # Use the most recent date to determine cache timeout
-        cache_timeout = max(
-            get_cache_timeout_for_date(start_date_param),
-            get_cache_timeout_for_date(end_date_param)
-        )
+        # The end date is the most recent date in the range. If the range
+        # includes today, this correctly returns 0 and prevents stale data.
+        cache_timeout = get_cache_timeout_for_date(end_date_param)
         
         # Only cache if timeout > 0
         if cache_timeout > 0:
