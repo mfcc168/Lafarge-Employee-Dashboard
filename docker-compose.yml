@@ -50,9 +50,12 @@ services:
       DB_NAME: ${DB_NAME:-lafarge}
       DB_USER: ${DB_USER:-lafarge}
       DB_PASSWORD: ${DB_PASSWORD:-lafarge_dev_password}
-      DB_HOST: db
-      DB_PORT: "5432"
-      DB_SSLMODE: disable
+      # Defaults to the bundled database. Override DB_HOST/DB_PORT/DB_SSLMODE
+      # in .env when testing against an existing PostgreSQL server.
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
       DB_CONN_MAX_AGE: "60"
       REDIS_PASSWORD: ${REDIS_PASSWORD:-localredis}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-docker-development-key-change-me}
