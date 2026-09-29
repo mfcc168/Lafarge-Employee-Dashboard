@@ -1,52 +1,19 @@
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import viewsets, generics
-from report.models import ReportEntry
-from report.serializers import ReportEntrySerializer
-from django.db.models import DateField
-from django.db.models.functions import TruncDate
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.utils.dateparse import parse_date
-from rest_framework.exceptions import ValidationError
 from datetime import timedelta
-from api.pagination import OptimizedPageNumberPagination, DailyReportPagination
-from datetime import datetime, timedelta
-from django.conf import settings
-from core.redis_config import safe_cache_get, safe_cache_set, safe_cache_delete
-from core.permissions import IsSalesTeam
 
-def get_cache_timeout_for_date(date_param):
-    """
-    Determine cache timeout based on how old the data is:
-    - Current date: No cache (0 seconds)
-    - 1-7 days old: 2 minutes
-    - 8+ days old: 60 minutes
-    """
-    if not date_param:
-        return settings.CACHE_TIMEOUTS['report_recent']
-    
-    try:
-        query_date = parse_date(date_param)
-        if not query_date:
-            return settings.CACHE_TIMEOUTS['report_recent']
-        
-        today = datetime.now().date()
-        days_old = (today - query_date).days
-        
-        if days_old == 0:
-            return settings.CACHE_TIMEOUTS['report_current_date']  # No cache
-        elif days_old <= 7:
-            return settings.CACHE_TIMEOUTS['report_recent']  # 2 minutes
-        else:
-            return settings.CACHE_TIMEOUTS['report_historical']  # 60 minutes
-    except:
-        return settings.CACHE_TIMEOUTS['report_recent']
-
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import viewsets
+from django.db.models.functions import TruncDate
 from django.utils.dateparse import parse_date
+from rest_framework import generics, viewsets
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from api.pagination import DailyReportPagination
+from core.permissions import IsSalesTeam
+from core.redis_config import safe_cache_get, safe_cache_set
 from report.models import ReportEntry
 from report.serializers import ReportEntrySerializer
+
 
 class ReportEntryViewSet(viewsets.ModelViewSet):
     queryset = ReportEntry.objects.select_related('salesman', 'salesman__profile').filter(salesman__profile__is_active=True).order_by('-date')
