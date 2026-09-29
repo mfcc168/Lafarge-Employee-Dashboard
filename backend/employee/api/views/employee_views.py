@@ -10,9 +10,7 @@ from employee.serializers import EmployeeProfileSerializer
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from django.conf import settings
-from django.views.decorators.cache import cache_page
-from django.utils.decorators import method_decorator
-from core.redis_config import safe_cache_delete
+from core.redis_config import safe_cache_delete, safe_cache_get, safe_cache_set
 from rest_framework.decorators import action
 from core.permissions import (
     IsManagement, 
@@ -24,30 +22,46 @@ from core.permissions import (
 import io
 
 
-@method_decorator(cache_page(settings.CACHE_TIMEOUTS['user_salary']), name='get')
 class GetOwnSalaryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        cache_key = f'user_salary_{request.user.id}'
+        cached_data = safe_cache_get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+
         try:
             profile = EmployeeProfile.objects.get(user=request.user)
-            return Response({'base_salary': profile.base_salary,
-                             'bonus_payment': profile.bonus_payment,
-                             "transportation_allowance": profile.transportation_allowance,
-                             "is_mpf_exempt": profile.is_mpf_exempt
-                             })
+            data = {
+                'base_salary': profile.base_salary,
+                'bonus_payment': profile.bonus_payment,
+                "transportation_allowance": profile.transportation_allowance,
+                "is_mpf_exempt": profile.is_mpf_exempt,
+            }
+            safe_cache_set(cache_key, data, settings.CACHE_TIMEOUTS['user_salary'])
+            return Response(data)
         except EmployeeProfile.DoesNotExist:
             return Response({'error': 'Profile not found for this user'}, status=status.HTTP_404_NOT_FOUND)
         
 
-@method_decorator(cache_page(settings.CACHE_TIMEOUTS['employee_salaries']), name='get')
 class GetAllEmployeeSalary(APIView):
     permission_classes = [IsAuthenticated]
 
     @require_roles(['ADMIN', 'DIRECTOR'], custom_message=get_permission_message('view_payroll'))
     def get(self, request, *args, **kwargs):
+        cache_key = 'employee_salaries'
+        cached_data = safe_cache_get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+
         profiles = EmployeeProfile.objects.select_related('user').filter(is_active=True)
         serializer = EmployeeProfileSerializer(profiles, many=True)
+        safe_cache_set(
+            cache_key,
+            serializer.data,
+            settings.CACHE_TIMEOUTS['employee_salaries'],
+        )
         return Response(serializer.data)
 
 class GetOwnEmployeeProfile(generics.RetrieveAPIView):

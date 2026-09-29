@@ -1,0 +1,64 @@
+name: Next.js Rebuild Check
+
+on:
+  push:
+    branches:
+      - rewrite/nextjs-app
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Next.js dependencies
+        working-directory: frontend/next-app
+        run: npm install
+
+      - name: Typecheck Next.js
+        working-directory: frontend/next-app
+        run: npm run typecheck
+
+      - name: Build Next.js
+        working-directory: frontend/next-app
+        run: npm run build
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Django dependencies
+        working-directory: backend/employee
+        run: pip install -r requirements.txt
+
+      - name: Check Django
+        working-directory: backend/employee
+        env:
+          DJANGO_SECRET_KEY: ci-only-key
+          DJANGO_DEBUG: "False"
+          DB_NAME: lafarge
+          DB_USER: lafarge
+          DB_PASSWORD: lafarge
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          DB_SSLMODE: disable
+          REDIS_PASSWORD: ci
+          ALLOWED_HOSTS: localhost,backend
+        run: |
+          python -m compileall -q .
+          python manage.py check
+
+      - name: Validate Docker Compose
+        run: docker compose config
