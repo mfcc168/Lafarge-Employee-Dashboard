@@ -71,6 +71,42 @@ class ReportEntryViewSet(viewsets.ModelViewSet):
         serializer.save(salesman=self.request.user)
 
 
+class ReportEntrySuggestionsView(APIView):
+    """Small autocomplete payload for the report editor.
+
+    The old frontend downloaded the user's complete report history just to
+    build a few autocomplete lists. Limit the scan and return only distinct
+    strings so opening the editor stays fast as report history grows.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        recent_values = (
+            ReportEntry.objects
+            .filter(salesman=request.user)
+            .order_by('-date', '-created_at')
+            .values_list('time_range', 'doctor_name', 'district')[:1000]
+        )
+
+        time_ranges = set()
+        doctor_names = set()
+        districts = set()
+
+        for time_range, doctor_name, district in recent_values:
+            if time_range:
+                time_ranges.add(time_range)
+            if doctor_name:
+                doctor_names.add(doctor_name)
+            if district:
+                districts.add(district)
+
+        return Response({
+            'time_ranges': sorted(time_ranges),
+            'doctor_names': sorted(doctor_names),
+            'districts': sorted(districts),
+        })
+
+
 class AllReportEntriesView(generics.ListAPIView):
     """
     GET /api/all-report-entries/?date=YYYY-MM-DD[&salesman=<id|full name>]
