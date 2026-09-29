@@ -375,11 +375,11 @@ const ReportEntryForm = () => {
       <div className="flex flex-wrap gap-4 mt-4">
         <button
           onClick={handleSubmitAllEntries}
-          disabled={submitting}
+          disabled={isSavingAll}
           className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 transition"
         >
           <SaveAll size={15} />
-          {submitting ? "Saving All..." : "Save All"}
+          {isSavingAll ? "Saving changes..." : "Save All"}
         </button>
       </div>
     </div>
