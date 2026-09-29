@@ -53,7 +53,7 @@ const Home = () => {
   };
 
   // Fetch entries for the current date
-  const { data: dayEntries, isLoading: dailyLoading, refetch: refetchDaily } = useQuery({
+  const { data: dayEntries, isLoading: dailyLoading } = useQuery({
     queryKey: ['report-entries', currentDate],
     queryFn: async () => {
       const response = await axios.get(`${backendUrl}/api/dashboard/report-entries/`, {
@@ -69,7 +69,7 @@ const Home = () => {
   });
 
   // Fetch current week entries
-  const { data: weekEntries, isLoading: weeklyLoading, refetch: refetchWeekly } = useQuery({
+  const { data: weekEntries, isLoading: weeklyLoading } = useQuery({
     queryKey: ['report-entries', currentWeekStart, currentWeekEnd],
     queryFn: async () => {
       const response = await axios.get(`${backendUrl}/api/dashboard/report-entries-by-date/`, {
@@ -91,15 +91,15 @@ const Home = () => {
   }, [isAuthenticated, user]);
 
   const handleDateChange = (newDate: string) => {
+    // Changing the query key triggers the correct fetch automatically.
+    // Calling refetch() here races with React state and can refetch the old date.
     setCurrentDate(newDate);
-    refetchDaily();
   };
 
   const handleWeekChange = (newDate: string) => {
     setCurrentWeekStart(newDate);
     const newEnd = format(addDays(parseISO(newDate), 6), 'yyyy-MM-dd');
     setCurrentWeekEnd(newEnd);
-    refetchWeekly();
   };
 
   return (
