@@ -145,25 +145,8 @@ class AllReportEntriesView(generics.ListAPIView):
         return qs
     
     def get(self, request, *args, **kwargs):
-        """Override to conditionally apply pagination and variable caching"""
-        date_param = request.query_params.get("date")
-        cache_timeout = get_cache_timeout_for_date(date_param)
-        
-        # Only cache if timeout > 0
-        if cache_timeout > 0:
-            cache_key = f"report_entries_date:{date_param}:salesman:{request.query_params.get('salesman_name', 'all')}"
-            cached_response = safe_cache_get(cache_key)
-            
-            if cached_response is not None:
-                return Response(cached_response)
-            
-            # Get the response and cache it
-            response = super().get(request, *args, **kwargs)
-            if response.status_code == 200:
-                safe_cache_set(cache_key, response.data, cache_timeout)
-            return response
-        
-        # No caching for current date
+        # Report CRUD is already backed by indexed PostgreSQL queries. Avoid
+        # Redis here so writes do not need expensive cache-pattern cleanup.
         if request.query_params.get('paginate') == 'true':
             self.pagination_class = DailyReportPagination()
         return super().get(request, *args, **kwargs)
@@ -241,28 +224,7 @@ class ReportEntriesByDateView(generics.ListAPIView):
         return qs
     
     def get(self, request, *args, **kwargs):
-        """Apply variable caching based on date range"""
-        start_date_param = request.query_params.get("start_date")
-        end_date_param = request.query_params.get("end_date")
-        
-        # The end date is the most recent date in the range. If the range
-        # includes today, this correctly returns 0 and prevents stale data.
-        cache_timeout = get_cache_timeout_for_date(end_date_param)
-        
-        # Only cache if timeout > 0
-        if cache_timeout > 0:
-            salesman_param = request.query_params.get("salesman_name", "all")
-            cache_key = f"report_entries_range:{start_date_param}:{end_date_param}:salesman:{salesman_param}"
-            cached_response = safe_cache_get(cache_key)
-            
-            if cached_response is not None:
-                return Response(cached_response)
-            
-            # Get the response and cache it
-            response = super().get(request, *args, **kwargs)
-            if response.status_code == 200:
-                safe_cache_set(cache_key, response.data, cache_timeout)
-            return response
-        
-        # No caching for current date ranges
+        # Keep range reads simple and always fresh. For this internal app the
+        # indexed PostgreSQL query is cheaper than synchronizing Redis on every
+        # report edit.
         return super().get(request, *args, **kwargs)
