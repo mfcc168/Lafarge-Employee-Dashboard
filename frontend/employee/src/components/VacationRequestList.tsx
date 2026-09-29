@@ -80,14 +80,16 @@ const VacationRequestList = () => {
   // Mutation for updating request status
   const mutation = useMutation({
     mutationFn: updateVacationStatus,
-    onSuccess: (updatedRequest) => {
-      // Update the cache with the new status
+    onSuccess: async (updatedRequest) => {
+      // Update the visible management list immediately, then invalidate the
+      // whole vacation query family so personal lists cannot remain stale.
       queryClient.setQueryData<VacationRequest[]>(['vacationRequests'], (old) => {
         if (!old) return old;
         return old.map((req) =>
           req.id === updatedRequest.id ? updatedRequest : req
         );
       });
+      await queryClient.invalidateQueries({ queryKey: ['vacationRequests'] });
     },
   });
 
