@@ -195,7 +195,12 @@ class ReportEntriesByDateView(generics.ListAPIView):
         # Optional salesman filter
         salesman_param = self.request.query_params.get("salesman_name")
         if salesman_param:
-            qs = qs.filter(salesman_name=salesman_param)
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(salesman__first_name__icontains=salesman_param) |
+                Q(salesman__last_name__icontains=salesman_param) |
+                Q(salesman__username=salesman_param)
+            )
 
         return qs
     
