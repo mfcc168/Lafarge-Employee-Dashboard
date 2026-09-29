@@ -10,7 +10,6 @@ from rest_framework.views import APIView
 
 from api.pagination import DailyReportPagination
 from core.permissions import IsSalesTeam
-from core.redis_config import safe_cache_get, safe_cache_set
 from report.models import ReportEntry
 from report.serializers import ReportEntrySerializer
 
@@ -123,13 +122,8 @@ class ReportEntryDatesView(APIView):
     permission_classes = [IsSalesTeam]
 
     def get(self, request):
-        # Use an explicit key so report.signals can reliably invalidate it.
-        cache_key = 'report_entry_dates'
-        cached_dates = safe_cache_get(cache_key)
-        if cached_dates is not None:
-            return Response(cached_dates)
-
-        # Only include dates from active employees
+        # This query is small and indexed. Keeping it uncached prevents Redis
+        # health from affecting report create/update/delete latency.
         dates = list(
             ReportEntry.objects.select_related('salesman__profile')
             .filter(salesman__profile__is_active=True)
@@ -138,7 +132,6 @@ class ReportEntryDatesView(APIView):
             .distinct()
             .order_by('-date_only')
         )
-        safe_cache_set(cache_key, dates, 60 * 15)
         return Response(dates)
 
 
