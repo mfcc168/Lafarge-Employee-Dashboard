@@ -78,6 +78,8 @@ export const useReportEntryForm = () => {
 
   const accessTokenRef = useRef(accessToken);
   const fetchRequestIdRef = useRef(0);
+  const displayedDateRef = useRef<string | null>(null);
+  const dateEntriesCacheRef = useRef<Map<string, LocalReportEntry[]>>(new Map());
   const savingEntryIdsRef = useRef<Set<string>>(new Set());
   const dirtyEntriesRef = useRef<Map<string, LocalReportEntry>>(new Map());
   const entryRevisionRef = useRef<Map<string, number>>(new Map());
@@ -208,9 +210,17 @@ export const useReportEntryForm = () => {
     if (!token) return;
 
     const requestId = ++fetchRequestIdRef.current;
+    const cachedEntries = dateEntriesCacheRef.current.get(date);
+
+    if (cachedEntries) {
+      displayedDateRef.current = date;
+      setEntries(cachedEntries);
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+    }
 
     try {
-      setIsLoading(true);
       const response = await axios.get(`${backendUrl}/api/report-entries/`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -235,7 +245,10 @@ export const useReportEntryForm = () => {
       );
       const unsavedDrafts = dirtyForDate.filter((entry) => !entry.id);
 
-      setEntries([...mergedServerEntries, ...unsavedDrafts]);
+      const mergedEntries = [...mergedServerEntries, ...unsavedDrafts];
+      displayedDateRef.current = date;
+      dateEntriesCacheRef.current.set(date, mergedEntries);
+      setEntries(mergedEntries);
       setNewestEntryIndex(null);
     } catch (error) {
       if (requestId === fetchRequestIdRef.current) {
@@ -251,6 +264,12 @@ export const useReportEntryForm = () => {
   useEffect(() => {
     fetchEntries(pagedDate);
   }, [pagedDate, fetchEntries]);
+
+  useEffect(() => {
+    if (!isLoading && displayedDateRef.current === pagedDate) {
+      dateEntriesCacheRef.current.set(pagedDate, entries);
+    }
+  }, [entries, isLoading, pagedDate]);
 
   const addEmptyEntry = useCallback(() => {
     const newEntry: LocalReportEntry = {
