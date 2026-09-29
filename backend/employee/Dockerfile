@@ -19,8 +19,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-RUN mkdir -p /app/staticfiles
+RUN chmod +x /app/docker-entrypoint.sh && mkdir -p /app/staticfiles
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then python manage.py migrate --noinput; else echo 'Skipping Django migrations (RUN_MIGRATIONS=false)'; fi && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS} --threads ${GUNICORN_THREADS} --timeout ${GUNICORN_TIMEOUT} --pythonpath /app core.wsgi:application"]
+CMD ["/app/docker-entrypoint.sh"]
