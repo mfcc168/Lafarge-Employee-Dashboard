@@ -1,12 +1,12 @@
 services:
   db:
-    image: postgres:13-alpine
+    image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${DB_NAME:-lafarge}
       POSTGRES_USER: ${DB_USER:-lafarge}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-lafarge_dev_password}
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - postgres16_data:/var/lib/postgresql/data/
     ports:
       - "5432:5432"
     healthcheck:
@@ -108,7 +108,7 @@ services:
       - app-network
 
 volumes:
-  postgres_data:
+  postgres16_data:
   redis_data:
 
 networks:
