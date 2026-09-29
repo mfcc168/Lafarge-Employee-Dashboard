@@ -8,6 +8,9 @@ class ReportEntry(models.Model):
     ]
 
     salesman = models.ForeignKey(User, on_delete=models.CASCADE, related_name='report_entries')
+    # A browser draft keeps this key across failed/overlapping create attempts.
+    # NULL preserves the behavior of older clients and existing reports.
+    client_request_id = models.UUIDField(null=True, blank=True, editable=False)
     date = models.DateField()
 
     time_range = models.CharField(max_length=100, blank=True)
@@ -30,6 +33,12 @@ class ReportEntry(models.Model):
     
     class Meta:
         ordering = ['-date', '-created_at']  # Default ordering
+        constraints = [
+            models.UniqueConstraint(
+                fields=['salesman', 'client_request_id'],
+                name='report_salesman_request_unique',
+            ),
+        ]
         indexes = [
             models.Index(fields=['date'], name='report_date_idx'),
             models.Index(fields=['salesman'], name='report_salesman_idx'),

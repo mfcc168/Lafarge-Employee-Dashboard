@@ -1,5 +1,5 @@
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import viewsets, generics
+from rest_framework import viewsets, generics, status
 from report.models import ReportEntry
 from report.serializers import ReportEntrySerializer
 from django.db.models import DateField
@@ -55,6 +55,28 @@ class ReportEntryViewSet(viewsets.ModelViewSet):
     queryset = ReportEntry.objects.select_related('salesman', 'salesman__profile').filter(salesman__profile__is_active=True).order_by('-date')
     serializer_class = ReportEntrySerializer
     permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        request_id = serializer.validated_data.get('client_request_id')
+        if request_id is None:
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED,
+                            headers=self.get_success_headers(serializer.data))
+
+        # The DB constraint also serializes simultaneous requests on different
+        # workers. A retry returns the original row without replaying old data
+        # over newer edits; the client can then PUT its latest draft to this ID.
+        entry, created = ReportEntry.objects.get_or_create(
+            salesman=request.user,
+            client_request_id=request_id,
+            defaults={key: value for key, value in serializer.validated_data.items()
+                      if key != 'client_request_id'},
+        )
+        data = self.get_serializer(entry).data
+        return Response(data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+                        headers=self.get_success_headers(data))
     
     def get_queryset(self):
         queryset = ReportEntry.objects.select_related('salesman').filter(salesman=self.request.user)

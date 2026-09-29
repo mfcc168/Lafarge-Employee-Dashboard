@@ -2,6 +2,7 @@ export type ClientType = 'doctor' | 'nurse';
 
 export type ReportEntry = {
   id?: string;
+  client_request_id?: string | null;
   date: string;
   time_range: string;
   doctor_name: string;
