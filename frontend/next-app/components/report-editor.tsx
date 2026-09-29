@@ -101,6 +101,23 @@ export default function ReportEditor() {
     rowsRef.current = rows;
   }, [rows]);
 
+  const revisionRef = useRef<Map<string, number>>(new Map());
+  const savingKeysRef = useRef<Set<string>>(new Set());
+  const queuedSaveRef = useRef<Set<string>>(new Set());
+
+  const applyRows = (
+    updater: EditorRow[] | ((current: EditorRow[]) => EditorRow[]),
+  ) => {
+    setRows((current) => {
+      const next =
+        typeof updater === "function"
+          ? updater(current)
+          : updater;
+      rowsRef.current = next;
+      return next;
+    });
+  };
+
   const reports = useQuery({
     queryKey: ["reports", date],
     queryFn: () => api<ReportEntry[]>(`report-entries/?date=${date}`),
@@ -115,14 +132,18 @@ export default function ReportEditor() {
 
   useEffect(() => {
     if (!reports.data) return;
-    setRows([
+    const nextRows = [
       ...reports.data.map((entry) => ({
         ...entry,
         clientKey: keyFor(entry),
         status: "clean" as RowStatus,
       })),
       blankRow(date),
-    ]);
+    ];
+    revisionRef.current = new Map(
+      nextRows.map((row) => [row.clientKey, 0]),
+    );
+    applyRows(nextRows);
   }, [date, reports.data]);
 
   const updateRow = <K extends keyof ReportEntry>(
@@ -130,21 +151,40 @@ export default function ReportEditor() {
     field: K,
     value: ReportEntry[K],
   ) => {
-    setRows((current) => {
+    const currentRow = rowsRef.current[index];
+    if (!currentRow) return;
+
+    const nextRevision =
+      (revisionRef.current.get(currentRow.clientKey) || 0) + 1;
+    revisionRef.current.set(currentRow.clientKey, nextRevision);
+
+    const alreadySaving = savingKeysRef.current.has(currentRow.clientKey);
+    if (alreadySaving) {
+      queuedSaveRef.current.add(currentRow.clientKey);
+    }
+
+    applyRows((current) => {
       const next = current.map((row, rowIndex) =>
         rowIndex === index
-          ? { ...row, [field]: value, status: "dirty" as RowStatus }
+          ? {
+              ...row,
+              [field]: value,
+              status: alreadySaving ? "saving" as RowStatus : "dirty" as RowStatus,
+            }
           : row,
       );
+
       if (index === current.length - 1 && isBlank(current[index])) {
-        next.push(blankRow(date));
+        const draft = blankRow(date);
+        revisionRef.current.set(draft.clientKey, 0);
+        next.push(draft);
       }
       return next;
     });
   };
 
-  const updateQueryCache = (saved: ReportEntry) => {
-    queryClient.setQueryData<ReportEntry[]>(["reports", date], (current = []) => {
+  const updateQueryCache = (saved: ReportEntry, targetDate: string) => {
+    queryClient.setQueryData<ReportEntry[]>(["reports", targetDate], (current = []) => {
       const found = current.some((entry) => String(entry.id) === String(saved.id));
       return found
         ? current.map((entry) =>
@@ -158,18 +198,34 @@ export default function ReportEditor() {
     });
   };
 
-  const saveRow = async (index: number) => {
+  const saveRow = async (index: number): Promise<boolean> => {
     const row = rowsRef.current[index];
-    if (!row || isBlank(row) || row.status === "saving" || row.status === "deleting") {
+    if (!row || isBlank(row) || row.status === "deleting") {
       return true;
     }
 
     const clientKey = row.clientKey;
-    setRows((current) =>
+
+    if (savingKeysRef.current.has(clientKey)) {
+      queuedSaveRef.current.add(clientKey);
+      return true;
+    }
+
+    if (row.status === "clean" || row.status === "saved") {
+      return true;
+    }
+
+    const revisionAtStart = revisionRef.current.get(clientKey) || 0;
+    savingKeysRef.current.add(clientKey);
+    queuedSaveRef.current.delete(clientKey);
+
+    applyRows((current) =>
       current.map((item) =>
         item.clientKey === clientKey ? { ...item, status: "saving" } : item,
       ),
     );
+
+    let shouldResave = false;
 
     try {
       const saved = await api<ReportEntry>(
@@ -180,41 +236,84 @@ export default function ReportEditor() {
         },
       );
 
-      setRows((current) =>
+      const latestRevision = revisionRef.current.get(clientKey) || 0;
+      const changedDuringSave = latestRevision !== revisionAtStart;
+
+      applyRows((current) =>
+        current.map((item) => {
+          if (item.clientKey !== clientKey) return item;
+
+          if (changedDuringSave) {
+            shouldResave = true;
+            queuedSaveRef.current.add(clientKey);
+            return {
+              ...saved,
+              ...item,
+              id: saved.id,
+              salesman_name: saved.salesman_name || item.salesman_name,
+              clientKey,
+              status: "dirty",
+            };
+          }
+
+          return { ...saved, clientKey, status: "saved" };
+        }),
+      );
+
+      updateQueryCache(saved, row.date);
+
+      if (!changedDuringSave) {
+        window.setTimeout(() => {
+          applyRows((current) =>
+            current.map((item) =>
+              item.clientKey === clientKey && item.status === "saved"
+                ? { ...item, status: "clean" }
+                : item,
+            ),
+          );
+        }, 1000);
+      }
+
+      return true;
+    } catch {
+      queuedSaveRef.current.delete(clientKey);
+      applyRows((current) =>
         current.map((item) =>
           item.clientKey === clientKey
-            ? { ...saved, clientKey, status: "saved" }
+            ? {
+                ...item,
+                status:
+                  (revisionRef.current.get(clientKey) || 0) > revisionAtStart
+                    ? "dirty"
+                    : "error",
+              }
             : item,
         ),
       );
-      updateQueryCache(saved);
-
-      window.setTimeout(() => {
-        setRows((current) =>
-          current.map((item) =>
-            item.clientKey === clientKey && item.status === "saved"
-              ? { ...item, status: "clean" }
-              : item,
-          ),
-        );
-      }, 1000);
-      return true;
-    } catch {
-      setRows((current) =>
-        current.map((item) =>
-          item.clientKey === clientKey ? { ...item, status: "error" } : item,
-        ),
-      );
       return false;
+    } finally {
+      savingKeysRef.current.delete(clientKey);
+
+      if (shouldResave || queuedSaveRef.current.has(clientKey)) {
+        queuedSaveRef.current.delete(clientKey);
+        window.setTimeout(() => {
+          const nextIndex = rowsRef.current.findIndex(
+            (item) => item.clientKey === clientKey,
+          );
+          if (nextIndex >= 0 && rowsRef.current[nextIndex].status === "dirty") {
+            void saveRow(nextIndex);
+          }
+        }, 0);
+      }
     }
   };
 
   const deleteRow = async (index: number) => {
     const row = rowsRef.current[index];
-    if (!row) return;
+    if (!row || savingKeysRef.current.has(row.clientKey)) return;
 
     const snapshot = rowsRef.current;
-    setRows((current) => current.filter((item) => item.clientKey !== row.clientKey));
+    applyRows((current) => current.filter((item) => item.clientKey !== row.clientKey));
 
     if (!row.id) return;
 
@@ -225,7 +324,7 @@ export default function ReportEditor() {
       );
       void queryClient.invalidateQueries({ queryKey: ["dashboard"], refetchType: "none" });
     } catch {
-      setRows(snapshot);
+      applyRows(snapshot);
     }
   };
 
@@ -433,7 +532,11 @@ export default function ReportEditor() {
 
       <button
         className="btn-secondary"
-        onClick={() => setRows((current) => [...current, blankRow(date)])}
+        onClick={() => {
+          const draft = blankRow(date);
+          revisionRef.current.set(draft.clientKey, 0);
+          applyRows((current) => [...current, draft]);
+        }}
       >
         <Plus size={17} /> Add entry
       </button>
