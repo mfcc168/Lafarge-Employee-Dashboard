@@ -77,6 +77,11 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
+        # Reuse PostgreSQL connections instead of paying connection + SSL
+        # setup cost on every API request. Override with DB_CONN_MAX_AGE=0
+        # if a deployment uses an external transaction pooler.
+        'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+        'CONN_HEALTH_CHECKS': True,
         'OPTIONS': {
             'sslmode': 'require',
         },
