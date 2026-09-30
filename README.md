@@ -254,12 +254,27 @@ clients, instead of downloading full report history. On a confirmed mutation,
 React updates matching daily, weekly, and client-list caches from the response,
 cancels older reads, and marks affected lists for revalidation on a later visit.
 Suggestions are refreshed on the next focus/mount. Report snapshots are not
-persisted to localStorage; unsaved drafts remain in the current editor only.
+persisted to localStorage. Unfinished drafts are stored separately, per account,
+backend, and row, immediately on input. They survive reloads and are removed only
+after confirmation or deliberate discard. Recovered drafts wait for review and
+Save (or new typing) before uploading; they never silently overwrite newer server
+data. A late response from an older editor cannot clear a newer stored draft.
 
-The existing per-row save queue, retry UUIDs, editable pending rows, and enabled
-Save/Save All controls are retained. Deploy the backend before or together with
-the frontend so the suggestions endpoint is available. No new migration is
-required by this change.
+Autosave runs one second after typing pauses, when focus leaves a row, when the
+page becomes hidden, and when the connection returns. Chinese/IME composition
+finishes before the debounce starts. Blank new rows and unchanged reports are
+skipped; edits made during a request use the existing per-row queue and retry UUID.
+
+Save/Save All stay enabled with stable labels and no loading animation. Per-row
+static icons distinguish waiting, autosaving, confirmed Saved, and retry states.
+A manual click immediately shows "Saved on this device · Syncing..." only when
+the current draft was successfully stored; "Saved" requires server confirmation.
+If browser storage fails, saving still works and the form explains that recovery
+is unavailable. Draft recovery does not coordinate concurrent edits across tabs
+or devices; users should review recovered text before saving.
+
+Deploy the backend before or together with the frontend so the suggestions
+endpoint is available. No new migration is required by this change.
 
 Regression checks:
 ```bash

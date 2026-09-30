@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ReportEntryForm from './ReportEntryForm';
+import { StrictMode } from 'react';
+import { ReportDraftStorage } from '@utils/reportDraftStorage';
 import { reportKeys, emptyReportSuggestions } from '@utils/reportCache';
 
 const toast = vi.hoisted(() => ({ showSuccess: vi.fn(), showWarning: vi.fn(), showError: vi.fn() }));
@@ -27,20 +29,22 @@ function type(index: number, value: string) {
   fireEvent.focus(input(index));
   fireEvent.change(input(index), { target: { value } });
 }
-async function setup() {
+async function setup(strict = false) {
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  render(<QueryClientProvider client={client}><ReportEntryForm /></QueryClientProvider>);
+  const form = <QueryClientProvider client={client}><ReportEntryForm /></QueryClientProvider>;
+  render(strict ? <StrictMode>{form}</StrictMode> : form);
   await screen.findByRole('button', { name: 'Add New Entry' });
   fireEvent.click(screen.getByRole('button', { name: 'Add New Entry' }));
 }
 beforeEach(() => {
   vi.resetAllMocks();
+  localStorage.clear();
   vi.mocked(axios.get).mockImplementation(async url => ({ data: String(url).endsWith('/suggestions/') ? emptyReportSuggestions : [] }));
   vi.mocked(axios.delete).mockResolvedValue({ data: {} });
   request.mockImplementation(async (config: AxiosRequestConfig) => ({ data: { ...config.data, id: config.data.id ?? 'report-1' } }));
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
-afterEach(() => { cleanup(); client?.clear(); });
+afterEach(() => { cleanup(); client?.clear(); vi.useRealTimers(); });
 
 describe('report save workflow', () => {
   it('saves each previous row when focus moves quickly while a save is pending', async () => {
@@ -103,7 +107,7 @@ describe('report save workflow', () => {
     await setup();
     type(0, '09:00');
     fireEvent.click(save(0));
-    await waitFor(() => expect(within(rows()[0]).getByRole('button', { name: 'Update' })).toBeTruthy());
+    await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
     type(0, '10:00');
     fireEvent.focus(input(1));
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
@@ -397,6 +401,186 @@ describe('report save workflow', () => {
     await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
     expect((input(0) as HTMLInputElement).value).toBe('09:00');
     expect(input(0)).toBe(originalInput);
+  });
+
+  it('autosaves the last row one second after typing stops, with one blank row and no focus change', async () => {
+    await setup(true);
+    vi.useFakeTimers();
+    type(0, '09');
+    const original = input(0);
+    await act(async () => vi.advanceTimersByTimeAsync(700));
+    type(0, '09:00');
+    expect(within(rows()[0]).getByRole('status').textContent).toBe('Waiting to autosave');
+    expect(new ReportDraftStorage('https://example.test', 'tester').read()[0].time_range).toBe('09:00');
+    await act(async () => vi.advanceTimersByTimeAsync(999));
+    expect(request).not.toHaveBeenCalled();
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0][0].data.time_range).toBe('09:00');
+    expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved');
+    expect(rows()).toHaveLength(2);
+    expect(input(0)).toBe(original);
+    expect(toast.showSuccess).not.toHaveBeenCalled();
+    expect(new ReportDraftStorage('https://example.test', 'tester').read()).toEqual([]);
+  });
+
+  it('acknowledges a manual save immediately with a steady enabled button and truthful status', async () => {
+    const pending = deferred<{ data: { id: string } }>();
+    request.mockReturnValueOnce(pending.promise);
+    await setup();
+    vi.useFakeTimers();
+    type(0, '09:00');
+    fireEvent.click(save(0));
+    expect(save(0).textContent).toBe('Save');
+    expect((save(0) as HTMLButtonElement).disabled).toBe(false);
+    expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved on this device · Syncing...');
+    expect(rows()[0].querySelector('.animate-spin, .animate-pulse')).toBeNull();
+    expect(saveAll().textContent).toBe('Save All');
+    expect(toast.showSuccess).not.toHaveBeenCalled();
+    await act(async () => vi.advanceTimersByTimeAsync(5000));
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved on this device · Syncing...');
+    await act(async () => pending.resolve({ data: { id: 'report-1' } }));
+    expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved');
+  });
+
+  it('flushes on leaving the row, but not when moving between its fields', async () => {
+    await setup();
+    vi.useFakeTimers();
+    type(0, '09:00');
+    const nextField = within(rows()[0]).getAllByRole('textbox')[1];
+    fireEvent.blur(input(0), { relatedTarget: nextField });
+    await act(async () => undefined);
+    expect(request).not.toHaveBeenCalled();
+    fireEvent.blur(nextField, { relatedTarget: saveAll() });
+    await act(async () => undefined);
+    expect(request).toHaveBeenCalledTimes(1);
+    await act(async () => vi.advanceTimersByTimeAsync(2000));
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits for Chinese input composition to finish before starting the debounce', async () => {
+    await setup();
+    vi.useFakeTimers();
+    fireEvent.compositionStart(input(0));
+    type(0, '中');
+    await act(async () => vi.advanceTimersByTimeAsync(3000));
+    expect(request).not.toHaveBeenCalled();
+    type(0, '中環');
+    fireEvent.compositionEnd(input(0));
+    await act(async () => vi.advanceTimersByTimeAsync(1000));
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0][0].data.time_range).toBe('中環');
+  });
+
+  it('shows autosave failure, keeps the draft, and retries on reconnect without an automatic retry loop', async () => {
+    request.mockRejectedValueOnce(new Error('offline'));
+    await setup();
+    vi.useFakeTimers();
+    type(0, '09:00');
+    await act(async () => vi.advanceTimersByTimeAsync(1000));
+    expect(within(rows()[0]).getByRole('status').textContent).toContain('Not saved');
+    expect(new ReportDraftStorage('https://example.test', 'tester').read()).toHaveLength(1);
+    await act(async () => vi.advanceTimersByTimeAsync(10000));
+    expect(request).toHaveBeenCalledTimes(1);
+    await act(async () => window.dispatchEvent(new Event('online')));
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved');
+    expect(request.mock.calls[1][0].data.client_request_id).toBe(request.mock.calls[0][0].data.client_request_id);
+    expect(new ReportDraftStorage('https://example.test', 'tester').read()).toHaveLength(0);
+  });
+
+  it('recovers unfinished text after remount, cancels the old timer and waits for review', async () => {
+    await setup();
+    vi.useFakeTimers();
+    type(0, '09:00');
+    const savedKey = new ReportDraftStorage('https://example.test', 'tester').read()[0].client_request_id;
+    cleanup();
+    client.clear();
+    await act(async () => vi.advanceTimersByTimeAsync(5000));
+    expect(request).not.toHaveBeenCalled();
+    vi.useRealTimers();
+    await setup();
+    expect((input(0) as HTMLInputElement).value).toBe('09:00');
+    expect(within(rows()[0]).getByRole('status').textContent).toContain('Recovered draft');
+    vi.useFakeTimers();
+    await act(async () => vi.advanceTimersByTimeAsync(3000));
+    fireEvent.focus(input(1));
+    await act(async () => window.dispatchEvent(new Event('online')));
+    expect(request).not.toHaveBeenCalled();
+    fireEvent.click(save(0));
+    await act(async () => undefined);
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0][0].data.client_request_id).toBe(savedKey);
+    expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved');
+  });
+
+  it('retains recovery edits over a stale server read and resumes autosave on new typing', async () => {
+    await setup();
+    type(0, '09:00');
+    fireEvent.click(save(0));
+    await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
+    type(0, '10:00');
+    const draft = new ReportDraftStorage('https://example.test', 'tester').read()[0];
+    cleanup();
+    client.clear();
+    request.mockClear();
+    vi.mocked(axios.get).mockImplementation(async url => ({ data: String(url).endsWith('/suggestions/') ? emptyReportSuggestions : [{ ...draft, time_range: '09:00' }] }));
+    await setup();
+    expect((input(0) as HTMLInputElement).value).toBe('10:00');
+    vi.useFakeTimers();
+    type(0, '11:00');
+    await act(async () => vi.advanceTimersByTimeAsync(1000));
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0][0]).toMatchObject({ method: 'PUT', data: { id: 'report-1', time_range: '11:00' } });
+  });
+
+  it('continues saving when local draft storage is unavailable', async () => {
+    await setup();
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
+    type(0, '09:00');
+    expect(screen.getByRole('alert').textContent).toContain('Draft recovery is unavailable');
+    fireEvent.click(save(0));
+    await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
+    expect((save(0) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('saves intentional clearing of an existing entry but never creates blank entries', async () => {
+    await setup();
+    type(0, '09:00');
+    fireEvent.click(save(0));
+    await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
+    vi.useFakeTimers();
+    type(0, '');
+    await act(async () => vi.advanceTimersByTimeAsync(1000));
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(request.mock.calls[1][0]).toMatchObject({ method: 'PUT', data: { time_range: '' } });
+    fireEvent.click(saveAll());
+    await act(async () => vi.advanceTimersByTimeAsync(2000));
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not send an old editor replay PUT over a newer recovered edit after navigation', async () => {
+    const oldRequest = deferred<{ status: number; data: { id: string; time_range: string } }>();
+    request.mockReturnValueOnce(oldRequest.promise);
+    await setup();
+    type(0, '09:00');
+    fireEvent.click(save(0));
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    cleanup();
+    client.clear();
+    await setup();
+    client.setQueryData(reportKeys.all('tester'), []);
+    type(0, '10:00');
+    request.mockResolvedValueOnce({ status: 200, data: { id: 'report-1', time_range: '09:00' } });
+    fireEvent.click(save(0));
+    await waitFor(() => expect(within(rows()[0]).getByRole('status').textContent).toBe('Saved'));
+    expect(request).toHaveBeenCalledTimes(3);
+    await act(async () => oldRequest.resolve({ status: 200, data: { id: 'report-1', time_range: '09:00' } }));
+    expect(request).toHaveBeenCalledTimes(3);
+    expect(request.mock.calls[2][0]).toMatchObject({ method: 'PUT', data: { time_range: '10:00' } });
+    expect(client.getQueryData(reportKeys.all('tester'))).toMatchObject([{ time_range: '10:00' }]);
+    expect(new ReportDraftStorage('https://example.test', 'tester').read()).toEqual([]);
   });
 
 });

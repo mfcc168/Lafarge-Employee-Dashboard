@@ -5,6 +5,9 @@ export type FormEntry = ReportEntry & {
   revision: number;
   savedRevision: number;
   status: 'idle' | 'saving' | 'error' | 'deleting';
+  saveSource?: 'auto' | 'manual';
+  recovered?: boolean;
+  localDraftSaved?: boolean;
 };
 
 // randomUUID is unavailable on plain HTTP deployments; getRandomValues also
