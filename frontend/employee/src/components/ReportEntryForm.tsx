@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, SaveAll, Save, Trash2 } from "lucide-r
 import AutocompleteInput from "@components/AutoCompleteInput";
 import { useEffect, useRef, useCallback } from "react";
 import { useReportEntryForm } from "@hooks/useReportEntryForm";
-import { isBlankEntry } from "@utils/reportEntryDraft";
+import ReportEntryStatus from "@components/ReportEntryStatus";
 
 /**
  * ReportEntryForm Component
@@ -26,6 +26,10 @@ const ReportEntryForm = () => {
     entries,
     isLoading,
     savingAll,
+    draftStorageError,
+    recoveredCount,
+    handleBlur,
+    handleComposition,
     focusedEntryIdRef,
     handleFocus,
     currentPage,
@@ -125,21 +129,34 @@ const ReportEntryForm = () => {
             No entries available for this date.
           </div>
         )}
+        <p className="px-1 text-sm text-gray-500" role="status" aria-live="polite">
+          {savingAll ? 'Saving changes in the background. You can keep typing.' : 'Changes autosave after a short pause. You can also save at any time.'}
+        </p>
+        {recoveredCount > 0 && <p className="px-1 text-sm text-gray-600">
+          Recovered {recoveredCount} unfinished {recoveredCount === 1 ? 'entry' : 'entries'}. Review and save them using the date arrows.
+        </p>}
+        {draftStorageError && <p role="alert" className="px-1 text-sm text-red-700">
+          Draft recovery is unavailable in this browser. Keep this page open until your entries show Saved.
+        </p>}
         <div className="flex flex-wrap gap-4 mt-4">
           <button
             type="button"
             onClick={handleSubmitAllEntries}
-            aria-busy={savingAll}
             className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
           >
             <SaveAll size={15} />
-            {savingAll ? "Saving All..." : "Save All"}
+            Save All
           </button> 
         </div>
         {entries.map((entry) => (
           <div
             key={entry.clientId}
             onFocusCapture={() => handleFocus(entry.clientId)}
+            onBlurCapture={event => {
+              if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) handleBlur(entry.clientId);
+            }}
+            onCompositionStartCapture={() => handleComposition(entry.clientId, true)}
+            onCompositionEndCapture={() => handleComposition(entry.clientId, false)}
             className={`entry-container rounded-lg shadow-md overflow-hidden border-l-4 ${
               entry.id ? "border-emerald-400" : "border-emerald-500"
             }`}
@@ -271,26 +288,15 @@ const ReportEntryForm = () => {
             </div>
 
             {/* Actions outside the table */}
-            <div className="px-6 py-4 bg-gray-50 flex items-center justify-end gap-3">
-              <span role="status" className={`mr-auto text-sm ${entry.status === 'error' ? 'text-red-700' : 'text-gray-600'}`}>
-                {entry.status === 'saving' ? 'Saving...' : entry.status === 'error'
-                  ? 'Not saved — click Save or Save All to retry.' : entry.status === 'deleting' ? 'Deleting...'
-                  : entry.id && entry.revision === entry.savedRevision ? 'Saved'
-                  : !entry.id && isBlankEntry(entry) ? 'New entry' : 'Unsaved changes'}
-              </span>
+            <div className="px-6 py-4 bg-gray-50 flex flex-wrap items-center justify-end gap-3">
+              <ReportEntryStatus entry={entry} />
               <button
                 type="button"
                 onClick={() => handleSubmitEntry(entry.clientId)}
-                aria-busy={entry.status === 'saving'}
+                aria-describedby={`report-status-${entry.clientId}`}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white ${entry.id ? "bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-400" : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"} shadow-sm transition-all focus:outline-none focus:ring-2`}>
                 <Save size={15} />
-                {entry.status === 'saving'
-                  ? entry.id
-                    ? "Updating..."
-                    : "Saving..."
-                  : entry.id
-                  ? "Update"
-                  : "Save"}
+                Save
               </button>
               <button
                 onClick={() => handleDelete(entry.clientId)}
@@ -330,11 +336,10 @@ const ReportEntryForm = () => {
         <button
           type="button"
           onClick={handleSubmitAllEntries}
-          aria-busy={savingAll}
           className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
         >
           <SaveAll size={15} />
-          {savingAll ? "Saving All..." : "Save All"}
+          Save All
         </button>
       </div>
     </div>

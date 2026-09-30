@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { 
   LazyReportEntryList as ReportEntryList,
   LazyWeeklyNewClientOrder as WeeklyNewClientOrder,
@@ -8,12 +8,13 @@ import { useAuth } from "@context/AuthContext";
 import { format, startOfISOWeek, endOfISOWeek, parseISO, addDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { reportKeys } from '@utils/reportCache';
+import type { ReportEntry } from '@interfaces/index';
 import { backendUrl } from "@configs/DotEnv";
 
 const Home = () => {
   const { accessToken, isAuthenticated, user } = useAuth();
   const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [authChecked, setAuthChecked] = useState(false);
   const now = new Date();
   const startDate = format(startOfISOWeek(now), 'yyyy-MM-dd');
   const endDate = format(endOfISOWeek(now), 'yyyy-MM-dd');
@@ -53,53 +54,47 @@ const Home = () => {
   };
 
   // Fetch entries for the current date
-  const { data: dayEntries, isLoading: dailyLoading, refetch: refetchDaily } = useQuery({
-    queryKey: ['report-entries', currentDate],
-    queryFn: async () => {
-      const response = await axios.get(`${backendUrl}/api/dashboard/report-entries/`, {
+  const { data: dayEntries, isLoading: dailyLoading } = useQuery({
+    queryKey: reportKeys.day(user?.username, currentDate),
+    queryFn: async ({ signal }) => {
+      const response = await axios.get<ReportEntry[]>(`${backendUrl}/api/dashboard/report-entries/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
+        signal, timeout: 30000,
         params: { date: currentDate }
       });
       return response.data;
     },
-    enabled: authChecked && !!accessToken,
+    enabled: isAuthenticated && !!accessToken && !!user?.username,
     staleTime: getDailyCacheTime(currentDate),
-    gcTime: getDailyCacheTime(currentDate) * 10, // Keep in cache 10x longer than stale time
+    gcTime: 1000 * 60 * 30, // Keep visible data during background refreshes, including today
     refetchOnWindowFocus: isRecentDate(currentDate), // Only refetch on focus for recent dates
   });
 
   // Fetch current week entries
-  const { data: weekEntries, isLoading: weeklyLoading, refetch: refetchWeekly } = useQuery({
-    queryKey: ['report-entries', currentWeekStart, currentWeekEnd],
-    queryFn: async () => {
-      const response = await axios.get(`${backendUrl}/api/dashboard/report-entries-by-date/`, {
+  const { data: weekEntries, isLoading: weeklyLoading } = useQuery({
+    queryKey: reportKeys.week(user?.username, currentWeekStart, currentWeekEnd),
+    queryFn: async ({ signal }) => {
+      const response = await axios.get<ReportEntry[]>(`${backendUrl}/api/dashboard/report-entries-by-date/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
+        signal, timeout: 30000,
         params: { start_date: currentWeekStart, end_date: currentWeekEnd }
       });
       return response.data;
     },
-    enabled: authChecked && !!accessToken,
+    enabled: isAuthenticated && !!accessToken && !!user?.username,
     staleTime: getWeeklyCacheTime(currentWeekStart),
     gcTime: getWeeklyCacheTime(currentWeekStart) * 10, // Keep in cache 10x longer than stale time
     refetchOnWindowFocus: isRecentDate(currentWeekStart), // Only refetch on focus for recent weeks
   });
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      setAuthChecked(true);
-    }
-  }, [isAuthenticated, user]);
-
   const handleDateChange = (newDate: string) => {
     setCurrentDate(newDate);
-    refetchDaily();
   };
 
   const handleWeekChange = (newDate: string) => {
     setCurrentWeekStart(newDate);
     const newEnd = format(addDays(parseISO(newDate), 6), 'yyyy-MM-dd');
     setCurrentWeekEnd(newEnd);
-    refetchWeekly();
   };
 
   return (

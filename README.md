@@ -241,6 +241,51 @@ The application implements a sophisticated multi-layer caching strategy:
 - **Session Caching**: User session and permission caching
 - **API Response Caching**: Configurable per-endpoint caching
 
+#### Report Editing and Synchronization
+
+Report create/update/delete and report list/date endpoints read and write the
+indexed database directly. They do not call Redis or cache HTTP responses; a
+cache outage therefore cannot hold a report save open. Other application caches
+remain in use.
+
+The editor requests one date at a time. `/api/report-entries/suggestions/` returns
+only distinct autocomplete strings for the authenticated user, including older
+clients, instead of downloading full report history. On a confirmed mutation,
+React updates matching daily, weekly, and client-list caches from the response,
+cancels older reads, and marks affected lists for revalidation on a later visit.
+Suggestions are refreshed on the next focus/mount. Report snapshots are not
+persisted to localStorage. Unfinished drafts are stored separately, per account,
+backend, and row, immediately on input. They survive reloads and are removed only
+after confirmation or deliberate discard. Recovered drafts wait for review and
+Save (or new typing) before uploading; they never silently overwrite newer server
+data. A late response from an older editor cannot clear a newer stored draft.
+
+Autosave runs one second after typing pauses, when focus leaves a row, when the
+page becomes hidden, and when the connection returns. Chinese/IME composition
+finishes before the debounce starts. Blank new rows and unchanged reports are
+skipped; edits made during a request use the existing per-row queue and retry UUID.
+
+Save/Save All stay enabled with stable labels and no loading animation. Per-row
+static icons distinguish waiting, autosaving, confirmed Saved, and retry states.
+A manual click immediately shows "Saved on this device · Syncing..." only when
+the current draft was successfully stored; "Saved" requires server confirmation.
+If browser storage fails, saving still works and the form explains that recovery
+is unavailable. Draft recovery does not coordinate concurrent edits across tabs
+or devices; users should review recovered text before saving.
+
+Deploy the backend before or together with the frontend so the suggestions
+endpoint is available. No new migration is required by this change.
+
+Regression checks:
+```bash
+cd frontend/employee && npm test && npm run build
+# From the repository root:
+cd backend/employee && python manage.py test report --settings=core.test_settings
+```
+Use `REPORT_TEST_POSTGRES=1` with the isolated PostgreSQL test service to run the
+concurrent-create test as CI does. Local SQLite runs skip that one test. Tests
+verify request/cache behavior; production latency still needs runtime measurement.
+
 #### Cache Debugging
 ```javascript
 // Browser console commands
