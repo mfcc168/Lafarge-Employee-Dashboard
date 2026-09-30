@@ -1,8 +1,6 @@
-import { useState, useEffect } from 'react';
-import { CheckCircle, AlertCircle, XCircle, Info, X } from 'lucide-react';
-
-export type ToastType = 'success' | 'error' | 'warning' | 'info';
-
+import { useEffect, useState } from "react";
+import { CheckCircle2, AlertCircle, CircleX, Info, X } from "lucide-react";
+export type ToastType = "success" | "error" | "warning" | "info";
 export interface ToastProps {
   id: string;
   type: ToastType;
@@ -11,164 +9,52 @@ export interface ToastProps {
   duration?: number;
   onClose: (id: string) => void;
 }
-
-/**
- * Toast Component
- * 
- * Modern notification toast with:
- * - Multiple types (success, error, warning, info)
- * - Auto-dismiss functionality
- * - Smooth animations
- * - Design system integration
- * - Manual close option
- */
-const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProps) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const [isLeaving, setIsLeaving] = useState(false);
-  const [progress, setProgress] = useState(100);
-
+export default function Toast({
+  id,
+  type,
+  title,
+  message,
+  duration = 5000,
+  onClose,
+}: ToastProps) {
+  const [paused, setPaused] = useState(false);
   useEffect(() => {
-    // Show animation
-    setIsVisible(true);
-
-    // Progress bar animation
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        const newProgress = prev - (100 / (duration / 50));
-        return newProgress > 0 ? newProgress : 0;
-      });
-    }, 50);
-
-    // Auto dismiss
-    const timer = setTimeout(() => {
-      handleClose();
-    }, duration);
-
-    return () => {
-      clearTimeout(timer);
-      clearInterval(progressInterval);
-    };
-  }, [duration]);
-
-  const handleClose = () => {
-    setIsLeaving(true);
-    setTimeout(() => {
-      onClose(id);
-    }, 300); // Match animation duration
-  };
-
-  const getToastStyles = () => {
-    switch (type) {
-      case 'success':
-        return {
-          icon: <CheckCircle size={20} />,
-          bgColor: 'bg-slate-900/95 border border-slate-700',
-          accentColor: 'bg-success-500',
-          iconBg: 'bg-white/20 backdrop-blur-sm',
-          iconColor: 'text-white',
-          titleColor: 'text-white',
-          messageColor: 'text-emerald-100',
-          progressColor: 'bg-white/30'
-        };
-      case 'error':
-        return {
-          icon: <XCircle size={20} />,
-          bgColor: 'bg-slate-900/95 border border-slate-700',
-          accentColor: 'bg-error-500',
-          iconBg: 'bg-white/20 backdrop-blur-sm',
-          iconColor: 'text-white',
-          titleColor: 'text-white',
-          messageColor: 'text-error-100',
-          progressColor: 'bg-white/30'
-        };
-      case 'warning':
-        return {
-          icon: <AlertCircle size={20} />,
-          bgColor: 'bg-slate-900/95 border border-slate-700',
-          accentColor: 'bg-warning-500',
-          iconBg: 'bg-white/20 backdrop-blur-sm',
-          iconColor: 'text-white',
-          titleColor: 'text-white',
-          messageColor: 'text-warning-100',
-          progressColor: 'bg-white/30'
-        };
-      case 'info':
-        return {
-          icon: <Info size={20} />,
-          bgColor: 'bg-slate-900/95 border border-slate-700',
-          accentColor: 'bg-info-500',
-          iconBg: 'bg-white/20 backdrop-blur-sm',
-          iconColor: 'text-white',
-          titleColor: 'text-white',
-          messageColor: 'text-slate-100',
-          progressColor: 'bg-white/30'
-        };
-      default:
-        return {
-          icon: <Info size={20} />,
-          bgColor: 'bg-slate-900/95 border border-slate-700',
-          accentColor: 'bg-slate-500',
-          iconBg: 'bg-white/20 backdrop-blur-sm',
-          iconColor: 'text-white',
-          titleColor: 'text-white',
-          messageColor: 'text-slate-100',
-          progressColor: 'bg-white/30'
-        };
-    }
-  };
-
-  const styles = getToastStyles();
-
+    if (paused || duration <= 0) return;
+    const timer = window.setTimeout(() => onClose(id), duration);
+    return () => window.clearTimeout(timer);
+  }, [id, duration, paused, onClose]);
+  const Icon = {
+    success: CheckCircle2,
+    error: CircleX,
+    warning: AlertCircle,
+    info: Info,
+  }[type];
   return (
     <div
-      className={`
-        relative overflow-hidden max-w-md w-full ${styles.bgColor} rounded-2xl shadow-soft hover:shadow-strong p-6 text-white
-        transform transition-all duration-300 ease-out
-        ${isVisible && !isLeaving 
-          ? 'translate-x-0 opacity-100 scale-100' 
-          : 'translate-x-full opacity-0 scale-95'
-        }
-        animate-slideInRight
-      `}
+      className="toast"
+      role={type === "error" ? "alert" : "status"}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget))
+          setPaused(false);
+      }}
     >
-      <div className={`absolute inset-y-0 left-0 w-1 ${styles.accentColor || 'bg-slate-500'}`} />
-      <div className="flex items-start gap-4">
-        {/* Icon Container */}
-        <div className={`flex-shrink-0 w-10 h-10 ${styles.iconBg} rounded-xl flex items-center justify-center ${styles.iconColor}`}>
-          {styles.icon}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <h4 className={`text-base font-bold ${styles.titleColor} font-display mb-1`}>
-            {title}
-          </h4>
-          {message && (
-            <p className={`text-sm ${styles.messageColor} leading-relaxed`}>
-              {message}
-            </p>
-          )}
-        </div>
-
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-all duration-fast text-white hover:scale-110`}
-          aria-label="Close notification"
-        >
-          <X size={16} />
-        </button>
+      <span className="toast-icon">
+        <Icon size={21} aria-hidden="true" />
+      </span>
+      <div className="toast-copy">
+        <strong>{title}</strong>
+        {message && <p>{message}</p>}
       </div>
-      
-      {/* Progress bar */}
-      <div className="mt-4 h-1 bg-white/20 rounded-full overflow-hidden">
-        <div 
-          className={`h-full transition-all duration-75 ease-linear ${styles.progressColor}`}
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+      <button
+        onClick={() => onClose(id)}
+        className="icon-button"
+        aria-label="Close notification"
+      >
+        <X size={17} />
+      </button>
     </div>
   );
-};
-
-export default Toast;
+}

@@ -1,21 +1,21 @@
-import { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
-import { backendUrl } from '@configs/DotEnv';
-import { useAuth } from '@context/AuthContext';
-import { Loader2 } from 'lucide-react';
-import { DateItem, VacationRequest } from '@interfaces/index';
-import { LazyVacationRequestForm as VacationRequestForm } from '@components/LazyComponents';
-import MyVacationRequestList from '@components/MyVacationRequestList';
-import { ALL_MANAGEMENT, hasRole } from '@utils/permissions';
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { backendUrl } from "@configs/DotEnv";
+import { useAuth } from "@context/AuthContext";
+import { Loader2 } from "lucide-react";
+import { DateItem, VacationRequest } from "@interfaces/index";
+import { LazyVacationRequestForm as VacationRequestForm } from "@components/LazyComponents";
+import MyVacationRequestList from "@components/MyVacationRequestList";
+import { ALL_MANAGEMENT, hasRole } from "@utils/permissions";
 
 /**
  * VacationRequestList Component
- * 
+ *
  * Displays and manages vacation requests with:
  * - Tabbed interface for pending vs approved/rejected requests
  * - Approve/reject functionality for pending requests
- * 
+ *
  * Features:
  * - Role-based action buttons
  * - Real-time status updates
@@ -26,18 +26,23 @@ const VacationRequestList = () => {
   const { accessToken, user } = useAuth();
   const queryClient = useQueryClient();
   const isManagement = hasRole(user?.role, ALL_MANAGEMENT);
-  const [activeTab, setActiveTab] = useState<'pending' | 'approvedOrRejected' | 'myRequests'>('pending');
+  const [activeTab, setActiveTab] = useState<
+    "pending" | "approvedOrRejected" | "myRequests"
+  >("pending");
 
   /**
    * Fetches vacation requests from the API
    * returns {Promise<VacationRequest[]>} Array of vacation requests
    */
   const fetchVacationRequests = async () => {
-    const res = await axios.get<VacationRequest[]>(`${backendUrl}/api/vacations/`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    const res = await axios.get<VacationRequest[]>(
+      `${backendUrl}/api/vacations/`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       },
-    });
+    );
     return res.data;
   };
 
@@ -47,7 +52,7 @@ const VacationRequestList = () => {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['vacationRequests'],
+    queryKey: ["vacationRequests"],
     queryFn: fetchVacationRequests,
     enabled: !!accessToken, // Only fetch when authenticated
   });
@@ -63,7 +68,7 @@ const VacationRequestList = () => {
     status,
   }: {
     id: number;
-    status: 'approved' | 'rejected';
+    status: "approved" | "rejected";
   }) => {
     const res = await axios.patch(
       `${backendUrl}/api/vacation/${id}/update/`,
@@ -72,7 +77,7 @@ const VacationRequestList = () => {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-      }
+      },
     );
     return res.data;
   };
@@ -82,12 +87,15 @@ const VacationRequestList = () => {
     mutationFn: updateVacationStatus,
     onSuccess: (updatedRequest) => {
       // Update the cache with the new status
-      queryClient.setQueryData<VacationRequest[]>(['vacationRequests'], (old) => {
-        if (!old) return old;
-        return old.map((req) =>
-          req.id === updatedRequest.id ? updatedRequest : req
-        );
-      });
+      queryClient.setQueryData<VacationRequest[]>(
+        ["vacationRequests"],
+        (old) => {
+          if (!old) return old;
+          return old.map((req) =>
+            req.id === updatedRequest.id ? updatedRequest : req,
+          );
+        },
+      );
     },
   });
 
@@ -96,7 +104,7 @@ const VacationRequestList = () => {
    * @param {number} id - Request ID
    * @param {'approved' | 'rejected'} status - New status
    */
-  const handleApproveReject = (id: number, status: 'approved' | 'rejected') => {
+  const handleApproveReject = (id: number, status: "approved" | "rejected") => {
     mutation.mutate({ id, status });
   };
 
@@ -106,24 +114,30 @@ const VacationRequestList = () => {
    * @returns {string} Formatted date string
    */
   const formatDateItem = (item: DateItem) => {
-    if (item.type === 'half') return `Half Day - ${item.single_date} ${item.half_day_period} (${item.leave_type})`;
-    if (item.type === 'full') return `Full Day - ${item.from_date} → ${item.to_date} (${item.leave_type})`;
-    return '';
+    if (item.type === "half")
+      return `Half Day - ${item.single_date} ${item.half_day_period} (${item.leave_type})`;
+    if (item.type === "full")
+      return `Full Day - ${item.from_date} → ${item.to_date} (${item.leave_type})`;
+    return "";
   };
 
   // Filter requests based on active tab
   const filteredRequests = requests?.filter((req) => {
-    if (activeTab === 'pending') {
-      return req.status === 'pending' && (isManagement || req.employee === user?.username);
+    if (activeTab === "pending") {
+      return (
+        req.status === "pending" &&
+        (isManagement || req.employee === user?.username)
+      );
     }
 
-    if (activeTab === 'approvedOrRejected') {
-      const isApprovedOrRejected = req.status === 'approved' || req.status === 'rejected';
+    if (activeTab === "approvedOrRejected") {
+      const isApprovedOrRejected =
+        req.status === "approved" || req.status === "rejected";
       if (!isApprovedOrRejected) return false;
       return isManagement || req.employee === user?.username;
     }
 
-    if (activeTab === 'myRequests') {
+    if (activeTab === "myRequests") {
       return req.employee === user?.username;
     }
 
@@ -132,57 +146,60 @@ const VacationRequestList = () => {
 
   // Set default tab based on request statuses
   useEffect(() => {
-    if (!requests || activeTab !== 'pending') return;
+    if (!requests || activeTab !== "pending") return;
 
-    const hasPending = requests.some((req) => req.status === 'pending');
+    const hasPending = requests.some((req) => req.status === "pending");
     if (!hasPending) {
-      setActiveTab('approvedOrRejected');
+      setActiveTab("approvedOrRejected");
     }
   }, [requests, activeTab]);
 
-  const isMyRequestsTab = activeTab === 'myRequests';
-  
+  const isMyRequestsTab = activeTab === "myRequests";
+
   return (
-    <div className="max-w-5xl mx-auto px-8 py-8 bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-normal border border-gray-100 animate-scaleIn">
-      <h2 className="text-3xl font-bold text-slate-800 mb-8 text-center font-display">Vacation Requests</h2>
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold text-gray-800 mb-6 font-display">
+        Vacation Requests
+      </h2>
 
       {/* Status Filter Tabs */}
-      <div className="flex justify-center mb-8">
-        <div className="inline-flex rounded-xl bg-gray-100 p-1" role="tablist">
+      <div className="min-w-0 mb-6">
+        <div
+          className="segmented-control"
+          role="group"
+          aria-label="Filter vacation requests"
+        >
           <button
-            role="tab"
-            aria-selected={activeTab === 'pending'}
+            aria-pressed={activeTab === "pending"}
             className={`px-6 py-2 rounded-xl text-sm font-medium transition ${
-              activeTab === 'pending'
-                ? 'bg-white shadow text-emerald-600'
-                : 'text-gray-500 hover:text-emerald-600'
+              activeTab === "pending"
+                ? "bg-white shadow text-gray-600"
+                : "text-gray-600 hover:text-gray-600"
             }`}
-            onClick={() => setActiveTab('pending')}
+            onClick={() => setActiveTab("pending")}
           >
             Pending
           </button>
           <button
-            role="tab"
-            aria-selected={activeTab === 'approvedOrRejected'}
+            aria-pressed={activeTab === "approvedOrRejected"}
             className={`px-6 py-2 rounded-xl text-sm font-medium transition ${
-              activeTab === 'approvedOrRejected'
-                ? 'bg-white shadow text-emerald-600'
-                : 'text-gray-500 hover:text-emerald-600'
+              activeTab === "approvedOrRejected"
+                ? "bg-white shadow text-gray-600"
+                : "text-gray-600 hover:text-gray-600"
             }`}
-            onClick={() => setActiveTab('approvedOrRejected')}
+            onClick={() => setActiveTab("approvedOrRejected")}
           >
             Approved / Rejected
           </button>
           {user && (
             <button
-              role="tab"
-              aria-selected={activeTab === 'myRequests'}
+              aria-pressed={activeTab === "myRequests"}
               className={`px-6 py-2 rounded-xl text-sm font-medium transition ${
-                activeTab === 'myRequests'
-                  ? 'bg-white shadow text-emerald-600'
-                  : 'text-gray-500 hover:text-emerald-600'
+                activeTab === "myRequests"
+                  ? "bg-white shadow text-gray-600"
+                  : "text-gray-600 hover:text-gray-600"
               }`}
-              onClick={() => setActiveTab('myRequests')}
+              onClick={() => setActiveTab("myRequests")}
             >
               My Requests
             </button>
@@ -198,22 +215,26 @@ const VacationRequestList = () => {
         </div>
       ) : isLoading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-gray-600" />
         </div>
       ) : isError ? (
-        <p className="text-center text-error-600">Failed to fetch vacation requests.</p>
+        <p className="text-center text-gray-600">
+          Failed to fetch vacation requests.
+        </p>
       ) : filteredRequests && filteredRequests.length === 0 ? (
-        <p className="text-center text-gray-500">No vacation requests found for this tab.</p>
+        <p className="text-center text-gray-600">
+          No vacation requests found for this tab.
+        </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {filteredRequests?.map((req) => (
-            <div 
-              key={req.id} 
-              className="bg-white border border-gray-200 rounded-2xl p-6 shadow-soft hover:shadow-strong transition-all duration-normal"
+            <div
+              key={req.id}
+              className="surface border p-6 transition-colors duration-150"
               aria-labelledby={`request-${req.id}-title`}
             >
               <div className="mb-3">
-                <p 
+                <p
                   id={`request-${req.id}-title`}
                   className="text-lg font-semibold text-gray-800 capitalize"
                 >
@@ -228,7 +249,7 @@ const VacationRequestList = () => {
 
               {req.signature_data && (
                 <div className="mt-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">
                     Employee Signature
                   </p>
                   <div className="mt-2 bg-white border border-gray-200 rounded-xl p-2">
@@ -242,14 +263,14 @@ const VacationRequestList = () => {
               )}
 
               {/* Status Indicator */}
-              {req.status !== 'pending' && (
+              {req.status !== "pending" && (
                 <p
                   className={`text-xs font-semibold uppercase tracking-wide ${
-                    req.status === 'approved'
-                      ? 'text-emerald-600'
-                      : req.status === 'rejected'
-                      ? 'text-error-500'
-                      : 'text-gray-400'
+                    req.status === "approved"
+                      ? "text-gray-600"
+                      : req.status === "rejected"
+                        ? "text-gray-600"
+                        : "text-gray-600"
                   }`}
                   aria-label={`Status: ${req.status}`}
                 >
@@ -258,23 +279,31 @@ const VacationRequestList = () => {
               )}
 
               {/* Action Buttons for Pending Requests */}
-              {req.status === 'pending' && (
-                <div className="mt-6 flex gap-3">
+              {req.status === "pending" && (
+                <div className="mt-6 flex flex-wrap gap-3">
                   <button
-                    onClick={() => handleApproveReject(req.id, 'approved')}
-                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white text-sm font-medium transition-all duration-fast shadow-md hover:shadow-lg disabled:opacity-50 transform hover:scale-105"
+                    onClick={() => handleApproveReject(req.id, "approved")}
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl  bg-gray-800    text-white text-sm font-medium transition-colors duration-fast shadow-md  disabled:opacity-50 transform "
                     disabled={mutation.isPending}
                     aria-label={`Approve request from ${req.employee}`}
                   >
-                    {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Approve'}
+                    {mutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "Approve"
+                    )}
                   </button>
                   <button
-                    onClick={() => handleApproveReject(req.id, 'rejected')}
-                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium transition-all duration-fast shadow-md hover:shadow-lg disabled:opacity-50 transform hover:scale-105"
+                    onClick={() => handleApproveReject(req.id, "rejected")}
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium transition-colors duration-fast shadow-md  disabled:opacity-50 transform "
                     disabled={mutation.isPending}
                     aria-label={`Reject request from ${req.employee}`}
                   >
-                    {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reject'}
+                    {mutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "Reject"
+                    )}
                   </button>
                 </div>
               )}

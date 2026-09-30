@@ -1,27 +1,41 @@
 import { useAuth } from "@context/AuthContext";
-import { ChevronLeft, ChevronRight, Plus, SaveAll, Save, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  SaveAll,
+  Save,
+  Trash2,
+  CloudUpload,
+} from "lucide-react";
 import AutocompleteInput from "@components/AutoCompleteInput";
 import { useEffect, useRef, useCallback } from "react";
 import { useReportEntryForm } from "@hooks/useReportEntryForm";
 import ReportEntryStatus from "@components/ReportEntryStatus";
 
-/**
- * ReportEntryForm Component
- * 
- * A complex form for managing daily sales report entries with:
- * - Pagination by date
- * - Dynamic form fields with autocomplete
- * - Keyboard navigation
- * - Bulk and individual save operations
- * - Responsive table layout
- * 
- * Features:
- * - Automatic saving when navigating between entries
- * - Textarea auto-resizing
- * - Role-based field suggestions
- * - Visual indicators for saved/unsaved entries
- */
-const ReportEntryForm = () => {
+const mainFields = [
+  { key: "orders", label: "Orders", placeholder: "Products and quantities" },
+  {
+    key: "tel_orders",
+    label: "Telephone orders",
+    placeholder: "Orders received by phone",
+  },
+  { key: "samples", label: "Samples", placeholder: "Samples provided" },
+] as const;
+const followupFields = [
+  {
+    key: "new_product_intro",
+    label: "New product introduction",
+    placeholder: "Products discussed",
+  },
+  {
+    key: "old_product_followup",
+    label: "Product follow-up",
+    placeholder: "Updates and next steps",
+  },
+] as const;
+
+export default function ReportEntryForm() {
   const {
     entries,
     isLoading,
@@ -36,7 +50,6 @@ const ReportEntryForm = () => {
     sortedDates,
     doctorNameSuggestions,
     districtSuggestions,
-    // getTelOrderSuggestions,
     setCurrentPage,
     handleChange,
     handleSubmitEntry,
@@ -44,307 +57,313 @@ const ReportEntryForm = () => {
     handleDelete,
     addEmptyEntry,
   } = useReportEntryForm();
-
   const { user } = useAuth();
-
   const entriesRef = useRef<HTMLDivElement>(null);
-
-  /**
-   * Adjusts textarea height based on content - Memoized for performance
-   * @param {React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>} e - The change event
-   */
-  const adjustTextareaHeight = useCallback((
-    e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
-  ) => {
-    const textarea = e.target;
-    if (textarea instanceof HTMLTextAreaElement) {
-      textarea.style.height = "auto";
-      textarea.style.height = textarea.scrollHeight + "px";
-    }
-  }, []);
-
-  // Keyboard navigation effect
+  const adjustTextareaHeight = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      event.target.style.height = "auto";
+      event.target.style.height = `${event.target.scrollHeight}px`;
+    },
+    [],
+  );
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        const focusedIndex = entries.findIndex(entry => entry.clientId === focusedEntryIdRef.current);
-        if (focusedIndex < 0) return;
-        
-        e.preventDefault();
-        
-        const direction = e.key === 'ArrowUp' ? -1 : 1;
-        const newIndex = focusedIndex + direction;
-        
-        if (newIndex >= 0 && newIndex < entries.length) {
-          const entryElements = entriesRef.current?.querySelectorAll('.entry-container');
-          if (entryElements && entryElements[newIndex]) {
-            const firstInput = entryElements[newIndex].querySelector('input, textarea') as HTMLElement;
-            firstInput?.focus();
-          }
-        }
+    const keyDown = (event: KeyboardEvent) => {
+      // Plain arrows belong to caret movement, select controls, and suggestions.
+      if (
+        !event.altKey ||
+        event.isComposing ||
+        !["ArrowUp", "ArrowDown"].includes(event.key)
+      )
+        return;
+      const index = entries.findIndex(
+        (entry) => entry.clientId === focusedEntryIdRef.current,
+      );
+      if (index < 0) return;
+      const next = index + (event.key === "ArrowUp" ? -1 : 1);
+      const row = entriesRef.current?.querySelectorAll(".entry-container")[next];
+      const target = row?.querySelector<HTMLElement>("input:not([type=checkbox]), textarea");
+      if (target) {
+        event.preventDefault();
+        target.focus();
       }
     };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", keyDown);
+    return () => window.removeEventListener("keydown", keyDown);
   }, [entries, focusedEntryIdRef]);
+  useEffect(() => {
+    entriesRef.current?.querySelectorAll("textarea").forEach((textarea) => {
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    });
+  }, [entries]);
 
   return (
-    <div className="flex flex-col h-full space-y-6 overflow-hidden" ref={entriesRef}>
-      {/* Pagination Controls */}
-      <div className="flex justify-center items-center gap-6 mt-8 mb-4">
-        <button
-          onClick={() => setCurrentPage(currentPage + 1)}
-          disabled={currentPage >= sortedDates.length - 1}
-          className={`flex items-center justify-center p-3 rounded-full transition 
-            ${currentPage >= sortedDates.length - 1 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-slate-600 text-white hover:bg-slate-700"}
-          `}
-          aria-label="Prev date"
-          title="Prev Date"
-        >
-          <ChevronLeft size={20} />
-        </button>
-        
-        <div className="text-gray-700 font-medium select-none">
-          {sortedDates[currentPage]}
+    <div className="page-stack" ref={entriesRef}>
+      <div className="report-toolbar surface">
+        <div className="date-control" aria-label="Report date">
+          <button
+            className="icon-button"
+            onClick={() => setCurrentPage(currentPage + 1)}
+            disabled={currentPage >= sortedDates.length - 1}
+            aria-label="Prev date"
+            title="Previous date"
+          >
+            <ChevronLeft size={19} />
+          </button>
+          <time dateTime={sortedDates[currentPage]}>
+            {sortedDates[currentPage]}
+          </time>
+          <button
+            className="icon-button"
+            onClick={() => setCurrentPage(currentPage - 1)}
+            disabled={currentPage === 0}
+            aria-label="Next date"
+            title="Next date"
+          >
+            <ChevronRight size={19} />
+          </button>
         </div>
-        
         <button
-          onClick={() => setCurrentPage(currentPage - 1)}
-          disabled={currentPage === 0}
-          className={`flex items-center justify-center p-3 rounded-full transition 
-            ${currentPage === 0 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-slate-600 text-white hover:bg-slate-700"}
-          `}
-          aria-label="Next date"
-          title="Next Date"
+          type="button"
+          onClick={handleSubmitAllEntries}
+          className="button button-primary"
         >
-          <ChevronRight size={20} />
+          <SaveAll size={17} />
+          Save All
         </button>
       </div>
-            
-      <div className="flex-grow min-h-0 overflow-y-auto space-y-4">
-        {isLoading && <p role="status" className="px-6 py-2 text-sm text-gray-500">Loading reports...</p>}
-        {!isLoading && entries.length === 0 && (
-          <div className="px-6 py-4 text-center text-gray-500 italic bg-white rounded-lg shadow">
-            No entries available for this date.
-          </div>
-        )}
-        <p className="px-1 text-sm text-gray-500" role="status" aria-live="polite">
-          {savingAll ? 'Saving changes in the background. You can keep typing.' : 'Changes autosave after a short pause. You can also save at any time.'}
+      <p className="report-help" role="status" aria-live="polite">
+        <CloudUpload size={18} aria-hidden="true" />
+        {savingAll
+          ? "Saving changes in the background. You can keep typing."
+          : "Changes autosave after a short pause. Save anytime for extra peace of mind."}
+      </p>
+      {recoveredCount > 0 && (
+        <p className="notice">
+          Recovered {recoveredCount} unfinished{" "}
+          {recoveredCount === 1 ? "entry" : "entries"}. Review and save them
+          using the date arrows.
         </p>
-        {recoveredCount > 0 && <p className="px-1 text-sm text-gray-600">
-          Recovered {recoveredCount} unfinished {recoveredCount === 1 ? 'entry' : 'entries'}. Review and save them using the date arrows.
-        </p>}
-        {draftStorageError && <p role="alert" className="px-1 text-sm text-red-700">
-          Draft recovery is unavailable in this browser. Keep this page open until your entries show Saved.
-        </p>}
-        <div className="flex flex-wrap gap-4 mt-4">
-          <button
-            type="button"
-            onClick={handleSubmitAllEntries}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
-          >
-            <SaveAll size={15} />
-            Save All
-          </button> 
+      )}
+      {draftStorageError && (
+        <p role="alert" className="notice">
+          Draft recovery is unavailable in this browser. Keep this page open
+          until your entries show Saved.
+        </p>
+      )}
+      {isLoading && (
+        <p role="status" className="report-help">
+          Loading reports...
+        </p>
+      )}
+      {!isLoading && entries.length === 0 && (
+        <div className="surface empty-state">
+          <h2>A fresh page for your day</h2>
+          <p>Add an entry to record your first client visit.</p>
         </div>
-        {entries.map((entry) => (
+      )}
+      <div className="report-entries">
+        {entries.map((entry, index) => (
           <div
             key={entry.clientId}
+            className="entry-container"
             onFocusCapture={() => handleFocus(entry.clientId)}
-            onBlurCapture={event => {
-              if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) handleBlur(entry.clientId);
+            onBlurCapture={(event) => {
+              if (
+                !(event.relatedTarget instanceof Node) ||
+                !event.currentTarget.contains(event.relatedTarget)
+              )
+                handleBlur(entry.clientId);
             }}
-            onCompositionStartCapture={() => handleComposition(entry.clientId, true)}
-            onCompositionEndCapture={() => handleComposition(entry.clientId, false)}
-            className={`entry-container rounded-lg shadow-md overflow-hidden border-l-4 ${
-              entry.id ? "border-emerald-400" : "border-emerald-500"
-            }`}
+            onCompositionStartCapture={() =>
+              handleComposition(entry.clientId, true)
+            }
+            onCompositionEndCapture={() =>
+              handleComposition(entry.clientId, false)
+            }
           >
-            <div className="overflow-x-auto max-w-full">
-              <table className="min-w-full table-auto divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-52">Time Range</th>
-                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-60">Client Name</th>
-                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">District</th>
-                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Orders</th>
-                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Tel Orders</th>
-                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Samples</th>
-                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">New Product Intro</th>
-                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">Old Product Followup</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {/* First Row - Main Inputs */}
-                  <tr>
-                    <td className="px-1 py-4">
-                      <input
-                        type="text"
-                        value={entry.time_range}
-                        onChange={(e) => handleChange(entry.clientId, 'time_range', e.target.value)}
-                        className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
-                      />
-                    </td>
-                    <td className="px-1 py-4">
-                      <AutocompleteInput
-                        value={entry.doctor_name}
-                        onChange={(e) => handleChange(entry.clientId, 'doctor_name', e.target.value)}
-                        suggestions={doctorNameSuggestions}
-                        className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
-                        inputProps={{ 
-                          maxLength: 20,
-                        }}
-                      />
-                    </td>
-                    <td className="px-1 py-4">
-                      <AutocompleteInput
-                        value={entry.district}
-                        onChange={(e) => handleChange(entry.clientId, 'district', e.target.value)}
-                        suggestions={districtSuggestions}
-                        className="w-full max-w-xs min-w-[6rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
-                        inputProps={{ 
-                          maxLength: 20,
-                        }}
-                      />
-                    </td>
-
-                    <td className="px-1 py-4">
-                      <textarea
-                        value={entry.orders}
-                        onChange={(e) => {handleChange(entry.clientId, 'orders', e.target.value);adjustTextareaHeight(e);}}
-                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
-                        rows={2}
-                      />
-                    </td>
-                    <td className="px-1 py-4">
-                      <textarea
-                        value={entry.tel_orders}
-                        onChange={(e) => {handleChange(entry.clientId, 'tel_orders', e.target.value);adjustTextareaHeight(e);}}
-                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
-                        rows={2}
-                      />
-                      {/* <AutocompleteInput
-                        value={entry.tel_orders}
-                        onChange={(e) => {handleChange(entry.clientId, "tel_orders", e.target.value);adjustTextareaHeight(e);}}
-                        suggestions={getTelOrderSuggestions(entry.doctor_name)}
-                        isTextarea={true}
-                        openOnFocus={true}
-                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
-                        textareaProps={{
-                        }}
-                      /> */}
-                    </td>
-                    <td className="px-1 py-4">
-                      <textarea
-                        value={entry.samples}
-                        onChange={(e) => {handleChange(entry.clientId, 'samples', e.target.value);adjustTextareaHeight(e);}}
-                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
-                        rows={2}
-                      />
-                    </td>
-                    <td className="px-1 py-4">
-                      <textarea
-                        value={entry.new_product_intro || ''}
-                        onChange={(e) => {handleChange(entry.clientId, 'new_product_intro', e.target.value);adjustTextareaHeight(e);}}
-                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
-                        rows={2}
-                      />
-                    </td>
-                    <td className="px-1 py-4">
-                      <textarea
-                        value={entry.old_product_followup || ''}
-                        onChange={(e) => {handleChange(entry.clientId, 'old_product_followup', e.target.value);adjustTextareaHeight(e);}}
-                        className="w-full max-w-md min-w-[14rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500"
-                        rows={2}
-                      />
-                    </td>
-                  </tr>
-
-                  {/* Second Row - Type & New? */}
-                  <tr>
-                    <td className="px-1 py-3 font-medium text-sm text-gray-700" colSpan={3}>
-                      <select
-                        value={entry.client_type}
-                        onChange={(e) => handleChange(entry.clientId, 'client_type', e.target.value as 'doctor' | 'nurse')}
-                        className="w-36 px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500 bg-white bg-white"
-                      >
-                        <option value="doctor">Doctor</option>
-                        <option value="nurse">Nurse</option>
-                      </select>
-                    </td>
-                    <td className="px-1 py-3 font-medium text-sm text-gray-700" colSpan={3}>
-                      New Client?
-                      <input
-                        type="checkbox"
-                        checked={entry.new_client}
-                        onChange={(e) => handleChange(entry.clientId, 'new_client', e.target.checked)}
-                        className="ml-3 h-5 w-5 text-slate-600 focus:ring-slate-500 border-gray-300 rounded"
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div className="entry-heading">
+              <div className="entry-title">
+                <span className="entry-number">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <h2>Client visit</h2>
+              </div>
+              <label className="check-field">
+                <input
+                  type="checkbox"
+                  checked={entry.new_client}
+                  onChange={(event) =>
+                    handleChange(
+                      entry.clientId,
+                      "new_client",
+                      event.target.checked,
+                    )
+                  }
+                />
+                New client
+              </label>
             </div>
-
-            {/* Actions outside the table */}
-            <div className="px-6 py-4 bg-gray-50 flex flex-wrap items-center justify-end gap-3">
+            <div className="entry-meta">
+              <div className="field">
+                <label htmlFor={`time-${entry.clientId}`}>Time range</label>
+                <input
+                  id={`time-${entry.clientId}`}
+                  type="text"
+                  value={entry.time_range}
+                  onChange={(event) =>
+                    handleChange(
+                      entry.clientId,
+                      "time_range",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="09:00–10:00"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor={`client-${entry.clientId}`}>Client name</label>
+                <AutocompleteInput
+                  value={entry.doctor_name}
+                  suggestions={doctorNameSuggestions}
+                  onChange={(event) =>
+                    handleChange(
+                      entry.clientId,
+                      "doctor_name",
+                      event.target.value,
+                    )
+                  }
+                  inputProps={{
+                    id: `client-${entry.clientId}`,
+                    maxLength: 20,
+                    placeholder: "Name of client",
+                  }}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor={`district-${entry.clientId}`}>District</label>
+                <AutocompleteInput
+                  value={entry.district}
+                  suggestions={districtSuggestions}
+                  onChange={(event) =>
+                    handleChange(entry.clientId, "district", event.target.value)
+                  }
+                  inputProps={{
+                    id: `district-${entry.clientId}`,
+                    maxLength: 20,
+                    placeholder: "Select or type",
+                  }}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor={`type-${entry.clientId}`}>Client type</label>
+                <select
+                  id={`type-${entry.clientId}`}
+                  value={entry.client_type}
+                  onChange={(event) =>
+                    handleChange(
+                      entry.clientId,
+                      "client_type",
+                      event.target.value as "doctor" | "nurse",
+                    )
+                  }
+                >
+                  <option value="doctor">Doctor</option>
+                  <option value="nurse">Nurse</option>
+                </select>
+              </div>
+            </div>
+            <div className="entry-details">
+              {mainFields.map((field) => (
+                <div className="field" key={field.key}>
+                  <label htmlFor={`${field.key}-${entry.clientId}`}>
+                    {field.label}
+                  </label>
+                  <textarea
+                    id={`${field.key}-${entry.clientId}`}
+                    value={entry[field.key]}
+                    rows={2}
+                    placeholder={field.placeholder}
+                    onChange={(event) => {
+                      handleChange(
+                        entry.clientId,
+                        field.key,
+                        event.target.value,
+                      );
+                      adjustTextareaHeight(event);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="entry-followup">
+              {followupFields.map((field) => (
+                <div className="field" key={field.key}>
+                  <label htmlFor={`${field.key}-${entry.clientId}`}>
+                    {field.label}
+                  </label>
+                  <textarea
+                    id={`${field.key}-${entry.clientId}`}
+                    value={entry[field.key] || ""}
+                    rows={2}
+                    placeholder={field.placeholder}
+                    onChange={(event) => {
+                      handleChange(
+                        entry.clientId,
+                        field.key,
+                        event.target.value,
+                      );
+                      adjustTextareaHeight(event);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="entry-footer">
               <ReportEntryStatus entry={entry} />
-              <button
-                type="button"
-                onClick={() => handleSubmitEntry(entry.clientId)}
-                aria-describedby={`report-status-${entry.clientId}`}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white ${entry.id ? "bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-400" : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"} shadow-sm transition-all focus:outline-none focus:ring-2`}>
-                <Save size={15} />
-                Save
-              </button>
-              <button
-                onClick={() => handleDelete(entry.clientId)}
-                disabled={entry.status === 'saving' || entry.status === 'deleting'}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-all duration-fast shadow-md hover:shadow-lg disabled:opacity-50 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                <Trash2 size={15} />
-                Delete
-              </button>
+              <div className="entry-actions">
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  onClick={() => handleDelete(entry.clientId)}
+                  disabled={
+                    entry.status === "saving" || entry.status === "deleting"
+                  }
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => handleSubmitEntry(entry.clientId)}
+                  aria-describedby={`report-status-${entry.clientId}`}
+                >
+                  <Save size={16} />
+                  Save
+                </button>
+              </div>
             </div>
           </div>
         ))}
       </div>
-    <div className="flex-none space-y-4 pb-4">
-      <div>
-        <button
-          type="button"
-          onClick={addEmptyEntry}
-          className="group relative inline-flex items-center justify-center p-3 bg-gradient-to-br from-slate-600 to-emerald-600 hover:from-slate-700 hover:to-emerald-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-gray-50"
-        >
-          <Plus 
-            size={18} 
-            className="transform group-hover:rotate-90 transition-transform duration-200 ease-in-out" 
-          />
-          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs bg-gray-800 text-white px-2 py-1 rounded whitespace-nowrap">
-            Add New Entry
-          </span>
-          <span className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/10"></span>
+      <div className="report-bottom">
+        <button type="button" className="button" onClick={addEmptyEntry}>
+          <Plus size={18} />
+          Add New Entry
         </button>
-      </div>
-
-      <div>
-        <p>I, {user?.username}, declare the following data provided are true and correct</p>
-      </div>
-      
-      <div className="flex flex-wrap gap-4 mt-4">
         <button
           type="button"
+          className="button button-primary"
           onClick={handleSubmitAllEntries}
-          className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white text-base font-medium rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
         >
-          <SaveAll size={15} />
+          <SaveAll size={17} />
           Save All
         </button>
       </div>
+      <p className="report-help">
+        I, {user?.username}, declare the data provided are true and correct.
+      </p>
     </div>
-  </div>
   );
-};
-
-export default ReportEntryForm;
+}

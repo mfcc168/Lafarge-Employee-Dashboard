@@ -570,3 +570,7 @@ const fadeAnimation = designSystem.getAnimation('fadeIn');
 ```
 
 ---
+
+## Light workspace UI
+
+The React workspace and Django administration share a light grayscale theme with soft neumorphic surfaces, responsive layouts, and reduced-motion support. See [the redesign and visual previews](docs/ui-redesign.md) for the screens, interaction changes, validation, and release steps.

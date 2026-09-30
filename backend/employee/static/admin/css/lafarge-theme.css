@@ -1,0 +1,118 @@
+/* The same grayscale palette and restrained depth as the employee workspace. */
+:root, html[data-theme="light"], html[data-theme="dark"] {
+  color-scheme: light;
+  --primary: #404252;
+  --secondary: #f3f4f8;
+  --accent: #282a3a;
+  --primary-fg: #ffffff;
+  --body-fg: #282a3a;
+  --body-bg: #f3f4f8;
+  --body-quiet-color: #5b5d6b;
+  --body-medium-color: #404252;
+  --body-loud-color: #101223;
+  --header-color: #282a3a;
+  --header-branding-color: #282a3a;
+  --header-bg: #f3f4f8;
+  --header-link-color: #404252;
+  --breadcrumbs-fg: #5b5d6b;
+  --breadcrumbs-link-fg: #282a3a;
+  --breadcrumbs-bg: #f3f4f8;
+  --link-fg: #404252;
+  --link-hover-color: #101223;
+  --link-selected-fg: #282a3a;
+  --hairline-color: #d2d4da70;
+  --border-color: #d2d4da;
+  --error-fg: #282a3a;
+  --message-success-bg: #ffffff;
+  --message-warning-bg: #ffffff;
+  --message-error-bg: #ffffff;
+  --darkened-bg: #eceef3;
+  --selected-bg: #e8e9ee;
+  --selected-row: #e8e9ee;
+  --button-fg: #ffffff;
+  --button-bg: #404252;
+  --button-hover-bg: #282a3a;
+  --default-button-bg: #282a3a;
+  --default-button-hover-bg: #101223;
+  --close-button-bg: #5b5d6b;
+  --close-button-hover-bg: #404252;
+  --delete-button-bg: #404252;
+  --delete-button-hover-bg: #101223;
+  --object-tools-fg: #282a3a;
+  --object-tools-bg: #ffffff;
+  --object-tools-hover-bg: #d2d4da;
+  --font-family-primary: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --raised: 7px 7px 20px #d2d4da75, -7px -7px 20px #fff;
+}
+body { font-size: 15px; line-height: 1.6; }
+#header { padding: 22px 36px; border-bottom: 1px solid #fff; }
+.theme-toggle { display: none; }
+.lafarge-brand a { display: flex; align-items: center; gap: 13px; color: #282a3a !important; font-size: 25px; font-weight: 700; letter-spacing: -.05em; }
+.lafarge-brand small { display: block; font-size: 9px; letter-spacing: .13em; font-weight: 600; color: #5b5d6b; }
+.lafarge-brand-mark { width: 46px; height: 46px; border-radius: 15px; border: 1px solid #fff; box-shadow: var(--raised); display: grid; place-items: center; }
+#user-tools { font-size: 12px; line-height: 2; letter-spacing: 0; text-transform: none; }
+#user-tools a, #logout-form button { border: 0; padding: 8px 4px; color: #404252; text-decoration: underline; text-underline-offset: 4px; }
+#content { padding: 30px 36px; }
+h1 { font-weight: 600; letter-spacing: -.04em; font-size: 30px; color: #282a3a; margin-bottom: 24px; }
+h2 { font-size: 18px; }
+.module { border: 1px solid #fff; border-radius: 18px; background: #f3f4f8; box-shadow: var(--raised); margin-bottom: 26px; }
+.module h2, .module caption, .inline-group h2 { border-radius: 17px 17px 0 0; background: #eceef3; color: #404252; padding: 14px 18px; font-size: 15px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.module caption a, .module caption a:visited { color: #404252; }
+.module table { border-radius: 18px; overflow: hidden; }
+.module th, .module td { padding: 14px 18px; border-bottom-color: #d2d4da60; font-size: 14px; }
+.module tbody tr:last-child th, .module tbody tr:last-child td { border-bottom: 0; }
+#content-related { background: transparent; }
+#content-related .module h2 { background: transparent; border: 0; }
+#content-related .module { padding: 8px 18px 18px; }
+#content-related .module h3 { margin-top: 12px; }
+#nav-sidebar { background: #f3f4f8; padding: 20px 14px; }
+#nav-sidebar .module { box-shadow: none; border: 0; border-radius: 12px; }
+#nav-sidebar .module caption { border-radius: 10px; padding: 10px; }
+#nav-sidebar th, #nav-sidebar td { padding: 10px; }
+#toggle-nav-sidebar { background: #f3f4f8; border-color: #fff; color: #404252; }
+#changelist { border-radius: 18px; min-width: 0; }
+#changelist .results { border-radius: 14px; overflow-x: auto; }
+#changelist table thead th { background: #eceef3; color: #404252; text-transform: none; }
+#changelist-filter { background: #f3f4f8; border-left: 1px solid #d2d4da70; }
+#changelist-filter h2 { background: #eceef3; color: #404252; border-radius: 15px 15px 0 0; }
+#toolbar, #changelist .actions, .paginator { background: transparent !important; padding: 16px !important; }
+.breadcrumbs { border-bottom: 1px solid #fff; }
+input, select, textarea { font-family: inherit; font-size: 15px; color: #282a3a; }
+input:not([type=checkbox]):not([type=radio]):not([type=submit]), select, textarea { background: #f3f4f8; border: 1px solid #9496a1; border-radius: 10px; padding: 10px 12px; min-height: 42px; max-width: 100%; box-sizing: border-box; box-shadow: inset 2px 2px 5px #d2d4da60, inset -2px -2px 5px #fff; }
+input[type=checkbox], input[type=radio] { accent-color: #282a3a; }
+select[multiple] { min-height: 160px; }
+input:focus, select:focus, textarea:focus { outline: 2px solid #404252; outline-offset: 2px; background: #fff; box-shadow: none; }
+:focus-visible { outline: 2px solid #404252; outline-offset: 4px; }
+.button, input[type=submit], input[type=button], .submit-row a.deletelink, button { border-radius: 11px; min-height: 42px; transition: background-color 140ms ease, transform 100ms ease; }
+.button, input[type=submit], .submit-row a.deletelink { padding: 11px 18px; }
+button:active, .button:active, input[type=submit]:active { transform: translateY(1px); }
+.object-tools a { border-radius: 12px; padding: 12px 28px 12px 16px; box-shadow: var(--raised); font-size: 12px; }
+.form-row { padding: 18px; border-color: #d2d4da60; }
+.submit-row { border: 1px solid #fff; border-radius: 15px; background: #f3f4f8; box-shadow: var(--raised); padding: 18px; }
+.help, p.help { font-size: 13px; color: #5b5d6b; }
+.errornote, .errorlist, ul.messagelist li { border-radius: 12px; border: 1px solid #9496a1; color: #282a3a; background-color: #fff; }
+body.login { background: #f3f4f8; }
+body.login #container { border: 1px solid #fff; border-radius: 24px; box-shadow: var(--raised); background: #f3f4f8; width: min(460px, calc(100% - 32px)); margin: 9vh auto; }
+body.login #header { border-radius: 24px 24px 0 0; }
+body.login #content { padding: 30px; }
+body.login .form-row { padding: 10px 0; }
+body.login .submit-row { margin: 16px 0 0; padding: 0; box-shadow: none; border: 0; text-align: left; }
+@media (max-width: 1024px) {
+  #header { padding: 20px; }
+  #content { padding: 24px 20px; }
+  #changelist-filter { border: 1px solid #d2d4da; border-radius: 14px; }
+}
+@media (max-width: 767px) {
+  #header { align-items: flex-start; gap: 16px; }
+  #user-tools { text-align: left; }
+  #content { padding: 22px 16px; }
+  h1 { font-size: 26px; }
+  .module th, .module td { padding: 12px; }
+  .submit-row { gap: 10px; }
+  .object-tools { margin-top: 16px; }
+  .form-row { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; scroll-behavior: auto !important; } }
+@media print { .module, .submit-row { box-shadow: none; } }
+/* Keep Django's useful action/status glyphs, in the same grayscale palette. */
+.addlink, .changelink, .deletelink, .related-widget-wrapper-link img, .selector .selector-chooseall, .selector .selector-clearall, .datetimeshortcuts img, img[src*="icon-yes"], img[src*="icon-no"] { filter: grayscale(1); }

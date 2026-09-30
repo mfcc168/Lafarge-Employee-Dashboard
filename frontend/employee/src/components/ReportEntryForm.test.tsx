@@ -583,4 +583,25 @@ describe('report save workflow', () => {
     expect(new ReportDraftStorage('https://example.test', 'tester').read()).toEqual([]);
   });
 
+  it("keeps ordinary arrow keys for editing and reserves Alt+Arrow for entry navigation", async () => {
+    await setup();
+    type(0, "09:00");
+    const plain = new KeyboardEvent("keydown", {
+      key: "ArrowDown",
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent(input(0), plain);
+    expect(plain.defaultPrevented).toBe(false);
+    const shortcut = new KeyboardEvent("keydown", {
+      key: "ArrowDown",
+      altKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent(input(0), shortcut);
+    expect(shortcut.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(input(1));
+  });
+
 });

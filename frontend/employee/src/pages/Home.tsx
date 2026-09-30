@@ -1,30 +1,43 @@
+import PageHeader from "@components/PageHeader";
+import { Link } from "react-router-dom";
+import { ArrowUpRight, FileText, Package, UserRoundPlus } from "lucide-react";
 import { useState } from "react";
-import { 
+import {
   LazyReportEntryList as ReportEntryList,
   LazyWeeklyNewClientOrder as WeeklyNewClientOrder,
-  LazyWeeklySamplesSummary as WeeklySamplesSummary
+  LazyWeeklySamplesSummary as WeeklySamplesSummary,
 } from "@components/LazyComponents";
 import { useAuth } from "@context/AuthContext";
-import { format, startOfISOWeek, endOfISOWeek, parseISO, addDays } from "date-fns";
+import {
+  format,
+  startOfISOWeek,
+  endOfISOWeek,
+  parseISO,
+  addDays,
+} from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { reportKeys } from '@utils/reportCache';
-import type { ReportEntry } from '@interfaces/index';
+import { reportKeys } from "@utils/reportCache";
+import type { ReportEntry } from "@interfaces/index";
 import { backendUrl } from "@configs/DotEnv";
 
 const Home = () => {
   const { accessToken, isAuthenticated, user } = useAuth();
-  const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [currentDate, setCurrentDate] = useState(
+    format(new Date(), "yyyy-MM-dd"),
+  );
   const now = new Date();
-  const startDate = format(startOfISOWeek(now), 'yyyy-MM-dd');
-  const endDate = format(endOfISOWeek(now), 'yyyy-MM-dd');
+  const startDate = format(startOfISOWeek(now), "yyyy-MM-dd");
+  const endDate = format(endOfISOWeek(now), "yyyy-MM-dd");
   const [currentWeekStart, setCurrentWeekStart] = useState<string>(startDate);
   const [currentWeekEnd, setCurrentWeekEnd] = useState<string>(endDate);
 
   // Calculate if the date is recent (within last 7 days)
   const isRecentDate = (date: string) => {
     const dateObj = parseISO(date);
-    const daysDiff = Math.floor((new Date().getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.floor(
+      (new Date().getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24),
+    );
     return daysDiff <= 7;
   };
 
@@ -34,12 +47,12 @@ const Home = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     dateObj.setHours(0, 0, 0, 0);
-    
+
     // If it's today's date, no cache
     if (dateObj.getTime() === today.getTime()) {
       return 0; // No cache for today - always fetch fresh data
     }
-    
+
     if (isRecentDate(date)) {
       return 1000 * 30; // 30 seconds for recent data
     }
@@ -54,14 +67,22 @@ const Home = () => {
   };
 
   // Fetch entries for the current date
-  const { data: dayEntries, isLoading: dailyLoading } = useQuery({
+  const {
+    data: dayEntries,
+    isLoading: dailyLoading,
+    isError: dailyError,
+  } = useQuery({
     queryKey: reportKeys.day(user?.username, currentDate),
     queryFn: async ({ signal }) => {
-      const response = await axios.get<ReportEntry[]>(`${backendUrl}/api/dashboard/report-entries/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        signal, timeout: 30000,
-        params: { date: currentDate }
-      });
+      const response = await axios.get<ReportEntry[]>(
+        `${backendUrl}/api/dashboard/report-entries/`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          signal,
+          timeout: 30000,
+          params: { date: currentDate },
+        },
+      );
       return response.data;
     },
     enabled: isAuthenticated && !!accessToken && !!user?.username,
@@ -71,14 +92,22 @@ const Home = () => {
   });
 
   // Fetch current week entries
-  const { data: weekEntries, isLoading: weeklyLoading } = useQuery({
+  const {
+    data: weekEntries,
+    isLoading: weeklyLoading,
+    isError: weeklyError,
+  } = useQuery({
     queryKey: reportKeys.week(user?.username, currentWeekStart, currentWeekEnd),
     queryFn: async ({ signal }) => {
-      const response = await axios.get<ReportEntry[]>(`${backendUrl}/api/dashboard/report-entries-by-date/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        signal, timeout: 30000,
-        params: { start_date: currentWeekStart, end_date: currentWeekEnd }
-      });
+      const response = await axios.get<ReportEntry[]>(
+        `${backendUrl}/api/dashboard/report-entries-by-date/`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          signal,
+          timeout: 30000,
+          params: { start_date: currentWeekStart, end_date: currentWeekEnd },
+        },
+      );
       return response.data;
     },
     enabled: isAuthenticated && !!accessToken && !!user?.username,
@@ -93,60 +122,101 @@ const Home = () => {
 
   const handleWeekChange = (newDate: string) => {
     setCurrentWeekStart(newDate);
-    const newEnd = format(addDays(parseISO(newDate), 6), 'yyyy-MM-dd');
+    const newEnd = format(addDays(parseISO(newDate), 6), "yyyy-MM-dd");
     setCurrentWeekEnd(newEnd);
   };
 
+  const visibleWeekEntries = (weekEntries || []).filter(
+    (entry) =>
+      user?.role !== "SALESMAN" ||
+      entry.salesman_name === `${user.firstname} ${user.lastname}`,
+  );
+  const stats = [
+    {
+      label:
+        currentWeekStart === startDate
+          ? "Reports this week"
+          : "Reports in selected week",
+      value: visibleWeekEntries.length,
+      note: "Recorded client visits",
+      Icon: FileText,
+    },
+    {
+      label: "Entries with orders",
+      value: visibleWeekEntries.filter(
+        (entry) => entry.orders || entry.tel_orders,
+      ).length,
+      note: "In person & by telephone",
+      Icon: Package,
+    },
+    {
+      label: "New client visits",
+      value: visibleWeekEntries.filter((entry) => entry.new_client).length,
+      note: "Building new connections",
+      Icon: UserRoundPlus,
+    },
+  ];
   return (
-    <div className="min-h-screen space-y-8 animate-fadeIn">
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-slate-700 to-emerald-600 rounded-2xl p-8 text-white shadow-soft animate-fadeInDown">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-display mb-2">Welcome back!</h1>
-            <p className="text-slate-100 text-lg">Here's your dashboard overview for today</p>
-          </div>
-          <div className="hidden md:block">
-            <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+    <div className="page-stack">
+      <PageHeader
+        eyebrow="YOUR WORKDAY, AT A GLANCE"
+        title={`Welcome back${user?.firstname ? `, ${user.firstname}` : ""}.`}
+        description="Your daily reports and weekly activity, in one place."
+        actions={
+          user?.role === "SALESMAN" && (
+            <Link className="button button-primary" to="/report">
+              Write a report
+              <ArrowUpRight size={18} />
+            </Link>
+          )
+        }
+      />
+      <div className="stats-grid">
+        {stats.map(({ label, value, note, Icon }) => (
+          <section className="surface stat-card" key={label}>
+            <div className="stat-top">
+              <span>{label}</span>
+              <span className="stat-icon">
+                <Icon size={18} aria-hidden="true" />
+              </span>
             </div>
-          </div>
-        </div>
+            <strong className="stat-value">
+              {weeklyLoading || weeklyError ? "—" : value}
+            </strong>
+            <p className="stat-note">{note}</p>
+          </section>
+        ))}
       </div>
-
-      {/* Dashboard Cards */}
-      <div className="space-y-8">
-        <div className="animate-scaleIn">
-          <ReportEntryList 
-            allEntries={dayEntries || []} 
-            currentDate={currentDate}
-            onDateChange={handleDateChange}
-            isLoading={dailyLoading}
-          />
-        </div>
-        
-        <div className="bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-normal p-6 animate-scaleIn border border-gray-100" style={{ animationDelay: '200ms' }}>
-          <WeeklySamplesSummary 
-            entries={weekEntries || []} 
-            weekStart={currentWeekStart} 
-            onWeekChange={handleWeekChange} 
+      {(dailyError || weeklyError) && (
+        <p role="alert" className="notice">
+          Some reports could not be loaded. Please refresh to try again.
+        </p>
+      )}
+      <ReportEntryList
+        allEntries={dayEntries || []}
+        currentDate={currentDate}
+        onDateChange={handleDateChange}
+        isLoading={dailyLoading}
+      />
+      <div className="dashboard-week">
+        <section className="surface surface-pad">
+          <WeeklySamplesSummary
+            entries={weekEntries || []}
+            weekStart={currentWeekStart}
+            onWeekChange={handleWeekChange}
             isLoading={weeklyLoading}
           />
-        </div>
-        
-        <div className="bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-normal p-6 animate-scaleIn border border-gray-100" style={{ animationDelay: '400ms' }}>
-          <WeeklyNewClientOrder 
-            entries={weekEntries || []} 
-            weekStart={currentWeekStart} 
-            onWeekChange={handleWeekChange} 
+        </section>
+        <section className="surface surface-pad">
+          <WeeklyNewClientOrder
+            entries={weekEntries || []}
+            weekStart={currentWeekStart}
+            onWeekChange={handleWeekChange}
             isLoading={weeklyLoading}
           />
-        </div>
+        </section>
       </div>
     </div>
   );
 };
-
 export default Home;

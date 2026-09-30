@@ -1,14 +1,15 @@
-import { LazyReportEntryForm as ReportEntryForm } from '@components/LazyComponents';
+import { LazyReportEntryForm as ReportEntryForm } from "@components/LazyComponents";
+import PageHeader from "@components/PageHeader";
 
-const Report = () => {
-
+export default function Report() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center h-screen animate-fadeIn">
-      <div className="w-full h-full py-8">
-        <ReportEntryForm />
-      </div>
+    <div className="page-stack">
+      <PageHeader
+        eyebrow="YOUR DAILY WORK"
+        title="Reports"
+        description="Capture the details. We’ll keep your changes saved."
+      />
+      <ReportEntryForm />
     </div>
   );
-};
-
-export default Report;
+}

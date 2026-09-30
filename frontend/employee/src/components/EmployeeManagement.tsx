@@ -6,21 +6,25 @@ import { useAuth } from "@context/AuthContext";
 import { EmployeeProfile } from "@interfaces/EmployeeType";
 import LoadingSpinner from "@components/LoadingSpinner";
 import { UserX, UserCheck, AlertCircle, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { canManageEmployees, PERMISSION_MESSAGES } from "@utils/permissions";
 
 const EmployeeManagement = () => {
   const { user, accessToken } = useAuth();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch all employees (including inactive)
-  const { data: employees, isLoading, error } = useQuery<EmployeeProfile[]>({
+  const {
+    data: employees,
+    isLoading,
+    error,
+  } = useQuery<EmployeeProfile[]>({
     queryKey: ["all-employees", accessToken],
     queryFn: async () => {
       const response = await axios.get(`${backendUrl}/api/employees/all/`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       return response.data;
     },
@@ -30,9 +34,13 @@ const EmployeeManagement = () => {
   // Toggle employee status mutation
   const toggleStatusMutation = useMutation({
     mutationFn: async (profileId: number) => {
-      const response = await axios.post(`${backendUrl}/api/profile/${profileId}/toggle-status/`, {}, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
+      const response = await axios.post(
+        `${backendUrl}/api/profile/${profileId}/toggle-status/`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
       return response.data;
     },
     onSuccess: () => {
@@ -47,13 +55,17 @@ const EmployeeManagement = () => {
   // Check authorization
   if (!user || !canManageEmployees(user.role)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 animate-fadeIn">
-        <div className="max-w-md w-full bg-white shadow-soft rounded-2xl p-8 animate-scaleIn border border-gray-100 text-center">
-          <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-error-500" />
+      <div className="min-h-[50vh] flex items-center justify-center bg-gray-100">
+        <div className="surface max-w-md w-full p-8 border text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-gray-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Access Denied</h2>
-          <p className="text-slate-600 font-semibold">{PERMISSION_MESSAGES.manageEmployees}</p>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">
+            Access Denied
+          </h2>
+          <p className="text-gray-600 font-semibold">
+            {PERMISSION_MESSAGES.manageEmployees}
+          </p>
         </div>
       </div>
     );
@@ -65,27 +77,30 @@ const EmployeeManagement = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 animate-fadeIn">
-        <div className="max-w-md w-full bg-white shadow-soft rounded-2xl p-8 animate-scaleIn border border-gray-100 text-center">
-          <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-error-500" />
+      <div className="min-h-[50vh] flex items-center justify-center bg-gray-100">
+        <div className="surface max-w-md w-full p-8 border text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-gray-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Error</h2>
-          <p className="text-slate-600">Error loading employees. Please try again.</p>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Error</h2>
+          <p className="text-gray-600">
+            Error loading employees. Please try again.
+          </p>
         </div>
       </div>
     );
   }
 
   // First filter out management roles from all employees
-  const nonManagementEmployees = employees?.filter((employee) => {
-    return !["ADMIN", "CEO", "DIRECTOR"].includes(employee.role);
-  }) || [];
+  const nonManagementEmployees =
+    employees?.filter((employee) => {
+      return !["ADMIN", "CEO", "DIRECTOR"].includes(employee.role);
+    }) || [];
 
   // Then filter based on search term
   const filteredEmployees = nonManagementEmployees.filter((employee) => {
     if (!searchTerm) return true;
-    
+
     const searchLower = searchTerm.toLowerCase();
     return (
       employee.user.username.toLowerCase().includes(searchLower) ||
@@ -96,41 +111,50 @@ const EmployeeManagement = () => {
   });
 
   // Separate active and inactive employees (from all non-management, not just filtered)
-  const activeEmployees = nonManagementEmployees.filter(emp => emp.is_active);
-  const inactiveEmployees = nonManagementEmployees.filter(emp => !emp.is_active);
-  
-  // For display purposes, get active/inactive from filtered results
-  const filteredActiveEmployees = filteredEmployees.filter(emp => emp.is_active);
-  const filteredInactiveEmployees = filteredEmployees.filter(emp => !emp.is_active);
+  const activeEmployees = nonManagementEmployees.filter((emp) => emp.is_active);
+  const inactiveEmployees = nonManagementEmployees.filter(
+    (emp) => !emp.is_active,
+  );
 
-  const EmployeeCard = ({ employee }: { employee: EmployeeProfile }) => (
+  // For display purposes, get active/inactive from filtered results
+  const filteredActiveEmployees = filteredEmployees.filter(
+    (emp) => emp.is_active,
+  );
+  const filteredInactiveEmployees = filteredEmployees.filter(
+    (emp) => !emp.is_active,
+  );
+
+  const renderEmployeeCard = (employee: EmployeeProfile) => (
     <div
+      key={employee.id}
       className={`
-        p-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer
-        ${employee.is_active 
-          ? "bg-white" 
-          : "bg-gray-50 opacity-75"
-        }
+        employee-card surface p-5
+        ${employee.is_active ? "bg-white" : "bg-gray-100"}
       `}
-      onClick={() => navigate(`/employees/${employee.id}`)}
     >
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-800">
-              {employee.user.first_name} {employee.user.last_name}
+              <Link
+                className="employee-profile-link"
+                to={`/employees/${employee.id}`}
+              >
+                {employee.user.first_name} {employee.user.last_name}
+              </Link>
             </h3>
             {!employee.is_active && (
-              <span className="text-xs bg-error-100 text-error-700 px-2 py-1 rounded-full">
+              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
                 Inactive
               </span>
             )}
           </div>
           <p className="text-sm text-gray-600">@{employee.user.username}</p>
-          <p className="text-sm text-gray-500">{employee.role}</p>
+          <p className="text-sm text-gray-600">{employee.role}</p>
           {employee.role === "SALESMAN" && (
-            <p className="text-xs text-gray-400 mt-1">
-              Sales reports and commissions {employee.is_active ? "active" : "disabled"}
+            <p className="text-xs text-gray-600 mt-1">
+              Sales reports and commissions{" "}
+              {employee.is_active ? "active" : "disabled"}
             </p>
           )}
         </div>
@@ -141,14 +165,18 @@ const EmployeeManagement = () => {
           }}
           disabled={toggleStatusMutation.isPending}
           className={`
-            p-3 rounded-lg transition-all duration-200
-            ${employee.is_active
-              ? "bg-error-100 hover:bg-error-200 text-error-600"
-              : "bg-emerald-100 hover:bg-emerald-200 text-emerald-600"
+            p-3 rounded-lg transition-colors duration-200
+            ${
+              employee.is_active
+                ? "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                : "bg-gray-100 hover:bg-gray-200 text-gray-600"
             }
             disabled:opacity-50 disabled:cursor-not-allowed
           `}
-          title={employee.is_active ? "Deactivate employee" : "Activate employee"}
+          aria-label={`${employee.is_active ? "Deactivate" : "Activate"} ${employee.user.first_name} ${employee.user.last_name}`}
+          title={
+            employee.is_active ? "Deactivate employee" : "Activate employee"
+          }
         >
           {toggleStatusMutation.isPending ? (
             <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
@@ -163,23 +191,29 @@ const EmployeeManagement = () => {
   );
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">Employee Management</h1>
-        <div className="flex items-center gap-3">
+        <h2 className="text-xl font-semibold text-gray-800">Team directory</h2>
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
             <span className="text-sm font-medium text-gray-700">Total</span>
-            <span className="text-lg font-bold text-gray-900">{nonManagementEmployees.length}</span>
+            <span className="text-lg font-bold text-gray-900">
+              {nonManagementEmployees.length}
+            </span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-            <span className="text-sm font-medium text-emerald-700">Active</span>
-            <span className="text-lg font-bold text-emerald-900">{activeEmployees.length}</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+            <span className="text-sm font-medium text-gray-700">Active</span>
+            <span className="text-lg font-bold text-gray-900">
+              {activeEmployees.length}
+            </span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-error-50 rounded-lg border border-error-200">
-            <div className="w-2 h-2 bg-error-500 rounded-full"></div>
-            <span className="text-sm font-medium text-error-700">Inactive</span>
-            <span className="text-lg font-bold text-error-900">{inactiveEmployees.length}</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+            <span className="text-sm font-medium text-gray-700">Inactive</span>
+            <span className="text-lg font-bold text-gray-900">
+              {inactiveEmployees.length}
+            </span>
           </div>
         </div>
       </div>
@@ -187,48 +221,54 @@ const EmployeeManagement = () => {
       {/* Search bar */}
       <div className="relative max-w-xl">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-400" />
+          <Search className="h-5 w-5 text-gray-600" />
         </div>
         <input
-          type="text"
+          type="search"
+          aria-label="Search employees"
           placeholder="Search by name, username, or role..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="
-            block w-full pl-10 pr-4 py-3 
-            border border-gray-200 rounded-xl 
-            bg-gray-50 
+            employee-search block w-full pl-10 pr-4 py-3
+            border border-gray-200 rounded-xl
+            bg-gray-50
             text-gray-900 placeholder-gray-500
-            focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent focus:bg-white
-            transition-all duration-200
+            focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:bg-white
+            transition-colors duration-200
             text-sm
           "
         />
         {searchTerm && (
           <button
+            aria-label="Clear employee search"
             onClick={() => setSearchTerm("")}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-gray-600"
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         )}
       </div>
 
-      {/* Warning message */}
-      <div className="bg-warning-50 border border-warning-200 rounded-lg p-4 flex items-start gap-3">
-        <AlertCircle className="text-warning-600 mt-0.5" size={20} />
-        <div className="text-sm text-warning-800">
-          <p className="font-medium mb-1">Important Notes:</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Deactivating an employee will prevent them from logging in</li>
-            <li>Inactive salesmen's reports will be hidden from views</li>
-            <li>Inactive employees won't appear in payroll lists</li>
-            <li>You can reactivate employees at any time</li>
-          </ul>
-        </div>
-      </div>
+      <details className="usage-note">
+        <summary>About employee access</summary>
+        <p>
+          Deactivating an employee prevents sign-in and hides their reports and
+          payroll. You can reactivate them at any time.
+        </p>
+      </details>
 
       {/* Active employees */}
       {filteredActiveEmployees.length > 0 && (
@@ -237,9 +277,7 @@ const EmployeeManagement = () => {
             Active Employees ({filteredActiveEmployees.length})
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredActiveEmployees.map((employee) => (
-              <EmployeeCard key={employee.id} employee={employee} />
-            ))}
+            {filteredActiveEmployees.map(renderEmployeeCard)}
           </div>
         </div>
       )}
@@ -251,22 +289,21 @@ const EmployeeManagement = () => {
             Inactive Employees ({filteredInactiveEmployees.length})
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredInactiveEmployees.map((employee) => (
-              <EmployeeCard key={employee.id} employee={employee} />
-            ))}
+            {filteredInactiveEmployees.map(renderEmployeeCard)}
           </div>
         </div>
       )}
 
       {filteredEmployees.length === 0 && searchTerm && (
-        <div className="text-center text-gray-500 py-8">
+        <div className="text-center text-gray-600 py-8">
           No employees found matching "{searchTerm}"
         </div>
       )}
-      
+
       {nonManagementEmployees.length === 0 && !searchTerm && (
-        <div className="text-center text-gray-500 py-8">
-          No employees to manage. Only regular employees (non-management) are shown here.
+        <div className="text-center text-gray-600 py-8">
+          No employees to manage. Only regular employees (non-management) are
+          shown here.
         </div>
       )}
     </div>
