@@ -11,6 +11,7 @@ import AutocompleteInput from "@components/AutoCompleteInput";
 import { useEffect, useRef } from "react";
 import { useReportEntryForm } from "@hooks/useReportEntryForm";
 import ReportEntryStatus from "@components/ReportEntryStatus";
+import { isBlankEntry, isDirty } from "@utils/reportEntryDraft";
 
 const detailFields = [
   { key: "orders", label: "Orders", placeholder: "Products and quantities" },
@@ -84,6 +85,17 @@ export default function ReportEntryForm() {
   ).length;
   const syncing =
     savingAll || entries.some((entry) => entry.status === "saving");
+  const waiting = entries.some(
+    (entry) => !entry.recovered && isDirty(entry) && !isBlankEntry(entry),
+  );
+  const helpDescription =
+    failedCount > 0
+      ? `${failedCount} ${failedCount === 1 ? "entry is" : "entries are"} not saved to the server. Use Save All to retry.`
+      : syncing
+        ? "Saving in the background. You can keep typing."
+        : waiting
+          ? "Waiting to autosave. Changes save after a short pause. Use Save All anytime."
+          : "Changes autosave after a short pause. Use Save All anytime.";
 
   useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
@@ -150,13 +162,19 @@ export default function ReportEntryForm() {
           className="report-help"
           role="status"
           aria-live="polite"
+          aria-label={helpDescription}
+          title={helpDescription}
         >
           <CloudUpload size={16} aria-hidden="true" />
-          {failedCount > 0
-            ? `${failedCount} ${failedCount === 1 ? "entry is" : "entries are"} not saved to the server. Use Save All to retry.`
-            : syncing
-              ? "Saving in the background. You can keep typing."
-              : "Changes autosave after a short pause. Use Save All anytime."}
+          <span>
+            {failedCount > 0
+              ? `${failedCount} not saved · Save All to retry`
+              : syncing
+                ? "Saving changes..."
+                : waiting
+                  ? "Waiting to autosave"
+                  : "Autosave on"}
+          </span>
         </p>
       </div>
       {recoveredCount > 0 && (

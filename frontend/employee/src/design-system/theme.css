@@ -1354,6 +1354,7 @@ input.money-input {
   min-height: 440px;
   display: flex;
   flex-direction: column;
+  background: #fafafc;
 }
 .report-shell .workspace-main {
   display: flex;
@@ -1370,10 +1371,13 @@ input.money-input {
   min-height: 72px;
   padding: 12px 20px;
   gap: 24px;
+  background: #fafafc;
+  border-bottom: 1px solid #d2d4da65;
 }
 .report-brand {
   font-size: 1.35rem;
   flex-shrink: 0;
+  font-weight: 600;
 }
 .report-brand .brand-mark {
   width: 40px;
@@ -1397,8 +1401,14 @@ input.money-input {
   min-height: 44px;
   gap: 8px;
   font-size: 0.875rem;
-  font-weight: 550;
+  font-weight: 500;
   white-space: nowrap;
+}
+.report-navigation .nav-item.is-active {
+  font-weight: 600;
+  box-shadow:
+    inset 2px 2px 5px #d2d4da80,
+    inset -2px -2px 5px #fff;
 }
 .report-page,
 .report-editor {
@@ -1413,7 +1423,7 @@ input.money-input {
 }
 .report-toolbar {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) auto minmax(250px, 1fr);
+  grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr);
   align-items: center;
   flex-shrink: 0;
   gap: 12px;
@@ -1425,7 +1435,9 @@ input.money-input {
 }
 .report-title h1 {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.035em;
   line-height: 1.3;
 }
 .report-title > span {
@@ -1437,6 +1449,29 @@ input.money-input {
   margin: 0;
   font-size: 0.8125rem;
   flex-shrink: 0;
+  justify-self: end;
+  gap: 7px;
+}
+.report-toolbar .date-control {
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid #fff;
+  border-radius: 12px;
+  background: #f3f4f8;
+  box-shadow:
+    inset 1px 1px 3px #d2d4da60,
+    inset -1px -1px 3px #fff;
+}
+.report-toolbar .date-control .icon-button {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  border-radius: 8px;
+}
+.report-toolbar .date-control time {
+  min-width: 108px;
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 .report-editor .notice {
   margin: 0;
@@ -1451,7 +1486,12 @@ input.money-input {
   width: 100%;
   overflow: auto;
   position: relative;
-  border-radius: 8px;
+  border: 1px solid #fff;
+  border-radius: 14px;
+  background: #f3f4f8;
+  box-shadow:
+    5px 5px 16px #d2d4da65,
+    -5px -5px 16px #fff;
   scrollbar-width: thin;
   scrollbar-color: #9496a1 transparent;
   overscroll-behavior: contain;
@@ -1499,8 +1539,8 @@ input.money-input {
 .report-table td {
   padding: 2px;
   border: 0;
-  border-right: 1px solid #d2d4da;
-  border-bottom: 1px solid #d2d4da;
+  border-right: 1px solid #d2d4da65;
+  border-bottom: 1px solid #d2d4da80;
   vertical-align: top;
 }
 .report-table th:last-child,
@@ -1511,12 +1551,13 @@ input.money-input {
   position: sticky;
   top: 0;
   z-index: 4;
-  background: #eceef3;
-  padding: 8px 6px;
+  background: #f3f4f8;
+  padding: 8px 10px;
+  color: #5b5d6b;
   vertical-align: middle;
   white-space: normal;
   font-size: 0.75rem;
-  font-weight: 550;
+  font-weight: 500;
   line-height: 1.35;
 }
 .report-table .entry-container {
@@ -1529,14 +1570,24 @@ input.money-input {
   position: relative;
   z-index: 3;
 }
+.report-table .entry-container > th,
+.report-table .entry-container > td {
+  transition: background-color 140ms var(--ease);
+}
+.report-table .entry-container:hover > th,
+.report-table .entry-container:hover > td,
+.report-table .entry-container:focus-within > th,
+.report-table .entry-container:focus-within > td {
+  background: #e8e9ee;
+}
 .report-table .report-row-number {
   padding-inline: 2px;
   text-align: center;
   vertical-align: middle;
-  background: #eceef3;
+  background: #f3f4f8;
   color: var(--muted);
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
 .report-table .report-new-client {
@@ -1549,6 +1600,21 @@ input.money-input {
   min-height: 32px;
   cursor: pointer;
 }
+.report-table .report-checkbox input {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1px solid #777986;
+  border-radius: 4px;
+  background: #fff;
+  transition: background-color 140ms var(--ease);
+}
+.report-table .report-checkbox input:checked {
+  background: #404252;
+  border-color: #404252;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 8 2.5 2.5L12 5'/%3E%3C/svg%3E");
+}
 .report-table
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 .report-table select,
@@ -1556,13 +1622,21 @@ input.money-input {
   width: 100%;
   min-height: 32px;
   height: 32px;
-  border: 1px solid #777986;
-  border-radius: 2px;
+  border: 1px solid transparent;
+  border-radius: 5px;
   background: #fff;
-  box-shadow: none;
-  padding: 6px;
+  box-shadow: inset 0 -1px 0 #d2d4da80;
+  padding: 6px 8px;
   font-size: 0.8125rem;
   line-height: 18px;
+}
+.report-table select {
+  appearance: none;
+  padding-right: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%235b5d6b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 6 3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 14px;
 }
 .report-table
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
@@ -1570,7 +1644,7 @@ input.money-input {
 .report-table textarea:focus {
   outline: 2px solid #404252;
   outline-offset: -2px;
-  background: #fff;
+  background-color: #fff;
   box-shadow: none;
 }
 .report-table textarea {
@@ -1595,24 +1669,32 @@ input.money-input {
   min-height: 28px;
   height: 28px;
   width: 28px;
-  border-radius: 3px;
+  border-radius: 7px;
   background: #fff;
-  border: 1px solid #9496a1;
-  box-shadow: none;
+  border: 1px solid #fff;
+  box-shadow:
+    1px 1px 3px #d2d4da70,
+    -1px -1px 3px #fff;
 }
 .report-table .report-delete:hover {
-  border-color: #5b5d6b;
   color: #101223;
+  box-shadow:
+    inset 1px 1px 3px #d2d4da70,
+    inset -1px -1px 3px #fff;
 }
 .report-table .report-status {
   justify-content: center;
-  gap: 4px;
-  font-size: 0.6875rem;
+  gap: 5px;
+  font-size: 0.75rem;
   line-height: 16px;
 }
 .report-table .report-status svg {
   width: 13px;
   height: 13px;
+}
+.report-table .report-status[data-save-state="error"] {
+  color: #282a3a;
+  font-weight: 600;
 }
 .report-table .report-status-label {
   min-width: 0;
@@ -1632,10 +1714,24 @@ input.money-input {
   justify-content: space-between;
   flex-shrink: 0;
   gap: 16px;
+  padding-top: 2px;
+}
+.report-bottom .button {
+  min-height: 44px;
+  padding: 10px 16px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 11px;
+  box-shadow:
+    3px 3px 9px #d2d4da80,
+    -3px -3px 9px #fff;
+}
+.report-bottom .button-primary {
+  box-shadow: 2px 3px 8px #282a3a20;
 }
 .report-declaration {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: var(--muted);
   text-align: center;
 }
@@ -1692,9 +1788,10 @@ input.money-input {
   }
   .report-toolbar .report-help {
     grid-column: 1 / -1;
+    justify-self: start;
   }
   .report-toolbar .date-control .icon-button {
-    width: 38px;
+    width: 32px;
   }
   .report-bottom {
     flex-wrap: wrap;
@@ -1739,9 +1836,12 @@ input.money-input {
   .report-table .report-delete {
     min-height: 44px;
     height: 44px;
-  }
-  .report-table .report-delete {
     width: 44px;
+  }
+  .report-toolbar .date-control .icon-button {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
   }
 }
 @media (max-height: 540px) and (min-width: 640px) {
@@ -1772,6 +1872,10 @@ input.money-input {
   }
   .report-editor {
     gap: 8px;
+  }
+  .report-toolbar .date-control .icon-button {
+    height: 32px;
+    min-height: 32px;
   }
 }
 @media print {
