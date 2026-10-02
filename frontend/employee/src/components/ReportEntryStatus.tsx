@@ -1,14 +1,21 @@
-import { AlertCircle, Check, Circle, Clock, CloudUpload } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  Circle,
+  CircleDot,
+  LoaderCircle,
+  RotateCcw,
+} from "lucide-react";
 import { type FormEntry, isBlankEntry, isDirty } from "@utils/reportEntryDraft";
 
-/** Static icons and a small live region: no spinner or blocking save state. */
+/** Row-index feedback keeps the editor usable while a write is pending. */
 const ReportEntryStatus = ({ entry }: { entry: FormEntry }) => {
-  let Icon = Clock;
+  let Icon = CircleDot;
   let label = "Waiting to autosave";
-  let compactLabel = "Waiting";
+  let state = "unsaved";
   if (entry.status === "saving") {
-    compactLabel = entry.saveSource === "auto" ? "Autosaving..." : "Syncing...";
-    Icon = CloudUpload;
+    state = "saving";
+    Icon = LoaderCircle;
     label =
       entry.saveSource === "auto"
         ? "Autosaving..."
@@ -16,23 +23,25 @@ const ReportEntryStatus = ({ entry }: { entry: FormEntry }) => {
           ? "Saved on this device · Syncing..."
           : "Saving...";
   } else if (entry.status === "deleting") {
+    state = "deleting";
+    Icon = LoaderCircle;
     label = "Deleting...";
-    compactLabel = label;
   } else if (entry.status === "error") {
+    state = "error";
     Icon = AlertCircle;
     label = "Not saved to server — use Save All to retry.";
-    compactLabel = "Not saved";
   } else if (entry.recovered) {
+    state = "recovered";
+    Icon = RotateCcw;
     label = "Recovered draft — review and use Save All.";
-    compactLabel = "Review draft";
   } else if (!isDirty(entry)) {
+    state = "saved";
     Icon = Check;
     label = "Saved";
-    compactLabel = label;
   } else if (!entry.id && isBlankEntry(entry)) {
+    state = "new";
     Icon = Circle;
     label = "New entry";
-    compactLabel = "New";
   }
   return (
     <span
@@ -42,11 +51,11 @@ const ReportEntryStatus = ({ entry }: { entry: FormEntry }) => {
       aria-atomic="true"
       aria-label={label}
       className="report-status"
-      data-save-state={entry.status}
+      data-save-state={state}
       title={label}
     >
-      <Icon size={16} aria-hidden="true" className="shrink-0" />
-      <span className="report-status-label">{compactLabel}</span>
+      <Icon size={14} aria-hidden="true" className="report-status-icon" />
+      <span className="sr-only">{label}</span>
     </span>
   );
 };

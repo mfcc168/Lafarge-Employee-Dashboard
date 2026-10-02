@@ -187,7 +187,7 @@ export default function ReportEntryForm() {
       {draftStorageError && (
         <p role="alert" className="notice">
           Draft recovery is unavailable in this browser. Keep this page open
-          until your entries show Saved.
+          until your rows show a saved checkmark.
         </p>
       )}
       <div
@@ -200,7 +200,8 @@ export default function ReportEntryForm() {
         <table className="report-table">
           <caption className="sr-only">
             Report entries for {sortedDates[currentPage]}. Each entry is one
-            row.
+            row. Icons beside the row numbers show save status; hover an icon
+            for details.
           </caption>
           <colgroup>
             <col className="report-col-number" />
@@ -212,13 +213,12 @@ export default function ReportEntryForm() {
             {detailFields.map((field) => (
               <col key={field.key} className="report-col-detail" />
             ))}
-            <col className="report-col-status" />
             <col className="report-col-delete" />
           </colgroup>
           <thead>
             <tr>
               <th scope="col" className="report-row-number">
-                <span className="sr-only">Entry</span>#
+                <span className="sr-only">Entry and save status</span>#
               </th>
               <th scope="col">Time range</th>
               <th scope="col">Client name</th>
@@ -232,7 +232,6 @@ export default function ReportEntryForm() {
                   {"heading" in field ? field.heading : field.label}
                 </th>
               ))}
-              <th scope="col">Status</th>
               <th scope="col" className="report-row-delete">
                 <span className="sr-only">Delete entry</span>
               </th>
@@ -241,7 +240,7 @@ export default function ReportEntryForm() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={13}>
+                <td colSpan={12}>
                   <p role="status" className="report-empty">
                     Loading reports...
                   </p>
@@ -250,7 +249,7 @@ export default function ReportEntryForm() {
             )}
             {!isLoading && entries.length === 0 && (
               <tr>
-                <td colSpan={13}>
+                <td colSpan={12}>
                   <p className="report-empty">
                     No entries for this date. Add an entry to start.
                   </p>
@@ -280,7 +279,10 @@ export default function ReportEntryForm() {
                 }
               >
                 <th scope="row" className="report-row-number">
-                  {index + 1}
+                  <span className="report-row-index">
+                    <span>{index + 1}</span>
+                    <ReportEntryStatus entry={entry} />
+                  </span>
                 </th>
                 <td>
                   <label className="sr-only" htmlFor={`time-${entry.clientId}`}>
@@ -418,9 +420,6 @@ export default function ReportEntryForm() {
                     />
                   </td>
                 ))}
-                <td className="report-row-status">
-                  <ReportEntryStatus entry={entry} />
-                </td>
                 <td className="report-row-delete">
                   <button
                     type="button"

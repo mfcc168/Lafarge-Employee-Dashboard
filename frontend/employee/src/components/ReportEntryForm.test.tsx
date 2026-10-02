@@ -643,7 +643,6 @@ describe("report save workflow", () => {
     expect(
       within(rows()[0]).getByRole("status").getAttribute("aria-label"),
     ).toBe("Saved on this device · Syncing...");
-    expect(rows()[0].querySelector(".animate-spin, .animate-pulse")).toBeNull();
     expect(saveAll().textContent).toBe("Save All");
     expect(toast.showSuccess).not.toHaveBeenCalled();
     await act(async () => vi.advanceTimersByTimeAsync(5000));
