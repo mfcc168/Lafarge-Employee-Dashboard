@@ -16,10 +16,10 @@ All screenshots use synthetic review data.
 
 ## What changed
 
-- One sidebar and mobile navigation drawer across all routes, including Reports. Clear active states, 44px navigation controls, keyboard focus containment, Escape dismissal, restored focus, and a skip link.
+- Sidebar and mobile navigation drawer for the workspace; Reports restores full-width top navigation. Navigation shares the same role permissions, preload behavior, pressed active states and skip link. The drawer retains focus containment, Escape dismissal and focus restoration.
 - New overview, sign-in, settings and report-entry layouts. Clients, sales, vacation, employees, payroll and access/error states share the same palette, typography, spacing and controls.
-- Reports use a responsive field grid instead of a horizontally scrolling form table. Stable row identity, uninterrupted typing, background autosave, recovery and always-available Save/Save All remain intact.
-- Suggestions support arrows, Enter and Escape, without interfering with Chinese input composition. Ordinary arrows keep their normal editing behavior; Alt+Arrow navigates report rows.
+- Reports uses one compact table row per entry, with all fields and Save/Delete controls in that row and a single sticky column header. Date navigation and Add/Save All stay outside the scrolling table. Narrow screens scroll horizontally without stacking fields into cards. Desktop shows all columns at 1366px and above; the 1440 × 900 fixture shows eight complete entries at once. Long text expands only while editing, then returns to its compact preview. Stable row identity, background autosave, recovery and always-available Save/Save All remain intact.
+- Suggestions support arrows, Enter and Escape, without interfering with Chinese input composition. Report suggestions float above the scrolling table and open upward when needed, so the last row is usable. Ordinary arrows keep their normal editing behavior; Alt+Arrow navigates report rows.
 - Compact loading indicators, static save feedback, light notifications and short press/focus transitions. Reduced-motion preferences are honored. No animation library or runtime dependency was added.
 - Vacation starts with one clearly labeled blank date, followed by signature and submission. Payroll and employee edits have associated labels. Dense dashboard tables retain mobile card views and keyboard-scrollable desktop regions.
 - Matching Django administration theme through a small template override and static stylesheet. Native admin forms and permission checks remain in place.
@@ -33,6 +33,7 @@ All screenshots use synthetic review data.
 - A slow report write retained the enabled Save button, showed local-save/sync status immediately, then confirmed Saved without duplicating the write.
 - Automated axe WCAG A/AA scans found no violations in the 15 tested route/interaction states. This is an automated check, not a claim of complete accessibility certification.
 - Native mobile dialog focus containment/restoration, password visibility and reduced-motion behavior passed browser checks.
+- The compact report layout was checked at 1440 × 900, 1366 × 768, 1920 × 1080, 844 × 900, 390 × 844, 320 × 800 and 844 × 390. All inputs stay in one table row, one heading row remains sticky, and horizontal overflow is contained in the table. Seven layout and three report interaction/empty/error states passed axe scans with no violations. Long-text expansion/collapse, bottom-row suggestions, keyboard scrolling, navigation between report/sidebar layouts and slow/failed save/retry behavior passed. The compact landscape navbar keeps the 844 × 390 view within the screen height.
 - Django admin dashboard, user list, change form and login rendered from an isolated test database and were checked at desktop/phone widths; no page overflow or JavaScript errors.
 
 ## Release

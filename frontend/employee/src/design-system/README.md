@@ -23,15 +23,15 @@ White highlights and translucent versions of the palette create soft depth. Use 
 ## Components
 
 - `PageHeader`: page title, description, optional actions.
-- `Layout`, `Sidebar`, `Navbar`: one navigation structure across every route, including Reports. Mobile navigation uses a native modal dialog with Escape, focus containment, backdrop dismissal and focus restoration.
-- `.button`, `.button-primary`, `.button-quiet`, `.icon-button`: consistent 44px actions.
+- `Layout`, `Sidebar`, `Navbar`, `WorkspaceNavigation`: shared role-based links in a sidebar on workspace pages and a full-width top navbar on Reports. The mobile workspace drawer uses a native modal dialog with Escape, focus containment, backdrop dismissal and focus restoration.
+- `.button`, `.button-primary`, `.button-quiet`, `.icon-button`: consistent 44px actions. Dense report rows use 32px desktop Save/Delete controls and restore 44px targets on touch screens.
 - `TableRegion`: real table semantics with a labeled, keyboard-scrollable region. The dashboard also retains its mobile card views.
 - `PasswordField`: visible label, browser password-manager hints, show/hide control.
 - `AutoCompleteInput`: focused-only suggestions, listbox/combobox relationships, arrows, Enter, Escape and composition-safe keyboard handling.
 - `LoadingSpinner`: a compact loading track instead of a full-viewport multi-ring spinner. Editors stay mounted during report saves.
 - `Toast`: a light notification; dismissal pauses while hovered or focused. No 50ms React progress timer.
 
-Report fields reflow from four metadata columns to two or one on phones. Save and Save All remain available while saves run. Draft recovery, UUID deduplication, queued revisions and confirmed cache updates are inherited from the report-save branch.
+Reports keeps every field in one compact table row at every width. The table uses one sticky header, 67px desktop rows, keyboard-scrollable overflow on narrow screens, and fixed date/Add/Save All controls outside the table. Report textareas show two compact lines and expand only during editing; other rows stay dense. Report suggestion lists render in a floating portal to avoid scroll-container clipping. Save and Save All remain available while saves run. Draft recovery, UUID deduplication, queued revisions and confirmed cache updates are inherited from the report-save branch.
 
 ## Motion
 

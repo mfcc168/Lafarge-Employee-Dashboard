@@ -1,23 +1,8 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@context/AuthContext";
-import {
-  LayoutDashboard,
-  Wallet,
-  FilePenLine,
-  CalendarDays,
-  ChartNoAxesCombined,
-  ContactRound,
-  Users,
-  X,
-  ArrowUpRight,
-} from "lucide-react";
+import { X, ArrowUpRight } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { useHoverPreload } from "@utils/preloader";
-import {
-  canViewPayroll,
-  canManageEmployees,
-  canAccessSales,
-} from "@utils/permissions";
+import WorkspaceNavigation from "@components/WorkspaceNavigation";
 
 export default function Sidebar({
   mobileOpen,
@@ -26,8 +11,7 @@ export default function Sidebar({
   mobileOpen: boolean;
   onClose: () => void;
 }) {
-  const { user, isAuthenticated } = useAuth();
-  const { handleMouseEnter } = useHoverPreload();
+  const { user } = useAuth();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -52,27 +36,6 @@ export default function Sidebar({
       if (dialog.open) dialog.close();
     };
   }, [mobileOpen]);
-  const items = isAuthenticated
-    ? [
-        { label: "Overview", icon: LayoutDashboard, path: "/" },
-        ...(user?.role === "SALESMAN"
-          ? [{ label: "Reports", icon: FilePenLine, path: "/report" }]
-          : []),
-        ...(canAccessSales(user?.role)
-          ? [
-              { label: "Clients", icon: ContactRound, path: "/client" },
-              { label: "Sales", icon: ChartNoAxesCombined, path: "/sales" },
-            ]
-          : []),
-        { label: "Vacation", icon: CalendarDays, path: "/vacation" },
-        ...(canViewPayroll(user?.role)
-          ? [{ label: "Payroll", icon: Wallet, path: "/payroll" }]
-          : []),
-        ...(canManageEmployees(user?.role)
-          ? [{ label: "Employees", icon: Users, path: "/employees" }]
-          : []),
-      ]
-    : [];
   const content = (
     <>
       <NavLink
@@ -89,25 +52,7 @@ export default function Sidebar({
         </span>
       </NavLink>
       <p className="nav-caption">YOUR WORKSPACE</p>
-      <nav aria-label="Main navigation" className="nav-list">
-        {items.map(({ label, icon: Icon, path }) => (
-          <NavLink
-            key={path}
-            to={path}
-            end={path === "/"}
-            onClick={onClose}
-            onMouseEnter={() => handleMouseEnter(path)}
-            onFocus={() => handleMouseEnter(path)}
-            className={({ isActive }) =>
-              `nav-item ${isActive ? "is-active" : ""}`
-            }
-          >
-            <Icon size={20} aria-hidden="true" />
-            <span>{label}</span>
-            <span className="nav-indicator" aria-hidden="true" />
-          </NavLink>
-        ))}
-      </nav>
+      <WorkspaceNavigation onNavigate={onClose} />
       <div className="sidebar-note">
         <span className="eyebrow">A clearer workday</span>
         <p>

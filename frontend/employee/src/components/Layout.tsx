@@ -9,6 +9,7 @@ export default function Layout() {
   const mainRef = useRef<HTMLElement>(null);
   const previousPath = useRef(pathname);
   const isLogin = pathname === "/login";
+  const isReport = pathname === "/report" || pathname === "/report/";
   useEffect(() => {
     if (previousPath.current !== pathname) {
       setMobileOpen(false);
@@ -24,15 +25,18 @@ export default function Layout() {
       </main>
     );
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${isReport ? "report-shell" : ""}`}>
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
-      <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      {!isReport && (
+        <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      )}
       <div className="workspace">
         <Navbar
           onOpenNavigation={() => setMobileOpen(true)}
           navigationOpen={mobileOpen}
+          reportNavigation={isReport}
         />
         <main
           id="main-content"
@@ -42,10 +46,12 @@ export default function Layout() {
         >
           <Outlet />
         </main>
-        <footer className="workspace-footer">
-          <span>Lafarge · Employee workspace</span>
-          <span>Made for your everyday.</span>
-        </footer>
+        {!isReport && (
+          <footer className="workspace-footer">
+            <span>Lafarge · Employee workspace</span>
+            <span>Made for your everyday.</span>
+          </footer>
+        )}
       </div>
     </div>
   );

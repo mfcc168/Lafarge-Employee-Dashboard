@@ -1,9 +1,19 @@
-import { useState, useId, useMemo, useEffect, memo } from "react";
+import {
+  useState,
+  useId,
+  useMemo,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  memo,
+} from "react";
+import { createPortal } from "react-dom";
 import type {
   ChangeEvent,
   InputHTMLAttributes,
   TextareaHTMLAttributes,
   KeyboardEvent,
+  CSSProperties,
 } from "react";
 interface BaseProps {
   value: string;
@@ -11,6 +21,7 @@ interface BaseProps {
   className?: string;
   rows?: number;
   openOnFocus?: boolean;
+  portalSuggestions?: boolean;
   onChange: (
     event: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLTextAreaElement>,
   ) => void;
@@ -39,10 +50,13 @@ function AutocompleteInput(props: Props) {
     className,
     rows = 2,
     openOnFocus = false,
+    portalSuggestions = false,
   } = props;
   const id = useId();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
+  const fieldRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<CSSProperties>();
   const options = useMemo(
     () =>
       value.trim() || openOnFocus
@@ -57,6 +71,53 @@ function AutocompleteInput(props: Props) {
     [value, suggestions, openOnFocus],
   );
   const expanded = open && options.length > 0;
+  useLayoutEffect(() => {
+    if (!portalSuggestions || !expanded) return;
+    const positionMenu = () => {
+      const field = fieldRef.current;
+      if (!field) return;
+      const rect = field.getBoundingClientRect();
+      const region = field
+        .closest(".report-table-region")
+        ?.getBoundingClientRect();
+      // Close when the input itself scrolls out of the visible table area.
+      if (
+        region &&
+        (rect.bottom <= region.top + 44 ||
+          rect.top >= region.bottom ||
+          rect.right <= region.left ||
+          rect.left >= region.right)
+      ) {
+        setOpen(false);
+        return;
+      }
+      const below = window.innerHeight - rect.bottom;
+      const above = rect.top;
+      const opensAbove =
+        below < Math.min(220, options.length * 44 + 14) && above > below;
+      const width = Math.min(Math.max(180, rect.width), window.innerWidth - 16);
+      setMenuPosition({
+        position: "fixed",
+        width,
+        left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
+        right: "auto",
+        top: opensAbove ? "auto" : rect.bottom + 6,
+        bottom: opensAbove ? window.innerHeight - rect.top + 6 : "auto",
+        maxHeight: Math.max(
+          44,
+          Math.min(220, (opensAbove ? above : below) - 14),
+        ),
+        zIndex: 80,
+      });
+    };
+    positionMenu();
+    window.addEventListener("resize", positionMenu);
+    window.addEventListener("scroll", positionMenu, true);
+    return () => {
+      window.removeEventListener("resize", positionMenu);
+      window.removeEventListener("scroll", positionMenu, true);
+    };
+  }, [portalSuggestions, expanded, options.length]);
   useEffect(() => {
     if (expanded && active >= 0)
       document
@@ -122,31 +183,39 @@ function AutocompleteInput(props: Props) {
     },
     onKeyDown: keyDown,
   };
+  const menu = expanded && (
+    <ul
+      id={id}
+      role="listbox"
+      className={`suggestions ${portalSuggestions ? "report-suggestions" : ""}`}
+      style={portalSuggestions ? menuPosition : undefined}
+    >
+      {options.map((suggestion, index) => (
+        <li
+          id={`${id}-${index}`}
+          key={suggestion}
+          role="option"
+          aria-selected={index === active}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            choose(suggestion);
+          }}
+        >
+          {suggestion}
+        </li>
+      ))}
+    </ul>
+  );
   return (
-    <div className="autocomplete">
+    <div className="autocomplete" ref={fieldRef}>
       {props.isTextarea ? (
         <textarea {...props.textareaProps} {...shared} rows={rows} />
       ) : (
         <input {...props.inputProps} {...shared} />
       )}
-      {expanded && (
-        <ul id={id} role="listbox" className="suggestions">
-          {options.map((suggestion, index) => (
-            <li
-              id={`${id}-${index}`}
-              key={suggestion}
-              role="option"
-              aria-selected={index === active}
-              onPointerDown={(event) => {
-                event.preventDefault();
-                choose(suggestion);
-              }}
-            >
-              {suggestion}
-            </li>
-          ))}
-        </ul>
-      )}
+      {portalSuggestions
+        ? menuPosition && createPortal(menu, document.body)
+        : menu}
     </div>
   );
 }

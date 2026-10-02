@@ -9,23 +9,23 @@ import {
   CloudUpload,
 } from "lucide-react";
 import AutocompleteInput from "@components/AutoCompleteInput";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { useReportEntryForm } from "@hooks/useReportEntryForm";
 import ReportEntryStatus from "@components/ReportEntryStatus";
 
-const mainFields = [
+const detailFields = [
   { key: "orders", label: "Orders", placeholder: "Products and quantities" },
   {
     key: "tel_orders",
     label: "Telephone orders",
+    heading: "Tel. orders",
     placeholder: "Orders received by phone",
   },
   { key: "samples", label: "Samples", placeholder: "Samples provided" },
-] as const;
-const followupFields = [
   {
     key: "new_product_intro",
     label: "New product introduction",
+    heading: "New product intro",
     placeholder: "Products discussed",
   },
   {
@@ -34,6 +34,28 @@ const followupFields = [
     placeholder: "Updates and next steps",
   },
 ] as const;
+
+// Only the active text field expands; other rows stay compact while reviewing.
+function expandTextarea(textarea: HTMLTextAreaElement) {
+  textarea.style.height = "auto";
+  textarea.style.height = `${Math.min(144, textarea.scrollHeight + 2)}px`;
+  revealEntry(textarea);
+}
+
+// Keep the active row's controls and save feedback below the sticky headings.
+function revealEntry(control: HTMLElement) {
+  const row = control.closest<HTMLElement>(".entry-container");
+  const region = row?.closest<HTMLElement>(".report-table-region");
+  if (!row || !region) return;
+  const bounds = row.getBoundingClientRect();
+  const viewport = region.getBoundingClientRect();
+  const headerHeight =
+    region.querySelector("thead")?.getBoundingClientRect().height || 0;
+  const top = viewport.top + headerHeight + 4;
+  const bottom = viewport.bottom - 4;
+  if (bounds.top < top) region.scrollTop -= top - bounds.top;
+  else if (bounds.bottom > bottom) region.scrollTop += bounds.bottom - bottom;
+}
 
 export default function ReportEntryForm() {
   const {
@@ -59,13 +81,7 @@ export default function ReportEntryForm() {
   } = useReportEntryForm();
   const { user } = useAuth();
   const entriesRef = useRef<HTMLDivElement>(null);
-  const adjustTextareaHeight = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      event.target.style.height = "auto";
-      event.target.style.height = `${event.target.scrollHeight}px`;
-    },
-    [],
-  );
+
   useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
       // Plain arrows belong to caret movement, select controls, and suggestions.
@@ -80,8 +96,11 @@ export default function ReportEntryForm() {
       );
       if (index < 0) return;
       const next = index + (event.key === "ArrowUp" ? -1 : 1);
-      const row = entriesRef.current?.querySelectorAll(".entry-container")[next];
-      const target = row?.querySelector<HTMLElement>("input:not([type=checkbox]), textarea");
+      const row =
+        entriesRef.current?.querySelectorAll(".entry-container")[next];
+      const target = row?.querySelector<HTMLElement>(
+        "input:not([type=checkbox]), textarea",
+      );
       if (target) {
         event.preventDefault();
         target.focus();
@@ -90,16 +109,16 @@ export default function ReportEntryForm() {
     window.addEventListener("keydown", keyDown);
     return () => window.removeEventListener("keydown", keyDown);
   }, [entries, focusedEntryIdRef]);
-  useEffect(() => {
-    entriesRef.current?.querySelectorAll("textarea").forEach((textarea) => {
-      textarea.style.height = "auto";
-      textarea.style.height = `${textarea.scrollHeight}px`;
-    });
-  }, [entries]);
 
   return (
-    <div className="page-stack" ref={entriesRef}>
-      <div className="report-toolbar surface">
+    <div className="report-editor" ref={entriesRef}>
+      <div className="report-toolbar">
+        <div className="report-title">
+          <h1>Reports</h1>
+          <span>
+            {entries.length} {entries.length === 1 ? "row" : "rows"}
+          </span>
+        </div>
         <div className="date-control" aria-label="Report date">
           <button
             className="icon-button"
@@ -132,11 +151,16 @@ export default function ReportEntryForm() {
           Save All
         </button>
       </div>
-      <p className="report-help" role="status" aria-live="polite">
-        <CloudUpload size={18} aria-hidden="true" />
+      <p
+        id="report-help"
+        className="report-help"
+        role="status"
+        aria-live="polite"
+      >
+        <CloudUpload size={16} aria-hidden="true" />
         {savingAll
-          ? "Saving changes in the background. You can keep typing."
-          : "Changes autosave after a short pause. Save anytime for extra peace of mind."}
+          ? "Saving in the background. You can keep typing."
+          : "Changes autosave after a short pause. You can also Save anytime."}
       </p>
       {recoveredCount > 0 && (
         <p className="notice">
@@ -151,207 +175,271 @@ export default function ReportEntryForm() {
           until your entries show Saved.
         </p>
       )}
-      {isLoading && (
-        <p role="status" className="report-help">
-          Loading reports...
-        </p>
-      )}
-      {!isLoading && entries.length === 0 && (
-        <div className="surface empty-state">
-          <h2>A fresh page for your day</h2>
-          <p>Add an entry to record your first client visit.</p>
-        </div>
-      )}
-      <div className="report-entries">
-        {entries.map((entry, index) => (
-          <div
-            key={entry.clientId}
-            className="entry-container"
-            onFocusCapture={() => handleFocus(entry.clientId)}
-            onBlurCapture={(event) => {
-              if (
-                !(event.relatedTarget instanceof Node) ||
-                !event.currentTarget.contains(event.relatedTarget)
-              )
-                handleBlur(entry.clientId);
-            }}
-            onCompositionStartCapture={() =>
-              handleComposition(entry.clientId, true)
-            }
-            onCompositionEndCapture={() =>
-              handleComposition(entry.clientId, false)
-            }
-          >
-            <div className="entry-heading">
-              <div className="entry-title">
-                <span className="entry-number">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <h2>Client visit</h2>
-              </div>
-              <label className="check-field">
-                <input
-                  type="checkbox"
-                  checked={entry.new_client}
-                  onChange={(event) =>
-                    handleChange(
-                      entry.clientId,
-                      "new_client",
-                      event.target.checked,
-                    )
-                  }
-                />
+      <div
+        className="report-table-region surface"
+        role="region"
+        aria-label="Report entries — scroll to view all fields"
+        aria-describedby="report-help"
+        tabIndex={0}
+      >
+        <table className="report-table">
+          <caption className="sr-only">
+            Report entries for {sortedDates[currentPage]}. Each entry is one
+            row.
+          </caption>
+          <colgroup>
+            <col className="report-col-number" />
+            <col className="report-col-time" />
+            <col className="report-col-client" />
+            <col className="report-col-district" />
+            <col className="report-col-type" />
+            <col className="report-col-new" />
+            {detailFields.map((field) => (
+              <col key={field.key} className="report-col-detail" />
+            ))}
+            <col className="report-col-actions" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col" className="report-row-number">
+                <span className="sr-only">Entry</span>#
+              </th>
+              <th scope="col">Time range</th>
+              <th scope="col">Client name</th>
+              <th scope="col">District</th>
+              <th scope="col">Client type</th>
+              <th scope="col" className="report-new-client">
                 New client
-              </label>
-            </div>
-            <div className="entry-meta">
-              <div className="field">
-                <label htmlFor={`time-${entry.clientId}`}>Time range</label>
-                <input
-                  id={`time-${entry.clientId}`}
-                  type="text"
-                  value={entry.time_range}
-                  onChange={(event) =>
-                    handleChange(
-                      entry.clientId,
-                      "time_range",
-                      event.target.value,
-                    )
-                  }
-                  placeholder="09:00–10:00"
-                />
-              </div>
-              <div className="field">
-                <label htmlFor={`client-${entry.clientId}`}>Client name</label>
-                <AutocompleteInput
-                  value={entry.doctor_name}
-                  suggestions={doctorNameSuggestions}
-                  onChange={(event) =>
-                    handleChange(
-                      entry.clientId,
-                      "doctor_name",
-                      event.target.value,
-                    )
-                  }
-                  inputProps={{
-                    id: `client-${entry.clientId}`,
-                    maxLength: 20,
-                    placeholder: "Name of client",
-                  }}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor={`district-${entry.clientId}`}>District</label>
-                <AutocompleteInput
-                  value={entry.district}
-                  suggestions={districtSuggestions}
-                  onChange={(event) =>
-                    handleChange(entry.clientId, "district", event.target.value)
-                  }
-                  inputProps={{
-                    id: `district-${entry.clientId}`,
-                    maxLength: 20,
-                    placeholder: "Select or type",
-                  }}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor={`type-${entry.clientId}`}>Client type</label>
-                <select
-                  id={`type-${entry.clientId}`}
-                  value={entry.client_type}
-                  onChange={(event) =>
-                    handleChange(
-                      entry.clientId,
-                      "client_type",
-                      event.target.value as "doctor" | "nurse",
-                    )
-                  }
-                >
-                  <option value="doctor">Doctor</option>
-                  <option value="nurse">Nurse</option>
-                </select>
-              </div>
-            </div>
-            <div className="entry-details">
-              {mainFields.map((field) => (
-                <div className="field" key={field.key}>
-                  <label htmlFor={`${field.key}-${entry.clientId}`}>
-                    {field.label}
+              </th>
+              {detailFields.map((field) => (
+                <th key={field.key} scope="col">
+                  {"heading" in field ? field.heading : field.label}
+                </th>
+              ))}
+              <th scope="col" className="report-row-controls">
+                Save / status
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && (
+              <tr>
+                <td colSpan={12}>
+                  <p role="status" className="report-empty">
+                    Loading reports...
+                  </p>
+                </td>
+              </tr>
+            )}
+            {!isLoading && entries.length === 0 && (
+              <tr>
+                <td colSpan={12}>
+                  <p className="report-empty">
+                    No entries for this date. Add an entry to start.
+                  </p>
+                </td>
+              </tr>
+            )}
+            {entries.map((entry, index) => (
+              <tr
+                key={entry.clientId}
+                className="entry-container"
+                onFocusCapture={(event) => {
+                  handleFocus(entry.clientId);
+                  revealEntry(event.currentTarget);
+                }}
+                onBlurCapture={(event) => {
+                  if (
+                    !(event.relatedTarget instanceof Node) ||
+                    !event.currentTarget.contains(event.relatedTarget)
+                  )
+                    handleBlur(entry.clientId);
+                }}
+                onCompositionStartCapture={() =>
+                  handleComposition(entry.clientId, true)
+                }
+                onCompositionEndCapture={() =>
+                  handleComposition(entry.clientId, false)
+                }
+              >
+                <th scope="row" className="report-row-number">
+                  {index + 1}
+                </th>
+                <td>
+                  <label className="sr-only" htmlFor={`time-${entry.clientId}`}>
+                    Time range
                   </label>
-                  <textarea
-                    id={`${field.key}-${entry.clientId}`}
-                    value={entry[field.key]}
-                    rows={2}
-                    placeholder={field.placeholder}
-                    onChange={(event) => {
+                  <input
+                    id={`time-${entry.clientId}`}
+                    type="text"
+                    value={entry.time_range}
+                    title={entry.time_range}
+                    onChange={(event) =>
                       handleChange(
                         entry.clientId,
-                        field.key,
+                        "time_range",
                         event.target.value,
-                      );
-                      adjustTextareaHeight(event);
-                    }}
+                      )
+                    }
+                    placeholder="0900-1000"
                   />
-                </div>
-              ))}
-            </div>
-            <div className="entry-followup">
-              {followupFields.map((field) => (
-                <div className="field" key={field.key}>
-                  <label htmlFor={`${field.key}-${entry.clientId}`}>
-                    {field.label}
+                </td>
+                <td>
+                  <label
+                    className="sr-only"
+                    htmlFor={`client-${entry.clientId}`}
+                  >
+                    Client name
                   </label>
-                  <textarea
-                    id={`${field.key}-${entry.clientId}`}
-                    value={entry[field.key] || ""}
-                    rows={2}
-                    placeholder={field.placeholder}
-                    onChange={(event) => {
+                  <AutocompleteInput
+                    portalSuggestions
+                    value={entry.doctor_name}
+                    suggestions={doctorNameSuggestions}
+                    onChange={(event) =>
                       handleChange(
                         entry.clientId,
-                        field.key,
+                        "doctor_name",
                         event.target.value,
-                      );
-                      adjustTextareaHeight(event);
+                      )
+                    }
+                    inputProps={{
+                      id: `client-${entry.clientId}`,
+                      maxLength: 20,
+                      placeholder: "Client name",
+                      title: entry.doctor_name,
                     }}
                   />
-                </div>
-              ))}
-            </div>
-            <div className="entry-footer">
-              <ReportEntryStatus entry={entry} />
-              <div className="entry-actions">
-                <button
-                  type="button"
-                  className="button button-quiet"
-                  onClick={() => handleDelete(entry.clientId)}
-                  disabled={
-                    entry.status === "saving" || entry.status === "deleting"
-                  }
-                >
-                  <Trash2 size={16} />
-                  Delete
-                </button>
-                <button
-                  type="button"
-                  className="button"
-                  onClick={() => handleSubmitEntry(entry.clientId)}
-                  aria-describedby={`report-status-${entry.clientId}`}
-                >
-                  <Save size={16} />
-                  Save
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+                </td>
+                <td>
+                  <label
+                    className="sr-only"
+                    htmlFor={`district-${entry.clientId}`}
+                  >
+                    District
+                  </label>
+                  <AutocompleteInput
+                    portalSuggestions
+                    value={entry.district}
+                    suggestions={districtSuggestions}
+                    onChange={(event) =>
+                      handleChange(
+                        entry.clientId,
+                        "district",
+                        event.target.value,
+                      )
+                    }
+                    inputProps={{
+                      id: `district-${entry.clientId}`,
+                      maxLength: 20,
+                      placeholder: "District",
+                      title: entry.district,
+                    }}
+                  />
+                </td>
+                <td>
+                  <label className="sr-only" htmlFor={`type-${entry.clientId}`}>
+                    Client type
+                  </label>
+                  <select
+                    id={`type-${entry.clientId}`}
+                    value={entry.client_type}
+                    onChange={(event) =>
+                      handleChange(
+                        entry.clientId,
+                        "client_type",
+                        event.target.value as "doctor" | "nurse",
+                      )
+                    }
+                  >
+                    <option value="doctor">Doctor</option>
+                    <option value="nurse">Nurse</option>
+                  </select>
+                </td>
+                <td className="report-new-client">
+                  <label className="report-checkbox">
+                    <span className="sr-only">New client</span>
+                    <input
+                      type="checkbox"
+                      checked={entry.new_client}
+                      onChange={(event) =>
+                        handleChange(
+                          entry.clientId,
+                          "new_client",
+                          event.target.checked,
+                        )
+                      }
+                    />
+                  </label>
+                </td>
+                {detailFields.map((field) => (
+                  <td key={field.key}>
+                    <label
+                      className="sr-only"
+                      htmlFor={`${field.key}-${entry.clientId}`}
+                    >
+                      {field.label}
+                    </label>
+                    <textarea
+                      id={`${field.key}-${entry.clientId}`}
+                      value={entry[field.key] || ""}
+                      rows={2}
+                      title={entry[field.key] || field.placeholder}
+                      placeholder={field.placeholder}
+                      onFocus={(event) => expandTextarea(event.currentTarget)}
+                      onBlur={(event) => {
+                        event.currentTarget.style.height = "";
+                        event.currentTarget.scrollTop = 0;
+                      }}
+                      onChange={(event) => {
+                        handleChange(
+                          entry.clientId,
+                          field.key,
+                          event.target.value,
+                        );
+                        expandTextarea(event.currentTarget);
+                      }}
+                    />
+                  </td>
+                ))}
+                <td className="report-row-controls">
+                  <div className="entry-actions">
+                    <button
+                      type="button"
+                      className="button report-save"
+                      onClick={() => handleSubmitEntry(entry.clientId)}
+                      aria-describedby={`report-status-${entry.clientId}`}
+                    >
+                      <Save size={14} aria-hidden="true" />
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-button report-delete"
+                      onClick={() => handleDelete(entry.clientId)}
+                      disabled={
+                        entry.status === "saving" || entry.status === "deleting"
+                      }
+                      aria-label="Delete"
+                      title={`Delete entry ${index + 1}`}
+                    >
+                      <Trash2 size={15} aria-hidden="true" />
+                    </button>
+                  </div>
+                  <ReportEntryStatus entry={entry} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
       <div className="report-bottom">
         <button type="button" className="button" onClick={addEmptyEntry}>
           <Plus size={18} />
           Add New Entry
         </button>
+        <p className="report-declaration">
+          I, {user?.username}, declare the data provided are true and correct.
+        </p>
         <button
           type="button"
           className="button button-primary"
@@ -361,9 +449,6 @@ export default function ReportEntryForm() {
           Save All
         </button>
       </div>
-      <p className="report-help">
-        I, {user?.username}, declare the data provided are true and correct.
-      </p>
     </div>
   );
 }

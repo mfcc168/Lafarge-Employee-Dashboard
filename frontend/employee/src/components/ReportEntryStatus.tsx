@@ -34,9 +34,10 @@ const ReportEntryStatus = ({ entry }: { entry: FormEntry }) => {
       aria-live="polite"
       aria-atomic="true"
       className="report-status"
+      title={label}
     >
       <Icon size={16} aria-hidden="true" className="shrink-0" />
-      {label}
+      <span className="report-status-label">{label}</span>
     </span>
   );
 };
