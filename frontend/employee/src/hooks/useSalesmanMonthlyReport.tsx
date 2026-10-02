@@ -71,9 +71,9 @@ export const useSalesmanMonthlyReport = ({ salesmanName }: SalesmanMonthlyReport
 
   useEffect(() => {
     if (expandedWeek !== null && weekRef.current) {
-      weekRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      weekRef.current.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
     } else if (sharedExpanded && sharedRef.current) {
-      sharedRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      sharedRef.current.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
     }
   }, [expandedWeek, currentPage, sharedExpanded]);
 

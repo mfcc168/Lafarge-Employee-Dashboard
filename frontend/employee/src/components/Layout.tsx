@@ -1,51 +1,58 @@
 import { Outlet, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import Sidebar from "@components/Sidebar";
 import Navbar from "@components/Navbar";
 
-/**
- * Main layout component that provides the structure for the application.
- * Conditionally renders the Sidebar based on the current route,
- * always includes the Navbar, and provides a container for child routes.
- */
-const Layout = () => {
-  // Get current route location /?
-  const location = useLocation();
-  
-  // Check if current route is the report page
-  const isReportRoute = location.pathname === "/report";
-  // Check if current route is the login page
-  const isLoginRoute = location.pathname === "/login";
-
+export default function Layout() {
+  const { pathname } = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
+  const previousPath = useRef(pathname);
+  const isLogin = pathname === "/login";
+  const isReport = pathname === "/report" || pathname === "/report/";
+  useEffect(() => {
+    if (previousPath.current !== pathname) {
+      setMobileOpen(false);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      mainRef.current?.focus({ preventScroll: true });
+      previousPath.current = pathname;
+    }
+  }, [pathname]);
+  if (isLogin)
+    return (
+      <main id="main-content">
+        <Outlet />
+      </main>
+    );
   return (
-    <>
-      {/* Conditionally render Sidebar - hidden on report and login routes */}
-      {!isReportRoute && !isLoginRoute && <Sidebar />}
-      
-      {/* Conditionally render Navbar - hidden on login route */}
-      {!isLoginRoute && <Navbar />}
-      
-      {/*
-        Main content area with enhanced styling:
-        - Adds left margin and beautiful background except on report and login routes
-        - Ensures full viewport height with smooth transitions
-        - Enhanced spacing and visual hierarchy
-      */}
-      <div className={`flex-1 transition-all duration-normal ${
-        !isReportRoute && !isLoginRoute 
-          ? "lg:ml-64 bg-gradient-to-br from-slate-50 via-emerald-50/30 to-gray-100" 
-          : ""
-      } min-h-screen`}>
-        <main className={`${
-          isLoginRoute 
-            ? "" 
-            : "p-6 pb-20 lg:pb-16 space-y-6"
-        } animate-fadeIn`}>
-          {/* Outlet for rendering child route components */}
+    <div className={`app-shell ${isReport ? "report-shell" : ""}`}>
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      {!isReport && (
+        <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      )}
+      <div className="workspace">
+        <Navbar
+          onOpenNavigation={() => setMobileOpen(true)}
+          navigationOpen={mobileOpen}
+          reportNavigation={isReport}
+        />
+        <main
+          id="main-content"
+          ref={mainRef}
+          tabIndex={-1}
+          className="workspace-main"
+        >
           <Outlet />
         </main>
+        {!isReport && (
+          <footer className="workspace-footer">
+            <span>Lafarge · Employee workspace</span>
+            <span>Made for your everyday.</span>
+          </footer>
+        )}
       </div>
-    </>
+    </div>
   );
-};
-
-export default Layout;
+}
