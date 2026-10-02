@@ -24,14 +24,14 @@ White highlights and translucent versions of the palette create soft depth. Use 
 
 - `PageHeader`: page title, description, optional actions.
 - `Layout`, `Sidebar`, `Navbar`, `WorkspaceNavigation`: shared role-based links in a sidebar on workspace pages and a full-width top navbar on Reports. The mobile workspace drawer uses a native modal dialog with Escape, focus containment, backdrop dismissal and focus restoration.
-- `.button`, `.button-primary`, `.button-quiet`, `.icon-button`: consistent 44px actions. Dense report rows use 32px desktop Save/Delete controls and restore 44px targets on touch screens.
+- `.button`, `.button-primary`, `.button-quiet`, `.icon-button`: consistent 44px actions. Dense report rows use 28px desktop Delete controls and restore 44px targets on touch screens.
 - `TableRegion`: real table semantics with a labeled, keyboard-scrollable region. The dashboard also retains its mobile card views.
 - `PasswordField`: visible label, browser password-manager hints, show/hide control.
 - `AutoCompleteInput`: focused-only suggestions, listbox/combobox relationships, arrows, Enter, Escape and composition-safe keyboard handling.
 - `LoadingSpinner`: a compact loading track instead of a full-viewport multi-ring spinner. Editors stay mounted during report saves.
-- `Toast`: a light notification; dismissal pauses while hovered or focused. No 50ms React progress timer.
+- `Toast`: a light notification; dismissal pauses while hovered or focused. On Reports, a bounded upper-right stack keeps the bottom Save All button accessible. No 50ms React progress timer.
 
-Reports keeps every field in one compact table row at every width. The table uses one sticky header, 67px desktop rows, keyboard-scrollable overflow on narrow screens, and fixed date/Add/Save All controls outside the table. Report textareas show two compact lines and expand only during editing; other rows stay dense. Report suggestion lists render in a floating portal to avoid scroll-container clipping. Save and Save All remain available while saves run. Draft recovery, UUID deduplication, queued revisions and confirmed cache updates are inherited from the report-save branch.
+Reports keeps every field in one Excel-style grid row at every width. White rectangular input cells and Delete buttons stand out against the light gray table, with visible row and column dividers. The table uses one sticky header, 37px desktop rows and keyboard-scrollable overflow on narrow screens. Date navigation stays above the table; Add New Entry and the sole Save All button stay below it. Individual Save buttons are removed. Report textareas show one compact line and expand only during editing; other rows stay dense. Touch inputs and Delete targets remain 44px. Compact status text has full accessible labels and hover descriptions. Report suggestion lists render in a floating portal to avoid scroll-container clipping. Save All remains available while saves run or fail. Draft recovery, UUID deduplication, queued revisions and confirmed cache updates are inherited from the report-save branch.
 
 ## Motion
 

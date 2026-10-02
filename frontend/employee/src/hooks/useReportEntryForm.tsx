@@ -294,7 +294,7 @@ export const useReportEntryForm = () => {
       } catch (error) {
         console.error('Error submitting entry:', error);
         updateEntries(current => current.map(entry => entry.clientId === clientId ? { ...entry, status: 'error' } : entry));
-        showError('Submission Failed', 'Your changes are still in this form. Check your connection and use Save or Save All to retry.', 6000);
+        showError('Submission Failed', 'Your changes are still in this form. Check your connection and use Save All to retry.', 6000);
         return false;
       } finally {
         inFlightEntriesRef.current.delete(clientId);

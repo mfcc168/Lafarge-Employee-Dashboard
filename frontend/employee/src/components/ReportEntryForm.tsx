@@ -4,7 +4,6 @@ import {
   ChevronRight,
   Plus,
   SaveAll,
-  Save,
   Trash2,
   CloudUpload,
 } from "lucide-react";
@@ -74,13 +73,17 @@ export default function ReportEntryForm() {
     districtSuggestions,
     setCurrentPage,
     handleChange,
-    handleSubmitEntry,
     handleSubmitAllEntries,
     handleDelete,
     addEmptyEntry,
   } = useReportEntryForm();
   const { user } = useAuth();
   const entriesRef = useRef<HTMLDivElement>(null);
+  const failedCount = entries.filter(
+    (entry) => entry.status === "error",
+  ).length;
+  const syncing =
+    savingAll || entries.some((entry) => entry.status === "saving");
 
   useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
@@ -142,31 +145,25 @@ export default function ReportEntryForm() {
             <ChevronRight size={19} />
           </button>
         </div>
-        <button
-          type="button"
-          onClick={handleSubmitAllEntries}
-          className="button button-primary"
+        <p
+          id="report-help"
+          className="report-help"
+          role="status"
+          aria-live="polite"
         >
-          <SaveAll size={17} />
-          Save All
-        </button>
+          <CloudUpload size={16} aria-hidden="true" />
+          {failedCount > 0
+            ? `${failedCount} ${failedCount === 1 ? "entry is" : "entries are"} not saved to the server. Use Save All to retry.`
+            : syncing
+              ? "Saving in the background. You can keep typing."
+              : "Changes autosave after a short pause. Use Save All anytime."}
+        </p>
       </div>
-      <p
-        id="report-help"
-        className="report-help"
-        role="status"
-        aria-live="polite"
-      >
-        <CloudUpload size={16} aria-hidden="true" />
-        {savingAll
-          ? "Saving in the background. You can keep typing."
-          : "Changes autosave after a short pause. You can also Save anytime."}
-      </p>
       {recoveredCount > 0 && (
         <p className="notice">
           Recovered {recoveredCount} unfinished{" "}
           {recoveredCount === 1 ? "entry" : "entries"}. Review and save them
-          using the date arrows.
+          using the date arrows and Save All.
         </p>
       )}
       {draftStorageError && (
@@ -197,7 +194,8 @@ export default function ReportEntryForm() {
             {detailFields.map((field) => (
               <col key={field.key} className="report-col-detail" />
             ))}
-            <col className="report-col-actions" />
+            <col className="report-col-status" />
+            <col className="report-col-delete" />
           </colgroup>
           <thead>
             <tr>
@@ -216,15 +214,16 @@ export default function ReportEntryForm() {
                   {"heading" in field ? field.heading : field.label}
                 </th>
               ))}
-              <th scope="col" className="report-row-controls">
-                Save / status
+              <th scope="col">Status</th>
+              <th scope="col" className="report-row-delete">
+                <span className="sr-only">Delete entry</span>
               </th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={12}>
+                <td colSpan={13}>
                   <p role="status" className="report-empty">
                     Loading reports...
                   </p>
@@ -233,7 +232,7 @@ export default function ReportEntryForm() {
             )}
             {!isLoading && entries.length === 0 && (
               <tr>
-                <td colSpan={12}>
+                <td colSpan={13}>
                   <p className="report-empty">
                     No entries for this date. Add an entry to start.
                   </p>
@@ -382,7 +381,7 @@ export default function ReportEntryForm() {
                     <textarea
                       id={`${field.key}-${entry.clientId}`}
                       value={entry[field.key] || ""}
-                      rows={2}
+                      rows={1}
                       title={entry[field.key] || field.placeholder}
                       placeholder={field.placeholder}
                       onFocus={(event) => expandTextarea(event.currentTarget)}
@@ -401,31 +400,22 @@ export default function ReportEntryForm() {
                     />
                   </td>
                 ))}
-                <td className="report-row-controls">
-                  <div className="entry-actions">
-                    <button
-                      type="button"
-                      className="button report-save"
-                      onClick={() => handleSubmitEntry(entry.clientId)}
-                      aria-describedby={`report-status-${entry.clientId}`}
-                    >
-                      <Save size={14} aria-hidden="true" />
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-button report-delete"
-                      onClick={() => handleDelete(entry.clientId)}
-                      disabled={
-                        entry.status === "saving" || entry.status === "deleting"
-                      }
-                      aria-label="Delete"
-                      title={`Delete entry ${index + 1}`}
-                    >
-                      <Trash2 size={15} aria-hidden="true" />
-                    </button>
-                  </div>
+                <td className="report-row-status">
                   <ReportEntryStatus entry={entry} />
+                </td>
+                <td className="report-row-delete">
+                  <button
+                    type="button"
+                    className="icon-button report-delete"
+                    onClick={() => handleDelete(entry.clientId)}
+                    disabled={
+                      entry.status === "saving" || entry.status === "deleting"
+                    }
+                    aria-label="Delete"
+                    title={`Delete entry ${index + 1}`}
+                  >
+                    <Trash2 size={15} aria-hidden="true" />
+                  </button>
                 </td>
               </tr>
             ))}
