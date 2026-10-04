@@ -6,6 +6,9 @@ import {
   SaveAll,
   Trash2,
   CloudUpload,
+  Check,
+  AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 import AutocompleteInput from "@components/AutoCompleteInput";
 import { useEffect, useRef } from "react";
@@ -25,12 +28,13 @@ const detailFields = [
   {
     key: "new_product_intro",
     label: "New product introduction",
-    heading: "New product intro",
+    heading: "Product intro",
     placeholder: "Products discussed",
   },
   {
     key: "old_product_followup",
     label: "Product follow-up",
+    heading: "Follow-up",
     placeholder: "Updates and next steps",
   },
 ] as const;
@@ -57,6 +61,19 @@ function revealEntry(control: HTMLElement) {
   else if (bounds.bottom > bottom) region.scrollTop += bounds.bottom - bottom;
 }
 
+function focusEntry(root: HTMLDivElement | null, index: number) {
+  const row = root?.querySelectorAll(".entry-container")[index];
+  const target = row?.querySelector<HTMLInputElement>(
+    "input:not([type=checkbox])",
+  );
+  if (!target) return false;
+  const region = target.closest(".report-table-region");
+  if (region) region.scrollLeft = 0;
+  target.focus({ preventScroll: true });
+  revealEntry(target);
+  return true;
+}
+
 export default function ReportEntryForm() {
   const {
     entries,
@@ -70,6 +87,7 @@ export default function ReportEntryForm() {
     handleFocus,
     currentPage,
     sortedDates,
+    pagedDate,
     doctorNameSuggestions,
     districtSuggestions,
     setCurrentPage,
@@ -80,22 +98,83 @@ export default function ReportEntryForm() {
   } = useReportEntryForm();
   const { user } = useAuth();
   const entriesRef = useRef<HTMLDivElement>(null);
+  const pendingEntryFocus = useRef(false);
+  const reportEntries = entries.filter(
+    (entry) => entry.id || !isBlankEntry(entry),
+  );
   const failedCount = entries.filter(
     (entry) => entry.status === "error",
   ).length;
   const syncing =
     savingAll || entries.some((entry) => entry.status === "saving");
-  const waiting = entries.some(
-    (entry) => !entry.recovered && isDirty(entry) && !isBlankEntry(entry),
+  const removing = entries.some((entry) => entry.status === "deleting");
+  const hasRecovered = entries.some((entry) => entry.recovered);
+  const waiting = reportEntries.some(
+    (entry) => !entry.recovered && isDirty(entry),
   );
-  const helpDescription =
-    failedCount > 0
-      ? `${failedCount} ${failedCount === 1 ? "entry is" : "entries are"} not saved to the server. Use Save All to retry.`
-      : syncing
-        ? "Saving in the background. You can keep typing."
-        : waiting
-          ? "Waiting to autosave. Changes save after a short pause. Use Save All anytime."
-          : "Changes autosave after a short pause. Use Save All anytime.";
+  const allSaved =
+    !isLoading &&
+    !savingAll &&
+    reportEntries.length > 0 &&
+    reportEntries.every(
+      (entry) => !isDirty(entry) && !entry.recovered && entry.status === "idle",
+    );
+  const displayDate = new Date(`${pagedDate}T12:00:00`).toLocaleDateString(
+    "en-GB",
+    { day: "numeric", month: "short", year: "numeric" },
+  );
+  const feedback = {
+    label: "Autosave on",
+    description: "Changes autosave after a short pause. Use Save All anytime.",
+    Icon: CloudUpload,
+  };
+  if (failedCount > 0) {
+    feedback.label = `${failedCount} not saved · Save All to retry`;
+    feedback.description = `${failedCount} ${failedCount === 1 ? "entry is" : "entries are"} not saved to the server. Use Save All to retry.`;
+    feedback.Icon = AlertCircle;
+  } else if (syncing) {
+    feedback.label = "Saving changes...";
+    feedback.description = "Saving in the background. You can keep typing.";
+  } else if (removing) {
+    feedback.label = "Removing entry...";
+    feedback.description = "Removing an entry. You can keep typing.";
+  } else if (hasRecovered) {
+    feedback.label = "Review recovered drafts";
+    feedback.description =
+      "Recovered drafts for this date need review. Use Save All to save them.";
+    feedback.Icon = RotateCcw;
+  } else if (waiting) {
+    feedback.label = "Waiting to autosave";
+    feedback.description =
+      "Waiting to autosave. Changes save after a short pause. Use Save All anytime.";
+  } else if (isLoading) {
+    feedback.label = "Loading reports...";
+    feedback.description = "Loading reports for this date.";
+  } else if (allSaved) {
+    feedback.label = "All changes saved";
+    feedback.description =
+      "All changes for this date are saved to the server. Changes autosave after a short pause.";
+    feedback.Icon = Check;
+  }
+  const HelpIcon = feedback.Icon;
+
+  const handleAddEntry = () => {
+    const blankIndex = entries.findIndex(
+      (entry) => !entry.id && isBlankEntry(entry),
+    );
+    if (blankIndex >= 0 && focusEntry(entriesRef.current, blankIndex)) return;
+    pendingEntryFocus.current = true;
+    addEmptyEntry();
+  };
+
+  useEffect(() => {
+    if (!pendingEntryFocus.current) return;
+    const blankIndex = entries.findIndex(
+      (entry) => !entry.id && isBlankEntry(entry),
+    );
+    if (blankIndex >= 0 && focusEntry(entriesRef.current, blankIndex))
+      pendingEntryFocus.current = false;
+  }, [entries]);
 
   useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
@@ -131,51 +210,44 @@ export default function ReportEntryForm() {
         <div className="report-title">
           <h1>Reports</h1>
           <span>
-            {entries.length} {entries.length === 1 ? "row" : "rows"}
+            {reportEntries.length}{" "}
+            {reportEntries.length === 1 ? "entry" : "entries"}
           </span>
         </div>
-        <div className="date-control" aria-label="Report date">
-          <button
-            className="icon-button"
-            onClick={() => setCurrentPage(currentPage + 1)}
-            disabled={currentPage >= sortedDates.length - 1}
-            aria-label="Prev date"
-            title="Previous date"
+        <div className="report-tools">
+          <p
+            id="report-help"
+            className="report-help"
+            role="status"
+            aria-live="polite"
+            aria-label={feedback.description}
+            title={feedback.description}
           >
-            <ChevronLeft size={19} />
-          </button>
-          <time dateTime={sortedDates[currentPage]}>
-            {sortedDates[currentPage]}
-          </time>
-          <button
-            className="icon-button"
-            onClick={() => setCurrentPage(currentPage - 1)}
-            disabled={currentPage === 0}
-            aria-label="Next date"
-            title="Next date"
-          >
-            <ChevronRight size={19} />
-          </button>
+            <HelpIcon size={16} aria-hidden="true" />
+            <span>{feedback.label}</span>
+          </p>
+          <div className="date-control" aria-label="Report date">
+            <button
+              className="icon-button"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage >= sortedDates.length - 1}
+              aria-label="Prev date"
+              title="Previous date"
+            >
+              <ChevronLeft size={19} />
+            </button>
+            <time dateTime={pagedDate}>{displayDate}</time>
+            <button
+              className="icon-button"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 0}
+              aria-label="Next date"
+              title="Next date"
+            >
+              <ChevronRight size={19} />
+            </button>
+          </div>
         </div>
-        <p
-          id="report-help"
-          className="report-help"
-          role="status"
-          aria-live="polite"
-          aria-label={helpDescription}
-          title={helpDescription}
-        >
-          <CloudUpload size={16} aria-hidden="true" />
-          <span>
-            {failedCount > 0
-              ? `${failedCount} not saved · Save All to retry`
-              : syncing
-                ? "Saving changes..."
-                : waiting
-                  ? "Waiting to autosave"
-                  : "Autosave on"}
-          </span>
-        </p>
       </div>
       {recoveredCount > 0 && (
         <p className="notice">
@@ -199,9 +271,8 @@ export default function ReportEntryForm() {
       >
         <table className="report-table">
           <caption className="sr-only">
-            Report entries for {sortedDates[currentPage]}. Each entry is one
-            row. Icons beside the row numbers show save status; hover an icon
-            for details.
+            Report entries for {pagedDate}. Each entry is one row. Icons beside
+            the row numbers show save status; hover an icon for details.
           </caption>
           <colgroup>
             <col className="report-col-number" />
@@ -220,15 +291,31 @@ export default function ReportEntryForm() {
               <th scope="col" className="report-row-number">
                 <span className="sr-only">Entry and save status</span>#
               </th>
-              <th scope="col">Time range</th>
-              <th scope="col">Client name</th>
+              <th scope="col" aria-label="Time range" title="Time range">
+                Time
+              </th>
+              <th scope="col" aria-label="Client name" title="Client name">
+                Client
+              </th>
               <th scope="col">District</th>
-              <th scope="col">Client type</th>
-              <th scope="col" className="report-new-client">
-                New client
+              <th scope="col" aria-label="Client type" title="Client type">
+                Type
+              </th>
+              <th
+                scope="col"
+                className="report-new-client"
+                aria-label="New client"
+                title="New client"
+              >
+                New
               </th>
               {detailFields.map((field) => (
-                <th key={field.key} scope="col">
+                <th
+                  key={field.key}
+                  scope="col"
+                  aria-label={field.label}
+                  title={field.label}
+                >
                   {"heading" in field ? field.heading : field.label}
                 </th>
               ))}
@@ -440,7 +527,7 @@ export default function ReportEntryForm() {
         </table>
       </div>
       <div className="report-bottom">
-        <button type="button" className="button" onClick={addEmptyEntry}>
+        <button type="button" className="button" onClick={handleAddEntry}>
           <Plus size={18} />
           Add New Entry
         </button>

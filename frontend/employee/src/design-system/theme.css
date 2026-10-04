@@ -1369,10 +1369,14 @@ input.money-input {
 .report-topbar {
   flex-shrink: 0;
   min-height: 72px;
-  padding: 12px 20px;
+  padding: 10px 20px;
   gap: 24px;
   background: #fafafc;
   border-bottom: 1px solid #d2d4da65;
+}
+.report-topbar .topbar-date,
+.report-topbar .topbar-divider {
+  display: none;
 }
 .report-brand {
   font-size: 1.35rem;
@@ -1391,7 +1395,7 @@ input.money-input {
   gap: 6px;
   flex: 1;
   min-width: 0;
-  padding: 4px;
+  padding: 2px;
   overflow-x: auto;
   scrollbar-width: thin;
 }
@@ -1423,10 +1427,15 @@ input.money-input {
 }
 .report-toolbar {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   flex-shrink: 0;
   gap: 12px;
+}
+.report-tools {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 .report-title {
   display: flex;
@@ -1452,6 +1461,9 @@ input.money-input {
   justify-self: end;
   gap: 7px;
 }
+.report-editor .report-help svg {
+  flex-shrink: 0;
+}
 .report-toolbar .date-control {
   gap: 4px;
   padding: 3px;
@@ -1469,7 +1481,7 @@ input.money-input {
   border-radius: 8px;
 }
 .report-toolbar .date-control time {
-  min-width: 108px;
+  min-width: 96px;
   font-size: 0.8125rem;
   font-weight: 500;
 }
@@ -1549,13 +1561,13 @@ input.money-input {
   top: 0;
   z-index: 4;
   background: #f3f4f8;
-  padding: 8px 10px;
+  padding: 9px 10px;
   color: #5b5d6b;
   vertical-align: middle;
-  white-space: normal;
+  white-space: nowrap;
   font-size: 0.75rem;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 16px;
 }
 .report-table .entry-container {
   border: 0;
@@ -1585,6 +1597,9 @@ input.money-input {
 }
 .report-table thead .report-row-number {
   z-index: 5;
+}
+.report-table .entry-container:focus-within .report-row-number {
+  box-shadow: inset 2px 0 0 #404252;
 }
 .report-row-index {
   display: flex;
@@ -1632,10 +1647,16 @@ input.money-input {
   border: 1px solid transparent;
   border-radius: 5px;
   background: #fff;
-  box-shadow: inset 0 -1px 0 #d2d4da80;
+  box-shadow: none;
   padding: 6px 8px;
   font-size: 0.8125rem;
   line-height: 18px;
+}
+.report-table
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover,
+.report-table select:hover,
+.report-table textarea:hover {
+  border-color: #d2d4da;
 }
 .report-table select {
   appearance: none;
@@ -1667,8 +1688,6 @@ input.money-input {
 }
 .report-table .report-row-delete {
   vertical-align: middle;
-}
-.report-table .report-row-delete {
   text-align: center;
 }
 .report-table .report-delete {
@@ -1677,13 +1696,12 @@ input.money-input {
   width: 28px;
   border-radius: 7px;
   background: #fff;
-  border: 1px solid #fff;
-  box-shadow:
-    1px 1px 3px #d2d4da70,
-    -1px -1px 3px #fff;
+  border: 1px solid transparent;
+  box-shadow: none;
 }
 .report-table .report-delete:hover {
   color: #101223;
+  border-color: #d2d4da;
   box-shadow:
     inset 1px 1px 3px #d2d4da70,
     inset -1px -1px 3px #fff;
@@ -1750,16 +1768,18 @@ input.money-input {
   font-weight: 500;
   font-size: 0.875rem;
   border-radius: 11px;
+  background: #fff;
   box-shadow:
     3px 3px 9px #d2d4da80,
     -3px -3px 9px #fff;
 }
 .report-bottom .button-primary {
+  background: #282a3a;
   box-shadow: 2px 3px 8px #282a3a20;
 }
 .report-declaration {
   margin: 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--muted);
   text-align: center;
 }
@@ -1805,18 +1825,29 @@ input.money-input {
     gap: 8px;
   }
   .report-toolbar {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
+  }
+  .report-tools {
+    display: contents;
   }
   .report-title {
     gap: 6px;
+  }
+  .report-title h1 {
+    font-size: 1.375rem;
   }
   .report-title > span {
     font-size: 0.75rem;
   }
   .report-toolbar .report-help {
     grid-column: 1 / -1;
+    grid-row: 2;
     justify-self: start;
+  }
+  .report-toolbar .date-control {
+    grid-column: 2;
+    grid-row: 1;
   }
   .report-toolbar .date-control .icon-button {
     width: 32px;
@@ -1837,8 +1868,19 @@ input.money-input {
   }
 }
 @media (max-width: 380px) {
+  .report-toolbar {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .report-toolbar .report-help {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    text-align: right;
+    font-size: 0.75rem;
+  }
   .report-toolbar .date-control {
     grid-column: 1 / -1;
+    grid-row: 2;
     justify-content: center;
   }
 }

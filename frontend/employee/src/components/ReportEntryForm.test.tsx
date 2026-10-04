@@ -91,6 +91,24 @@ afterEach(() => {
 });
 
 describe("report save workflow", () => {
+  it("focuses new and existing blank rows without inflating the entry count or adding duplicates", async () => {
+    await setup(true);
+    expect(document.activeElement).toBe(input(0));
+    expect(screen.getByText("0 entries")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Add New Entry" }));
+    expect(rows()).toHaveLength(1);
+    expect(document.activeElement).toBe(input(0));
+    type(0, "09:00");
+    expect(screen.getByText("1 entry")).toBeTruthy();
+    expect(document.activeElement).toBe(input(0));
+    const blank = input(1);
+    fireEvent.click(screen.getByRole("button", { name: "Add New Entry" }));
+    expect(rows()).toHaveLength(2);
+    expect(document.activeElement).toBe(blank);
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("1 entry")).toBeTruthy();
+  });
+
   it("saves each previous row when focus moves quickly while a save is pending", async () => {
     const pending = deferred<{ data: { id: string } }>();
     request.mockReturnValue(pending.promise);
@@ -639,6 +657,8 @@ describe("report save workflow", () => {
     type(0, "09:00");
     fireEvent.click(saveAll());
     expect(saveAll().textContent).toBe("Save All");
+    expect(screen.getByText("Saving changes...")).toBeTruthy();
+    expect(screen.queryByText("All changes saved")).toBeNull();
     expect((saveAll() as HTMLButtonElement).disabled).toBe(false);
     expect(
       within(rows()[0]).getByRole("status").getAttribute("aria-label"),
@@ -651,6 +671,7 @@ describe("report save workflow", () => {
       within(rows()[0]).getByRole("status").getAttribute("aria-label"),
     ).toBe("Saved on this device · Syncing...");
     await act(async () => pending.resolve({ data: { id: "report-1" } }));
+    expect(screen.getByText("All changes saved")).toBeTruthy();
     expect(
       within(rows()[0]).getByRole("status").getAttribute("aria-label"),
     ).toBe("Saved");
@@ -727,6 +748,8 @@ describe("report save workflow", () => {
     vi.useRealTimers();
     await setup();
     expect((input(0) as HTMLInputElement).value).toBe("09:00");
+    expect(screen.getByText("Review recovered drafts")).toBeTruthy();
+    expect(screen.queryByText("All changes saved")).toBeNull();
     expect(
       within(rows()[0]).getByRole("status").getAttribute("aria-label"),
     ).toContain("Recovered draft");
@@ -807,6 +830,10 @@ describe("report save workflow", () => {
     );
     vi.useFakeTimers();
     type(0, "");
+    expect(document.getElementById("report-help")?.textContent).toBe(
+      "Waiting to autosave",
+    );
+    expect(screen.queryByText("All changes saved")).toBeNull();
     await act(async () => vi.advanceTimersByTimeAsync(1000));
     expect(request).toHaveBeenCalledTimes(2);
     expect(request.mock.calls[1][0]).toMatchObject({
