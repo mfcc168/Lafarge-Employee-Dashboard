@@ -13,6 +13,7 @@ export default function LoadingSpinner({
       className={`loading-state loading-${size}`}
       role="status"
       aria-live="polite"
+      aria-label={message}
     >
       <span className="loading-track" aria-hidden="true">
         <span />

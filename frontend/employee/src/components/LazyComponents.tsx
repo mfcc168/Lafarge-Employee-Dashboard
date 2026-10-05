@@ -81,17 +81,19 @@ export const LazyVacationRequestForm = withLazyLoading(
 
 export const LazyReportEntryList = withLazyLoading(
   () => import("./ReportEntryList"),
-  <TableSkeleton />,
+  <div className="surface p-8">
+    <LoadingSpinner message="Loading daily reports…" />
+  </div>,
 );
 
 export const LazyWeeklySamplesSummary = withLazyLoading(
   () => import("./WeeklySamplesSummary"),
-  <CardSkeleton />,
+  <LoadingSpinner message="Loading weekly samples…" />,
 );
 
 export const LazyWeeklyNewClientOrder = withLazyLoading(
   () => import("./WeeklyNewClientOrder"),
-  <CardSkeleton />,
+  <LoadingSpinner message="Loading new client orders…" />,
 );
 
 export const LazyEmployeeManagement = withLazyLoading(

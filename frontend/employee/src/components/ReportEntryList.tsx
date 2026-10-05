@@ -4,7 +4,8 @@ import { useAuth } from "@context/AuthContext";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { ReportEntry } from "@interfaces/index";
 import { format, addDays, parseISO } from "date-fns";
-import SkeletonRow from "@components/SkeletonRow";
+import LoadingSpinner from "@components/LoadingSpinner";
+import TableLoadingRow from "@components/TableLoadingRow";
 
 interface ReportEntryListProps {
   allEntries: ReportEntry[];
@@ -21,7 +22,7 @@ interface ReportEntryListProps {
  * - Role-based filtering and views
  * - Salesman selection tabs
  * - Sortable entries by time
- * - Loading states and skeleton UI
+ * - Consistent workspace loading animation
  *
  * Features:
  * - Clerk/Deliveryman can mark entries as completed
@@ -279,10 +280,12 @@ const ReportEntryList = ({
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
                   {isLoading
-                    ? // Loading skeleton
-                      [...Array(5)].map((_, i) => (
-                        <SkeletonRow key={i} columns={isLimitedView ? 3 : 4} />
-                      ))
+                    ? (
+                        <TableLoadingRow
+                          columns={isLimitedView ? 3 : 4}
+                          message="Loading daily reports…"
+                        />
+                      )
                     : // Filtered and sorted entries
                       (isLimitedView
                         ? sortedEntries.filter(
@@ -451,22 +454,7 @@ const ReportEntryList = ({
           {/* Mobile Card View */}
           <div className="lg:hidden space-y-4">
             {isLoading
-              ? // Loading skeleton for mobile
-                [...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex gap-2">
-                        <div className="h-6 bg-gray-200 rounded w-16"></div>
-                        <div className="h-6 bg-gray-200 rounded w-20"></div>
-                      </div>
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-16 bg-gray-200 rounded"></div>
-                    </div>
-                  </div>
-                ))
+              ? <LoadingSpinner message="Loading daily reports…" />
               : // Mobile cards
                 (isLimitedView
                   ? sortedEntries.filter(
