@@ -7,7 +7,7 @@ import { backendUrl } from "@configs/DotEnv";
 import { useAuth } from "@context/AuthContext";
 import { EmployeeProfile } from "@interfaces/EmployeeType";
 import LoadingSpinner from "@components/LoadingSpinner";
-import { ArrowLeft, Save, Edit2, X } from "lucide-react";
+import { ArrowLeft, Save, Edit2, X, ChevronDown } from "lucide-react";
 
 const EmployeeDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -239,19 +239,22 @@ const EmployeeDetail = () => {
                 >
                   Role
                 </label>
-                <select
-                  id="employee-role"
-                  name="role"
-                  value={formData.role || ""}
-                  onChange={handleInputChange}
-                  disabled={!isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:bg-gray-100"
-                >
-                  <option value="SALESMAN">Salesman</option>
-                  <option value="CLERK">Clerk</option>
-                  <option value="DELIVERYMAN">Deliveryman</option>
-                  <option value="MANAGER">Manager</option>
-                </select>
+                <div className="workspace-select">
+                  <select
+                    id="employee-role"
+                    name="role"
+                    value={formData.role || ""}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className="workspace-input"
+                  >
+                    <option value="SALESMAN">Salesman</option>
+                    <option value="CLERK">Clerk</option>
+                    <option value="DELIVERYMAN">Deliveryman</option>
+                    <option value="MANAGER">Manager</option>
+                  </select>
+                  <ChevronDown size={16} aria-hidden="true" />
+                </div>
               </div>
 
               {/* Base Salary */}
@@ -270,7 +273,7 @@ const EmployeeDetail = () => {
                   onChange={handleInputChange}
                   disabled={!isEditing}
                   step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:bg-gray-100"
+                  className="workspace-input"
                 />
               </div>
 
@@ -290,7 +293,7 @@ const EmployeeDetail = () => {
                   onChange={handleInputChange}
                   disabled={!isEditing}
                   step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:bg-gray-100"
+                  className="workspace-input"
                 />
               </div>
 
@@ -310,7 +313,7 @@ const EmployeeDetail = () => {
                   onChange={handleInputChange}
                   disabled={!isEditing}
                   step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:bg-gray-100"
+                  className="workspace-input"
                 />
               </div>
 
@@ -330,7 +333,7 @@ const EmployeeDetail = () => {
                   onChange={handleInputChange}
                   disabled={!isEditing}
                   step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:bg-gray-100"
+                  className="workspace-input"
                 />
               </div>
 
@@ -350,7 +353,7 @@ const EmployeeDetail = () => {
                   onChange={handleInputChange}
                   disabled={!isEditing}
                   step="0.5"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:bg-gray-100"
+                  className="workspace-input"
                 />
               </div>
 
@@ -369,7 +372,7 @@ const EmployeeDetail = () => {
                   value={formData.employment_date ?? ""}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:bg-gray-100"
+                  className="workspace-input"
                 />
               </div>
 

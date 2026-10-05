@@ -152,29 +152,6 @@
 .client-salesperson-field {
   flex: 0 1 240px;
 }
-.client-search {
-  position: relative;
-}
-.client-search > svg {
-  position: absolute;
-  left: 14px;
-  top: 14px;
-  color: #5b5d6b;
-  pointer-events: none;
-}
-.people-field .client-search input[type="search"] {
-  padding-left: 42px;
-  padding-right: 46px;
-}
-.client-search input::-webkit-search-cancel-button {
-  display: none;
-}
-.client-search .icon-button {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  border-radius: 9px;
-}
 .client-results-bar {
   display: flex;
   justify-content: space-between;

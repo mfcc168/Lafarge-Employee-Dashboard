@@ -5,7 +5,8 @@ import { backendUrl } from "@configs/DotEnv";
 import { useAuth } from "@context/AuthContext";
 import { EmployeeProfile } from "@interfaces/EmployeeType";
 import LoadingSpinner from "@components/LoadingSpinner";
-import { UserX, UserCheck, AlertCircle, Search } from "lucide-react";
+import { UserX, UserCheck, AlertCircle } from "lucide-react";
+import SearchField from "@components/SearchField";
 import { Link } from "react-router-dom";
 import { canManageEmployees, PERMISSION_MESSAGES } from "@utils/permissions";
 
@@ -219,48 +220,15 @@ const EmployeeManagement = () => {
       </div>
 
       {/* Search bar */}
-      <div className="relative max-w-xl">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-600" />
-        </div>
-        <input
-          type="search"
-          aria-label="Search employees"
-          placeholder="Search by name, username, or role..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="
-            employee-search block w-full pl-10 pr-4 py-3
-            border border-gray-200 rounded-xl
-            bg-gray-50
-            text-gray-900 placeholder-gray-500
-            focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:bg-white
-            transition-colors duration-200
-            text-sm
-          "
-        />
-        {searchTerm && (
-          <button
-            aria-label="Clear employee search"
-            onClick={() => setSearchTerm("")}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-gray-600"
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        )}
-      </div>
+      <SearchField
+        id="employee-search"
+        label="Search employees"
+        placeholder="Name, username, role"
+        value={searchTerm}
+        onValueChange={setSearchTerm}
+        clearLabel="Clear employee search"
+        className="employee-search-field"
+      />
 
       <details className="usage-note">
         <summary>About employee access</summary>

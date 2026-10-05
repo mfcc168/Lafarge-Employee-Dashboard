@@ -6,12 +6,11 @@ import {
   ChevronsLeft,
   ChevronsRight,
   MapPin,
-  Search,
   UsersRound,
-  X,
 } from "lucide-react";
 import LoadingSpinner from "@components/LoadingSpinner";
 import PageHeader from "@components/PageHeader";
+import SearchField from "@components/SearchField";
 import { useGetAllReportEntries } from "@hooks/useGetAllReportEntries";
 import type { ReportEntry } from "@interfaces/index";
 import { useAuth } from "@context/AuthContext";
@@ -239,55 +238,41 @@ export default function Client() {
         aria-label="Client directory"
       >
         <div className="client-toolbar">
-          <div className="people-field client-search-field">
-            <label htmlFor="client-search">Search clients</label>
-            <div className="client-search">
-              <Search size={18} aria-hidden="true" />
-              <input
-                id="client-search"
-                type="search"
-                placeholder="Name or district"
-                value={searchTerm}
-                onChange={(event) => {
-                  setSearchTerm(event.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  className="icon-button"
-                  aria-label="Clear client search"
-                  onClick={() => {
-                    setSearchTerm("");
+          <SearchField
+            id="client-search"
+            label="Search clients"
+            placeholder="Name or district"
+            value={searchTerm}
+            onValueChange={(value) => {
+              setSearchTerm(value);
+              setCurrentPage(1);
+            }}
+            clearLabel="Clear client search"
+            className="client-search-field"
+          />
+          {!isSalesman && (
+            <div className="workspace-field client-salesperson-field">
+              <label htmlFor="client-salesperson">Salesperson</label>
+              <div className="workspace-select">
+                <select
+                  id="client-salesperson"
+                  aria-label="Salesperson"
+                  className="workspace-input"
+                  value={selectedSalesman}
+                  onChange={(event) => {
+                    setSelectedSalesman(event.target.value);
                     setCurrentPage(1);
-                    document.getElementById("client-search")?.focus();
                   }}
                 >
-                  <X size={16} aria-hidden="true" />
-                </button>
-              )}
-            </div>
-          </div>
-          {!isSalesman && (
-            <div className="people-field client-salesperson-field">
-              <label htmlFor="client-salesperson">Salesperson</label>
-              <select
-                id="client-salesperson"
-                aria-label="Filter by salesman"
-                value={selectedSalesman}
-                onChange={(event) => {
-                  setSelectedSalesman(event.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">All salespeople</option>
-                {salesmanList.map((name) => (
-                  <option key={name} value={name}>
-                    {salesmanLabel(name)}
-                  </option>
-                ))}
-              </select>
+                  <option value="all">All salespeople</option>
+                  {salesmanList.map((name) => (
+                    <option key={name} value={name}>
+                      {salesmanLabel(name)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={16} aria-hidden="true" />
+              </div>
             </div>
           )}
         </div>

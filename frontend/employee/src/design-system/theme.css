@@ -1280,10 +1280,6 @@ table tbody tr:hover {
     font-size: 0.8125rem;
   }
 }
-input.employee-search {
-  padding-left: 42px !important;
-  padding-right: 44px !important;
-}
 input.money-input {
   padding-left: 30px !important;
 }

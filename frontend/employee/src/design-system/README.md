@@ -1,6 +1,6 @@
 # Lafarge light workspace
 
-The live theme is `theme.css`, imported once through `src/index.css`. `people-pages.css` adds the white work surfaces and focused controls for Clients and Vacation. Tailwind v4 reads the main theme's `@theme` block; the old v3 configuration is no longer a competing source of colors or animations.
+The live theme is `theme.css`, imported once through `src/index.css`. `people-pages.css` adds the white work surfaces for Clients and Vacation. `form-controls.css` supplies the clean white searches, filters and employee edit fields. Tailwind v4 reads the main theme's `@theme` block; the old v3 configuration is no longer a competing source of colors or animations.
 
 ## Palette and depth
 
@@ -27,6 +27,8 @@ White highlights and translucent versions of the palette create soft depth. Use 
 - `.button`, `.button-primary`, `.button-quiet`, `.icon-button`: consistent 44px actions. Dense report rows use 28px desktop Delete controls and restore 44px targets on touch screens.
 - `TableRegion`: real table semantics with a labeled, keyboard-scrollable region. The dashboard also retains its mobile card views.
 - `PasswordField`: visible label, browser password-manager hints, show/hide control.
+- `SearchField`: visible label, white fill, fine border and subtle focus halo. Icons and text use a flex layout; a reserved 44px clear-button slot keeps text from moving as the value changes. Clearing returns focus to the native search input. Clients and Employees share this control.
+- `.workspace-input`, `.workspace-select`: matching white number/date/select controls with a native dropdown and a quiet chevron. Employee fields appear as read-only values while disabled and become white controls in edit mode. Retain 16px text, 48px field heights, reduced-motion support and visible focus in forced-color mode.
 - `AutoCompleteInput`: focused-only suggestions, listbox/combobox relationships, arrows, Enter, Escape and composition-safe keyboard handling.
 - `LoadingSpinner`: the shared moving loading track used by Clients, Vacation and all three Overview sections, with a named live status for each section. `TableLoadingRow` keeps desktop table headings visible while data loads; mobile views and lazy-component fallbacks use the same indicator. Cached rows remain visible during background refreshes. Reduced-motion preferences make the track stationary. Editors stay mounted during report saves.
 - `.people-panel`, `.people-field`, `.people-filter-tabs`: white work surfaces, labeled inset controls and compact count filters for Clients and Vacation. Reserve shadows for the outer surface and primary action; records inside are flat with subtle borders. Avoid overlapping icons, clipped select labels and horizontal page overflow.
