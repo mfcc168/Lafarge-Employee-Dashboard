@@ -17,25 +17,25 @@ import ReportEntryStatus from "@components/ReportEntryStatus";
 import { isBlankEntry, isDirty } from "@utils/reportEntryDraft";
 
 const detailFields = [
-  { key: "orders", label: "Orders", placeholder: "Products and quantities" },
+  { key: "orders", label: "Orders", hint: "Products and quantities" },
   {
     key: "tel_orders",
     label: "Telephone orders",
     heading: "Tel. orders",
-    placeholder: "Orders received by phone",
+    hint: "Orders received by phone",
   },
-  { key: "samples", label: "Samples", placeholder: "Samples provided" },
+  { key: "samples", label: "Samples", hint: "Samples provided" },
   {
     key: "new_product_intro",
     label: "New product introduction",
     heading: "Product intro",
-    placeholder: "Products discussed",
+    hint: "Products discussed",
   },
   {
     key: "old_product_followup",
     label: "Product follow-up",
     heading: "Follow-up",
-    placeholder: "Updates and next steps",
+    hint: "Updates and next steps",
   },
 ] as const;
 
@@ -387,7 +387,6 @@ export default function ReportEntryForm() {
                         event.target.value,
                       )
                     }
-                    placeholder="0900-1000"
                   />
                 </td>
                 <td>
@@ -411,7 +410,6 @@ export default function ReportEntryForm() {
                     inputProps={{
                       id: `client-${entry.clientId}`,
                       maxLength: 20,
-                      placeholder: "Client name",
                       title: entry.doctor_name,
                     }}
                   />
@@ -437,7 +435,6 @@ export default function ReportEntryForm() {
                     inputProps={{
                       id: `district-${entry.clientId}`,
                       maxLength: 20,
-                      placeholder: "District",
                       title: entry.district,
                     }}
                   />
@@ -489,8 +486,7 @@ export default function ReportEntryForm() {
                       id={`${field.key}-${entry.clientId}`}
                       value={entry[field.key] || ""}
                       rows={1}
-                      title={entry[field.key] || field.placeholder}
-                      placeholder={field.placeholder}
+                      title={entry[field.key] || field.hint}
                       onFocus={(event) => expandTextarea(event.currentTarget)}
                       onBlur={(event) => {
                         event.currentTarget.style.height = "";
