@@ -1,382 +1,421 @@
+import { useId, useMemo, useState } from "react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  MapPin,
+  Search,
+  UsersRound,
+  X,
+} from "lucide-react";
 import LoadingSpinner from "@components/LoadingSpinner";
 import PageHeader from "@components/PageHeader";
 import { useGetAllReportEntries } from "@hooks/useGetAllReportEntries";
-import { ReportEntry } from "@interfaces/index";
+import type { ReportEntry } from "@interfaces/index";
 import { useAuth } from "@context/AuthContext";
-import { useMemo, useState } from "react";
+import { formatDisplayDate } from "@utils/displayDate";
 
-const Client = () => {
-  const { data: entries = [], isLoading, isError } = useGetAllReportEntries();
+const salesmenAliases: Record<string, string> = {
+  "Ho Yeung Cheung": "Alex",
+  "Hung Ki So": "Dominic",
+  "Kwok Wai Mak": "Matthew",
+};
+const salesmanLabel = (name: string) => salesmenAliases[name] || name;
+const compareVisits = (a: ReportEntry, b: ReportEntry) =>
+  b.date.localeCompare(a.date) || b.time_range.localeCompare(a.time_range);
+
+function ClientVisit({
+  entry,
+  latest = false,
+}: {
+  entry: ReportEntry;
+  latest?: boolean;
+}) {
+  const details = [
+    ["Orders", entry.orders],
+    ["Samples", entry.samples],
+    ["Telephone orders", entry.tel_orders],
+    ["Product introduction", entry.new_product_intro],
+    ["Follow-up", entry.old_product_followup],
+    ["Delivery update", entry.delivery_time_update],
+  ].filter(([, value]) => value);
+
+  return (
+    <div className="client-visit">
+      <div className="client-visit-meta">
+        {latest && <p className="people-caption">Latest visit</p>}
+        <time dateTime={entry.date}>{formatDisplayDate(entry.date)}</time>
+        {entry.time_range && <span>{entry.time_range}</span>}
+        <span>{salesmanLabel(entry.salesman_name)}</span>
+        {!latest && (
+          <span>
+            {entry.client_type === "doctor" ? "Doctor" : "Nurse"} ·{" "}
+            {entry.district}
+          </span>
+        )}
+      </div>
+      {details.length ? (
+        <dl className="client-visit-details">
+          {details.map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="people-caption">No visit notes were recorded.</p>
+      )}
+    </div>
+  );
+}
+
+function ClientRecord({
+  name,
+  visits,
+}: {
+  name: string;
+  visits: ReportEntry[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [historyMounted, setHistoryMounted] = useState(false);
+  const historyId = useId();
+  const latest = visits[0];
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("");
+
+  return (
+    <li className="client-record">
+      <header className="client-record-heading">
+        <div className="client-identity">
+          <span className="client-avatar" aria-hidden="true">
+            {initials}
+          </span>
+          <div>
+            <h2>{name}</h2>
+            <p className="client-location">
+              <MapPin size={13} aria-hidden="true" />
+              {latest.district || "District not recorded"}
+              <span aria-hidden="true">·</span>
+              {latest.client_type === "doctor" ? "Doctor" : "Nurse"}
+            </p>
+          </div>
+        </div>
+        <span className="client-visit-count">
+          {visits.length} {visits.length === 1 ? "visit" : "visits"}
+        </span>
+      </header>
+      <ClientVisit entry={latest} latest />
+      {visits.length > 1 && (
+        <>
+          <button
+            type="button"
+            className="client-history-toggle"
+            aria-label={`${expanded ? "Hide" : "Show"} earlier visits for ${name}`}
+            aria-expanded={expanded}
+            aria-controls={historyId}
+            onClick={() => {
+              setHistoryMounted(true);
+              setExpanded((open) => !open);
+            }}
+          >
+            <ChevronDown size={16} aria-hidden="true" />
+            {expanded
+              ? "Hide earlier visits"
+              : `Earlier visits (${visits.length - 1})`}
+          </button>
+          <div
+            id={historyId}
+            className="client-history-panel"
+            data-open={expanded}
+            aria-hidden={!expanded}
+          >
+            <div className="client-history-content" inert={!expanded}>
+              {historyMounted &&
+                visits
+                  .slice(1)
+                  .map((entry, index) => (
+                    <ClientVisit key={entry.id || index} entry={entry} />
+                  ))}
+            </div>
+          </div>
+        </>
+      )}
+    </li>
+  );
+}
+
+export default function Client() {
+  const {
+    data: entries = [],
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useGetAllReportEntries();
+  const { user } = useAuth();
+  const isSalesman = user?.role === "SALESMAN";
+  const userFullname =
+    `${user?.firstname || ""} ${user?.lastname || ""}`.trim();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedSalesman, setSelectedSalesman] = useState<string>("all");
+  const [selectedSalesman, setSelectedSalesman] = useState("all");
   const clientsPerPage = 5;
 
-  const { user } = useAuth();
-  const userRole = user?.role;
-  const isSalesman = userRole === "SALESMAN";
-  const userFullname = user?.firstname + " " + user?.lastname;
-
-  const salesmanList: string[] = useMemo(() => {
-    if (!entries) return [];
-    const names = new Set<string>();
-    entries.forEach((entry: ReportEntry) => {
-      if (entry.salesman_name) names.add(entry.salesman_name);
-    });
-    return Array.from(names);
-  }, [entries]);
-
-  // Create aliases mapping for salesmen
-  const salesmenAliases = useMemo(() => {
-    const aliasMap: Record<string, string> = {
-      "Ho Yeung Cheung": "Alex",
-      "Hung Ki So": "Dominic",
-      "Kwok Wai Mak": "Matthew",
-    };
-    return salesmanList.reduce(
-      (acc, salesman) => {
-        acc[salesman] = aliasMap[salesman] || salesman;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
-  }, [salesmanList]);
-
-  if (isLoading) {
-    return <LoadingSpinner message="Loading clients…" />;
-  }
-
-  if (isError) {
-    return (
-      <div className="flex justify-center items-center min-h-[40vh] bg-gray-100">
-        <p className="text-gray-600 text-xl font-semibold">
-          Failed to load clients. Please try again.
-        </p>
-      </div>
-    );
-  }
-
-  // Group by client (doctor_name)
-  const clientsMap = new Map<string, ReportEntry[]>();
-  if (isSalesman) {
-    const filtered_entries = entries.filter(
-      (entry: ReportEntry) => entry.salesman_name === userFullname,
-    );
-    filtered_entries?.forEach((entry: ReportEntry) => {
-      if (!clientsMap.has(entry.doctor_name)) {
-        clientsMap.set(entry.doctor_name, []);
-      }
-      clientsMap.get(entry.doctor_name)?.push(entry);
-    });
-  } else if (selectedSalesman !== "all") {
-    const filtered_entries = entries.filter(
-      (entry: ReportEntry) => entry.salesman_name === selectedSalesman,
-    );
-    filtered_entries?.forEach((entry: ReportEntry) => {
-      if (!clientsMap.has(entry.doctor_name)) {
-        clientsMap.set(entry.doctor_name, []);
-      }
-      clientsMap.get(entry.doctor_name)?.push(entry);
-    });
-  } else {
-    entries?.forEach((entry: ReportEntry) => {
-      if (!clientsMap.has(entry.doctor_name)) {
-        clientsMap.set(entry.doctor_name, []);
-      }
-      clientsMap.get(entry.doctor_name)?.push(entry);
-    });
-  }
-
-  // Filter by search and type
-  const filteredClients = Array.from(clientsMap.entries()).filter(
-    ([clientName]) => {
-      const matchesSearch = clientName
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      return matchesSearch;
-    },
+  const salesmanList = useMemo(
+    () =>
+      Array.from(
+        new Set(entries.map((entry) => entry.salesman_name).filter(Boolean)),
+      ).sort((a, b) => salesmanLabel(a).localeCompare(salesmanLabel(b))),
+    [entries],
   );
 
-  // Pagination
-  const indexOfLastClient = currentPage * clientsPerPage;
-  const indexOfFirstClient = indexOfLastClient - clientsPerPage;
-  const currentClients = filteredClients.slice(
-    indexOfFirstClient,
-    indexOfLastClient,
+  const clients = useMemo(() => {
+    const grouped = new Map<string, ReportEntry[]>();
+    for (const entry of entries) {
+      if (
+        isSalesman
+          ? entry.salesman_name !== userFullname
+          : selectedSalesman !== "all" &&
+            entry.salesman_name !== selectedSalesman
+      )
+        continue;
+      const visits = grouped.get(entry.doctor_name) || [];
+      visits.push(entry);
+      grouped.set(entry.doctor_name, visits);
+    }
+    return Array.from(grouped, ([name, visits]) => ({
+      name,
+      visits: visits.sort(compareVisits),
+    })).sort(
+      (a, b) =>
+        compareVisits(a.visits[0], b.visits[0]) || a.name.localeCompare(b.name),
+    );
+  }, [entries, isSalesman, userFullname, selectedSalesman]);
+
+  const search = searchTerm.trim().toLocaleLowerCase();
+  const filteredClients = clients.filter(
+    ({ name, visits }) =>
+      name.toLocaleLowerCase().includes(search) ||
+      visits[0].district.toLocaleLowerCase().includes(search),
   );
   const totalPages = Math.max(
     1,
     Math.ceil(filteredClients.length / clientsPerPage),
   );
-
-  const paginate = (page: number) => setCurrentPage(page);
+  const page = Math.min(currentPage, totalPages);
+  const firstIndex = (page - 1) * clientsPerPage;
+  const currentClients = filteredClients.slice(
+    firstIndex,
+    firstIndex + clientsPerPage,
+  );
+  const filtersActive = Boolean(searchTerm || selectedSalesman !== "all");
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedSalesman("all");
+    setCurrentPage(1);
+  };
+  const firstPageNumber = Math.max(1, Math.min(page - 2, totalPages - 4));
+  const pageNumbers = Array.from(
+    { length: Math.min(5, totalPages) },
+    (_, index) => firstPageNumber + index,
+  );
 
   return (
-    <div className="page-stack">
-      {/* Client Header */}
+    <div className="page-stack clients-page">
       <PageHeader
         eyebrow="YOUR CONNECTIONS"
         title="Clients"
-        description="Find a client and pick up where you left off."
+        description="Find a client, review recent visits and pick up where you left off."
       />
-
-      <div className="surface transition-colors duration-150 p-8 border">
-        <div className="space-y-6 mt-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-            <div className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto">
+      <section
+        className="people-panel clients-panel"
+        aria-label="Client directory"
+      >
+        <div className="client-toolbar">
+          <div className="people-field client-search-field">
+            <label htmlFor="client-search">Search clients</label>
+            <div className="client-search">
+              <Search size={18} aria-hidden="true" />
               <input
+                id="client-search"
                 type="search"
-                aria-label="Search clients"
-                placeholder="Search clients..."
-                className="w-full sm:w-72 px-5 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-gray-500 focus:outline-none shadow-sm transition"
+                placeholder="Name or district"
                 value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
+                onChange={(event) => {
+                  setSearchTerm(event.target.value);
                   setCurrentPage(1);
                 }}
               />
-              {/* Salesman filter dropdown */}
-              {!isSalesman && (
-                <select
-                  aria-label="Filter by salesman"
-                  className="w-full sm:w-56 px-5 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-gray-500 focus:outline-none shadow-sm transition bg-white cursor-pointer"
-                  value={selectedSalesman}
-                  onChange={(e) => {
-                    setSelectedSalesman(e.target.value);
+              {searchTerm && (
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Clear client search"
+                  onClick={() => {
+                    setSearchTerm("");
                     setCurrentPage(1);
+                    document.getElementById("client-search")?.focus();
                   }}
                 >
-                  <option value="all">All Salesmen</option>
-                  {salesmanList.map((name: string) => (
-                    <option key={name} value={name}>
-                      {salesmenAliases[name] || name}
-                    </option>
-                  ))}
-                </select>
+                  <X size={16} aria-hidden="true" />
+                </button>
               )}
             </div>
           </div>
-
-          <div className="text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-lg">
-            Showing{" "}
-            <span className="font-semibold text-gray-800">
-              {filteredClients.length === 0 ? 0 : indexOfFirstClient + 1}
-            </span>{" "}
-            -{" "}
-            <span className="font-semibold text-gray-800">
-              {Math.min(indexOfLastClient, filteredClients.length)}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold text-gray-800">
-              {filteredClients.length}
-            </span>{" "}
-            clients
-          </div>
+          {!isSalesman && (
+            <div className="people-field client-salesperson-field">
+              <label htmlFor="client-salesperson">Salesperson</label>
+              <select
+                id="client-salesperson"
+                aria-label="Filter by salesman"
+                value={selectedSalesman}
+                onChange={(event) => {
+                  setSelectedSalesman(event.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">All salespeople</option>
+                {salesmanList.map((name) => (
+                  <option key={name} value={name}>
+                    {salesmanLabel(name)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
-        {currentClients.length === 0 ? (
-          <div className="py-24 bg-gray-50 rounded-xl shadow-soft text-center text-gray-600 text-lg select-none border border-gray-200">
-            <div className="flex flex-col items-center space-y-4">
-              <svg
-                className="w-16 h-16 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-              <p>No clients match your criteria.</p>
-            </div>
+        {isLoading ? (
+          <LoadingSpinner message="Loading clients…" />
+        ) : isError && !entries.length ? (
+          <div className="people-empty" role="alert">
+            <UsersRound size={28} aria-hidden="true" />
+            <h2>Clients couldn’t be loaded</h2>
+            <p>Please try again.</p>
+            <button
+              className="button button-quiet"
+              disabled={isFetching}
+              onClick={() => void refetch()}
+            >
+              Try again
+            </button>
           </div>
         ) : (
-          <ul className="space-y-6 mt-6">
-            {currentClients.map(([clientName, entries]) => (
-              <li
-                key={clientName}
-                className="surface transition-shadow duration-150"
-              >
-                <div className="px-5 py-5 border-b border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    {clientName}
-                  </h2>
-
-                  <div className="flex flex-wrap gap-6 text-gray-700 text-base items-center">
-                    <span>
-                      District: <strong>{entries[0].district}</strong>
-                    </span>
-                    <span>
-                      Visits: <strong>{entries.length}</strong>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="divide-y divide-gray-100">
-                  {entries.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="px-5 py-5 hover:bg-gray-50 flex flex-col xl:flex-row xl:justify-between xl:items-start gap-5"
-                    >
-                      <div className="flex flex-col space-y-1 max-w-lg">
-                        <p className="text-sm text-gray-600 font-mono tracking-wide">
-                          {entry.date} &bull; {entry.time_range}
-                        </p>
-                        {entry.orders && (
-                          <p className="font-semibold text-gray-800">
-                            Orders: {entry.orders}
-                          </p>
-                        )}
-                        {entry.samples && (
-                          <p className="text-gray-700">
-                            Samples: {entry.samples}
-                          </p>
-                        )}
-                        {entry.tel_orders && (
-                          <p className="text-gray-700">
-                            Telephone Orders: {entry.tel_orders}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <span className="flex items-center gap-3 font-medium">
-                          <span
-                            className={`inline-block w-5 h-5 rounded-full ${
-                              entry.client_type === "doctor"
-                                ? "bg-gray-600"
-                                : "bg-gray-600"
-                            }`}
-                          />
-                          {entry.client_type === "doctor" ? "Doctor" : "Nurse"}
-                        </span>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <span className="inline-block bg-gray-100 text-gray-700 text-xs font-semibold px-4 py-1 rounded-full select-none">
-                          {salesmenAliases[entry.salesman_name] ||
-                            entry.salesman_name}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-3 sm:justify-end max-w-xs">
-                        {entry.new_product_intro && (
-                          <span className="bg-gray-100 text-gray-800 text-xs px-4 py-1 rounded-full font-semibold select-none">
-                            Product Intro: {entry.new_product_intro}
-                          </span>
-                        )}
-                        {entry.old_product_followup && (
-                          <span className="bg-gray-100 text-gray-800 text-xs px-4 py-1 rounded-full font-semibold select-none">
-                            Follow up: {entry.old_product_followup}
-                          </span>
-                        )}
-                        {entry.delivery_time_update && (
-                          <span className="bg-gray-100 text-gray-800 text-xs px-4 py-1 rounded-full font-semibold select-none">
-                            Delivery Update: {entry.delivery_time_update}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <>
+            {isError && (
+              <div className="people-inline-message" role="alert">
+                The latest clients couldn’t be loaded. Showing your previous
+                results.
+                <button
+                  className="button button-quiet"
+                  disabled={isFetching}
+                  onClick={() => void refetch()}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+            <div className="client-results-bar">
+              <p aria-live="polite" aria-atomic="true">
+                {filteredClients.length
+                  ? `Showing ${firstIndex + 1}–${Math.min(firstIndex + clientsPerPage, filteredClients.length)} of ${filteredClients.length} clients`
+                  : "0 clients"}
+              </p>
+              <span>
+                {isFetching ? (
+                  <span role="status">Updating clients…</span>
+                ) : (
+                  "Latest visit first"
+                )}
+              </span>
+            </div>
+            {!currentClients.length ? (
+              <div className="people-empty">
+                <UsersRound size={28} aria-hidden="true" />
+                <h2>
+                  {filtersActive ? "No matching clients" : "No clients yet"}
+                </h2>
+                <p>
+                  {filtersActive
+                    ? "Try another name, district or salesperson."
+                    : "Clients appear here after their first report entry."}
+                </p>
+                {filtersActive && (
+                  <button
+                    className="button button-quiet"
+                    onClick={clearFilters}
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <ul className="client-records">
+                {currentClients.map(({ name, visits }) => (
+                  <ClientRecord key={name} name={name} visits={visits} />
+                ))}
+              </ul>
+            )}
+            {totalPages > 1 && (
+              <nav className="client-pagination" aria-label="Client pages">
+                <button
+                  className="icon-button client-page-edge"
+                  aria-label="First page"
+                  disabled={page === 1}
+                  onClick={() => setCurrentPage(1)}
+                >
+                  <ChevronsLeft size={18} aria-hidden="true" />
+                </button>
+                <button
+                  className="icon-button"
+                  aria-label="Previous page"
+                  disabled={page === 1}
+                  onClick={() => setCurrentPage(page - 1)}
+                >
+                  <ChevronLeft size={18} aria-hidden="true" />
+                </button>
+                {pageNumbers.map((number) => (
+                  <button
+                    key={number}
+                    className="client-page-number"
+                    aria-label={`Page ${number}`}
+                    aria-current={page === number ? "page" : undefined}
+                    onClick={() => setCurrentPage(number)}
+                  >
+                    {number}
+                  </button>
+                ))}
+                <span className="client-page-label">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  className="icon-button"
+                  aria-label="Next page"
+                  disabled={page === totalPages}
+                  onClick={() => setCurrentPage(page + 1)}
+                >
+                  <ChevronRight size={18} aria-hidden="true" />
+                </button>
+                <button
+                  className="icon-button client-page-edge"
+                  aria-label="Last page"
+                  disabled={page === totalPages}
+                  onClick={() => setCurrentPage(totalPages)}
+                >
+                  <ChevronsRight size={18} aria-hidden="true" />
+                </button>
+              </nav>
+            )}
+          </>
         )}
-
-        <nav aria-label="Pagination" className="pagination">
-          {/* Go to First Page */}
-          <button
-            onClick={() => paginate(1)}
-            disabled={currentPage === 1}
-            className={`px-5 py-2 rounded-l-xl border border-gray-300 ${
-              currentPage === 1
-                ? "bg-gray-100 text-gray-600 cursor-not-allowed"
-                : "bg-white text-gray-700 hover:bg-gray-50"
-            } transition`}
-            aria-label="First Page"
-          >
-            {"<<"}
-          </button>
-
-          {/* Previous Page */}
-          <button
-            onClick={() => paginate(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            className={`px-5 py-2 border-t border-b border-gray-300 ${
-              currentPage === 1
-                ? "bg-gray-100 text-gray-600 cursor-not-allowed"
-                : "bg-white text-gray-700 hover:bg-gray-50"
-            } transition`}
-            aria-label="Previous Page"
-          >
-            &lt;
-          </button>
-
-          {/* Pagination numbers */}
-          {(() => {
-            const maxPageButtons = 5;
-            let startPage = Math.max(
-              1,
-              currentPage - Math.floor(maxPageButtons / 2),
-            );
-            let endPage = startPage + maxPageButtons - 1;
-            if (endPage > totalPages) {
-              endPage = totalPages;
-              startPage = Math.max(1, endPage - maxPageButtons + 1);
-            }
-            const pageNumbers = [];
-            for (let i = startPage; i <= endPage; i++) {
-              pageNumbers.push(i);
-            }
-            return pageNumbers.map((number) => (
-              <button
-                key={number}
-                onClick={() => paginate(number)}
-                aria-current={currentPage === number ? "page" : undefined}
-                className={`px-5 py-2 border-t border-b border-gray-300 ${
-                  currentPage === number
-                    ? "bg-gray-600 text-white font-semibold"
-                    : "bg-white text-gray-700 hover:bg-gray-50"
-                } transition`}
-              >
-                {number}
-              </button>
-            ));
-          })()}
-
-          {/* Next Page */}
-          <button
-            onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-            className={`px-5 py-2 border-t border-b border-gray-300 ${
-              currentPage === totalPages
-                ? "bg-gray-100 text-gray-600 cursor-not-allowed"
-                : "bg-white text-gray-700 hover:bg-gray-50"
-            } transition`}
-            aria-label="Next Page"
-          >
-            &gt;
-          </button>
-
-          {/* Go to Last Page */}
-          <button
-            onClick={() => paginate(totalPages)}
-            disabled={currentPage === totalPages}
-            className={`px-5 py-2 rounded-r-xl border border-gray-300 ${
-              currentPage === totalPages
-                ? "bg-gray-100 text-gray-600 cursor-not-allowed"
-                : "bg-white text-gray-700 hover:bg-gray-50"
-            } transition`}
-            aria-label="Last Page"
-          >
-            {">>"}
-          </button>
-        </nav>
-      </div>
+      </section>
     </div>
   );
-};
-
-export default Client;
+}

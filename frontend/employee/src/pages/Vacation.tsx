@@ -8,7 +8,7 @@ export default function Vacation() {
   const { user } = useAuth();
   const canApprove = hasRole(user?.role, ALL_MANAGEMENT);
   return (
-    <div className="page-stack">
+    <div className="page-stack vacation-page">
       <PageHeader
         eyebrow="TIME TO RECHARGE"
         title={canApprove ? "Vacation management" : "My vacation"}
@@ -19,16 +19,12 @@ export default function Vacation() {
         }
       />
       {canApprove ? (
-        <section className="surface surface-pad">
-          <VacationRequestList />
-        </section>
+        <VacationRequestList />
       ) : (
         user?.role && (
           <>
             <VacationRequestForm />
-            <section className="surface surface-pad">
-              <MyVacationRequestList />
-            </section>
+            <MyVacationRequestList />
           </>
         )
       )}

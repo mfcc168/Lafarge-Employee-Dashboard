@@ -17,6 +17,7 @@ export const useVacationRequestForm = () => {
     { type: "full", leave_type: "Annual Leave", from_date: "", to_date: "" },
   ]);
   const [submitting, setSubmitting] = useState(false);
+  const [calculating, setCalculating] = useState(false);
   const [signatureData, setSignatureData] = useState<string>("");
   const [totalVacationDays, setTotalVacationDays] = useState(0);
   const [excludedDates, setExcludedDates] = useState<ExcludedDate[]>([]);
@@ -42,7 +43,9 @@ export const useVacationRequestForm = () => {
 
   // Calculate vacation days asynchronously using business days
   useEffect(() => {
+    let cancelled = false;
     const calculateTotalDays = async () => {
+      setCalculating(true);
       let total = 0;
       const allExcludedDates: ExcludedDate[] = [];
 
@@ -87,8 +90,11 @@ export const useVacationRequestForm = () => {
           index === self.findIndex((d) => d.date === date.date),
       );
 
-      setTotalVacationDays(total);
-      setExcludedDates(uniqueExcludedDates);
+      if (!cancelled) {
+        setTotalVacationDays(total);
+        setExcludedDates(uniqueExcludedDates);
+        setCalculating(false);
+      }
     };
 
     if (dateItems.length > 0) {
@@ -96,7 +102,11 @@ export const useVacationRequestForm = () => {
     } else {
       setTotalVacationDays(0);
       setExcludedDates([]);
+      setCalculating(false);
     }
+    return () => {
+      cancelled = true;
+    };
   }, [dateItems]);
 
   const getTotalVacationDay = totalVacationDays;
@@ -109,12 +119,16 @@ export const useVacationRequestForm = () => {
   }, [user?.annual_leave_days, getTotalVacationDay]);
 
   const handleSubmit = async () => {
+    if (submitting || calculating) return false;
     if (
       dateItems.length === 0 ||
       !dateItems.every((item) => {
         if (item.type === "half")
           return !!item.single_date && !!item.half_day_period;
-        if (item.type === "full") return !!item.from_date && !!item.to_date;
+        if (item.type === "full")
+          return (
+            !!item.from_date && !!item.to_date && item.to_date >= item.from_date
+          );
         return false;
       })
     ) {
@@ -192,6 +206,7 @@ export const useVacationRequestForm = () => {
   return {
     dateItems,
     submitting,
+    calculating,
     addItem,
     updateItem,
     removeItem,

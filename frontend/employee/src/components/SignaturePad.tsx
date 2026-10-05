@@ -10,9 +10,15 @@ type SignaturePadProps = {
   value: string;
   onChange: (nextValue: string) => void;
   onClear: () => void;
+  disabled?: boolean;
 };
 
-const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
+const SignaturePad = ({
+  value,
+  onChange,
+  onClear,
+  disabled = false,
+}: SignaturePadProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isDrawingRef = useRef(false);
@@ -30,7 +36,7 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
 
     const deviceRatio = window.devicePixelRatio || 1;
     const width = container.clientWidth;
-    const height = Math.max(container.clientHeight, 220);
+    const height = Math.max(container.clientHeight, 180);
 
     canvas.width = width * deviceRatio;
     canvas.height = height * deviceRatio;
@@ -100,6 +106,7 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (disabled) return;
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
@@ -178,11 +185,8 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
   };
 
   return (
-    <div className="space-y-3">
-      <div
-        ref={containerRef}
-        className="surface w-full h-56 sm:h-64 border-2 border-dashed border-gray-300 shadow-inner overflow-hidden touch-none select-none"
-      >
+    <div className="signature-pad">
+      <div ref={containerRef} className="signature-canvas-wrap">
         <canvas
           ref={canvasRef}
           className="w-full h-full cursor-crosshair touch-none select-none"
@@ -192,18 +196,18 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
           onPointerLeave={handlePointerLeave}
           onPointerCancel={handlePointerCancel}
           aria-label="Signature input canvas"
+          aria-disabled={disabled}
         />
       </div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <span className="text-xs text-gray-600">
-          {hasSignature
-            ? "Signature captured. You can clear and retry if needed."
-            : "Draw your signature directly in the box above."}
+      <div className="signature-pad-footer">
+        <span className="people-caption" role="status">
+          {hasSignature ? "Signature added" : "Draw in the box above"}
         </span>
         <button
           type="button"
           onClick={handleClear}
-          className="self-start sm:self-auto px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-150"
+          disabled={disabled || !hasSignature}
+          className="button button-quiet"
         >
           Clear Signature
         </button>
