@@ -1,23 +1,31 @@
-import { useState } from "react";
-import { PayrollInformationProps } from "@interfaces/index";
+import { useEffect, useRef, useState } from "react";
+import type {
+  EmployeeProfile,
+  PayrollInformationProps,
+  SalaryData,
+} from "@interfaces/index";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { Check, LoaderCircle, Pencil } from "lucide-react";
 import { useAuth } from "@context/AuthContext";
 import { backendUrl } from "@configs/DotEnv";
+import { formatAmount } from "@utils/formatAmount";
 
-/**
- * PayrollInformation Component
- *
- * Displays and manages employee payroll information with:
- * - View and edit modes for salary components
- * - Real-time calculation of gross/net payments
- * - MPF deduction handling
- * - Role-based field visibility (e.g., commission for sales)
- *
- * @param {PayrollInformationProps} props - Component properties
- * returns Payroll information interface
- */
-const PayrollInformation = ({
+const fields = [
+  ["Base salary", "baseSalary"],
+  ["Bonus payment", "bonusPayment"],
+  ["Year end bonus", "yearEndBonus"],
+  ["Transportation allowance", "transportationAllowance"],
+] as const;
+type EditableField = (typeof fields)[number][1];
+const draftFrom = (salary: SalaryData): Record<EditableField, string> => ({
+  baseSalary: String(salary.baseSalary ?? 0),
+  bonusPayment: String(salary.bonusPayment ?? 0),
+  yearEndBonus: String(salary.yearEndBonus ?? 0),
+  transportationAllowance: String(salary.transportationAllowance ?? 0),
+});
+
+export default function PayrollInformation({
   salaryData,
   grossPayment,
   netPayment,
@@ -26,26 +34,15 @@ const PayrollInformation = ({
   month,
   userRole,
   employeeId,
-}: PayrollInformationProps) => {
-  // Component state
+}: PayrollInformationProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({
-    baseSalary: salaryData.baseSalary || 0,
-    bonusPayment: salaryData.bonusPayment || 0,
-    yearEndBonus: salaryData.yearEndBonus || 0,
-    transportationAllowance: salaryData.transportationAllowance || 0,
-    commission: salaryData.commission || 0,
-    mpfDeduction: salaryData.mpfDeduction || 0,
-  });
-
-  // Authentication and data management
+  const [draft, setDraft] = useState(() => draftFrom(salaryData));
+  const [saved, setSaved] = useState(false);
+  const editButton = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
-
-  /**
-   * Mutation for updating salary information
-   */
-  const { mutate: updateSalary, isPending: isUpdating } = useMutation({
+  const mutation = useMutation({
     mutationFn: async (payload: {
       base_salary: number;
       bonus_payment: number;
@@ -53,7 +50,7 @@ const PayrollInformation = ({
       transportation_allowance: number;
       commission?: number;
     }) => {
-      const response = await axios.patch(
+      const response = await axios.patch<EmployeeProfile>(
         `${backendUrl}/api/profile/${employeeId}/update/`,
         payload,
         {
@@ -65,349 +62,217 @@ const PayrollInformation = ({
       );
       return response.data;
     },
-    onSuccess: () => {
-      // Refresh salary data after successful update
-      queryClient.invalidateQueries({
-        queryKey: ["employee-salaries"],
+    onSuccess: async (profile) => {
+      await queryClient.cancelQueries({ queryKey: ["employee-salaries"] });
+      if (profile.id === employeeId) {
+        queryClient.setQueriesData<EmployeeProfile[]>(
+          { queryKey: ["employee-salaries"] },
+          (previous) =>
+            previous?.map((entry) =>
+              entry.id === employeeId ? { ...entry, ...profile } : entry,
+            ),
+        );
+      }
+      void queryClient.invalidateQueries({ queryKey: ["employee-salaries"] });
+      void queryClient.invalidateQueries({ queryKey: ["all-employees"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["employee", String(employeeId)],
       });
+      setSaved(true);
+      restoreFocus.current = true;
       setIsEditing(false);
     },
-    onError: (e: unknown) => {
-      console.error("Failed to update salary:", e);
-    },
   });
+  useEffect(() => {
+    if (!isEditing && restoreFocus.current) {
+      if (!editButton.current?.closest("[inert], [hidden]"))
+        editButton.current?.focus();
+      restoreFocus.current = false;
+    }
+  }, [isEditing]);
 
-  // UI Handlers
-  const handleEditToggle = () => setIsEditing(!isEditing);
-
-  const handleChange = (field: string, value: number) => {
-    setEditData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const beginEdit = () => {
+    setDraft(draftFrom(salaryData));
+    setSaved(false);
+    mutation.reset();
+    setIsEditing(true);
   };
-
-  const handleSave = () => {
-    const payload = {
-      base_salary: editData.baseSalary,
-      bonus_payment: editData.bonusPayment,
-      year_end_bonus: editData.yearEndBonus,
-      transportation_allowance: editData.transportationAllowance,
-      ...(userRole === "SALESMAN" && { commission: editData.commission }),
-    };
-    updateSalary(payload);
-  };
-
-  const handleCancel = () => {
-    // Reset to original values
-    setEditData({
-      baseSalary: salaryData.baseSalary || 0,
-      bonusPayment: salaryData.bonusPayment || 0,
-      yearEndBonus: salaryData.yearEndBonus || 0,
-      transportationAllowance: salaryData.transportationAllowance || 0,
-      commission: salaryData.commission || 0,
-      mpfDeduction: salaryData.mpfDeduction || 0,
-    });
+  const cancel = () => {
+    mutation.reset();
+    restoreFocus.current = true;
     setIsEditing(false);
   };
+  const payload = {
+    base_salary: Number(draft.baseSalary || 0),
+    bonus_payment: Number(draft.bonusPayment || 0),
+    year_end_bonus: Number(draft.yearEndBonus || 0),
+    transportation_allowance: Number(draft.transportationAllowance || 0),
+    ...(userRole === "SALESMAN" && { commission: salaryData.commission || 0 }),
+  };
+  const previewGross =
+    payload.base_salary +
+    payload.bonus_payment +
+    payload.year_end_bonus +
+    payload.transportation_allowance +
+    (salaryData.commission || 0);
+  const previewDeduction = Math.min(
+    1500,
+    previewGross * (salaryData.mpfDeduction || 0),
+  );
+  const gross = isEditing ? previewGross : grossPayment;
+  const deduction = isEditing ? previewDeduction : mpfDeductionAmount;
+  const net = isEditing ? previewGross - previewDeduction : netPayment;
 
-  /**
-   * Renders a field in either editable or view mode
-   * @param {string} label - Field display label
-   * @param {string} field - Field key in state
-   * @param {number} value - Current field value
-   * @param {boolean} isEditable - Whether field can be edited
-   * returns Field component
-   */
-  const renderEditableField = (
-    label: string,
-    field: string,
-    value: number,
-    isEditable = true,
-  ) => {
-    if (!isEditable && isEditing) return null;
-
-    return isEditing && isEditable ? (
-      <div className="space-y-2">
-        <label
-          htmlFor={`payroll-${employeeId}-${field}`}
-          className="text-gray-700 font-medium block"
-        >
-          {label}
-        </label>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium">
-            $
-          </span>
-          <input
-            id={`payroll-${employeeId}-${field}`}
-            type="number"
-            className="money-input w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 outline-none bg-white transition-colors duration-200 font-medium"
-            value={value}
-            onChange={(e) =>
-              handleChange(field, parseFloat(e.target.value) || 0)
-            }
-            placeholder="0.00"
-          />
-        </div>
-      </div>
-    ) : (
-      <div className="space-y-2">
-        <p className="text-gray-600 font-medium">{label}</p>
-        <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
-          <p className="font-bold text-gray-800 text-lg">
-            $
-            {value?.toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
+  return (
+    <form
+      className="payroll-information"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (isEditing && !mutation.isPending) mutation.mutate(payload);
+      }}
+    >
+      <header className="finance-section-heading">
+        <div>
+          <h3>Pay breakdown</h3>
+          <p className="finance-caption">
+            {new Date(year, month - 1).toLocaleDateString("en-US", {
+              month: "long",
+              year: "numeric",
             })}
           </p>
         </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Enhanced Header with gradient icon */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center shadow-md">
-            <svg
-              className="w-5 h-5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-              />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800">
-              Payroll details
-            </h2>
-            <p className="text-sm text-gray-600 font-medium">
-              {new Date(year, month - 1).toLocaleDateString("en-US", {
-                month: "long",
-                year: "numeric",
-              })}
-            </p>
-          </div>
-        </div>
-        {!isEditing ? (
+        {!isEditing && employeeId !== undefined && (
           <button
-            onClick={handleEditToggle}
-            className="flex items-center gap-2  bg-gray-800    text-white px-4 py-2 rounded-xl shadow-md  transition-colors duration-200 font-medium"
+            type="button"
+            ref={editButton}
+            className="button button-quiet"
+            onClick={beginEdit}
             aria-label="Edit payroll information"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
-            </svg>
+            <Pencil size={16} aria-hidden="true" />
             Edit
           </button>
-        ) : (
-          <div className="flex gap-2">
-            <button
-              onClick={handleSave}
-              disabled={isUpdating}
-              className="flex items-center gap-2  bg-gray-800    disabled:bg-gray-800 disabled: text-white px-4 py-2 rounded-xl shadow-md  transition-colors duration-200 font-medium min-w-[100px]"
-              aria-label="Save changes"
-            >
-              {isUpdating ? (
-                <>
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  Save
-                </>
-              )}
-            </button>
-            <button
-              onClick={handleCancel}
-              className="flex items-center gap-2  bg-gray-800    text-white px-4 py-2 rounded-xl shadow-md  transition-colors duration-200 font-medium"
-              aria-label="Cancel editing"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-              Cancel
-            </button>
-          </div>
         )}
-      </div>
-
-      {/* Enhanced Salary Details Section */}
-      <div className="surface border transition-colors duration-200 overflow-hidden">
-        <div className="bg-gray-800 px-6 py-4">
-          <div className="flex items-center gap-2">
-            <svg
-              className="w-5 h-5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-              />
-            </svg>
-            <h2 className="text-lg font-bold text-white">Salary Components</h2>
-          </div>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {renderEditableField(
-              "Base Salary",
-              "baseSalary",
-              editData.baseSalary,
-            )}
-            {renderEditableField(
-              "Bonus Payment",
-              "bonusPayment",
-              editData.bonusPayment,
-            )}
-            {renderEditableField(
-              "Year End Bonus",
-              "yearEndBonus",
-              editData.yearEndBonus,
-            )}
-            {renderEditableField(
-              "Transportation Allowance",
-              "transportationAllowance",
-              editData.transportationAllowance,
-            )}
-            {userRole === "SALESMAN" &&
-              renderEditableField(
-                "Commission",
-                "commission",
-                editData.commission,
-                false,
-              )}
-          </div>
-        </div>
-      </div>
-
-      {/* Enhanced Payment Summary Section */}
-      <div className="surface border transition-colors duration-200 overflow-hidden">
-        <div className="bg-gray-800 px-6 py-4">
-          <div className="flex items-center gap-2">
-            <svg
-              className="w-5 h-5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-              />
-            </svg>
-            <h2 className="text-lg font-bold text-white">Payment Summary</h2>
-          </div>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <span className="text-gray-600 font-medium">Gross Payment</span>
-              <span className="text-lg font-bold text-gray-800">
-                $
-                {grossPayment.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </span>
+        {isEditing && <span className="finance-caption">Editing</span>}
+      </header>
+      <div className="payroll-info-columns">
+        <section className="payroll-earnings" aria-label="Salary components">
+          {isEditing ? (
+            <div className="payroll-edit-fields">
+              {fields.map(([label, field]) => (
+                <div className="workspace-field" key={field}>
+                  <label htmlFor={`payroll-${employeeId}-${field}`}>
+                    {label}
+                  </label>
+                  <div className="workspace-money">
+                    <span aria-hidden="true">$</span>
+                    <input
+                      id={`payroll-${employeeId}-${field}`}
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      className="workspace-input"
+                      value={draft[field]}
+                      disabled={mutation.isPending}
+                      onChange={(event) =>
+                        setDraft((previous) => ({
+                          ...previous,
+                          [field]: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <span className="text-gray-600 font-medium">MPF Deduction</span>
-              <span className="text-lg font-bold text-gray-600">
-                -$
-                {mpfDeductionAmount.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </span>
-            </div>
-            <div className="bg-gray-100 rounded-xl p-4 mt-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-800 font-bold text-lg">
-                  Net Payment
-                </span>
-                <span className="text-2xl font-bold text-gray-700">
-                  $
-                  {netPayment.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
+          ) : (
+            <dl className="payroll-amount-list">
+              {fields.map(([label, field]) => (
+                <div key={field}>
+                  <dt>{label}</dt>
+                  <dd>{formatAmount(salaryData[field] || 0)}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {userRole === "SALESMAN" && (
+            <dl className="payroll-amount-list payroll-commission">
+              <div>
+                <dt>Commission</dt>
+                <dd>{formatAmount(salaryData.commission || 0)}</dd>
               </div>
+            </dl>
+          )}
+        </section>
+        <section
+          className="payroll-payment-summary"
+          aria-label="Payment summary"
+        >
+          <p className="finance-caption">
+            {isEditing ? "Preview while editing" : "Payment summary"}
+          </p>
+          <dl className="payroll-amount-list">
+            <div>
+              <dt>Gross pay</dt>
+              <dd>{formatAmount(gross)}</dd>
             </div>
-          </div>
-        </div>
+            <div>
+              <dt>MPF deduction</dt>
+              <dd>−{formatAmount(deduction)}</dd>
+            </div>
+            <div className="payroll-net">
+              <dt>Net pay</dt>
+              <dd>{formatAmount(net)}</dd>
+            </div>
+          </dl>
+        </section>
       </div>
-    </div>
+      {mutation.isError && (
+        <p className="payroll-save-error" role="alert">
+          Changes couldn’t be saved. Your edits are still here. Try saving
+          again.
+        </p>
+      )}
+      {saved && (
+        <p className="payroll-saved" role="status">
+          <Check size={16} aria-hidden="true" />
+          Changes saved
+        </p>
+      )}
+      {isEditing && (
+        <footer className="payroll-edit-actions">
+          <button
+            type="submit"
+            className="button button-primary payroll-save"
+            aria-label="Save changes"
+            disabled={mutation.isPending}
+          >
+            {mutation.isPending ? (
+              <LoaderCircle
+                size={16}
+                className="finance-working-icon"
+                aria-hidden="true"
+              />
+            ) : (
+              <Check size={16} aria-hidden="true" />
+            )}
+            Save
+          </button>
+          <button
+            type="button"
+            className="button button-quiet"
+            disabled={mutation.isPending}
+            onClick={cancel}
+          >
+            Cancel
+          </button>
+          {mutation.isPending && (
+            <span className="finance-caption" role="status">
+              Saving changes…
+            </span>
+          )}
+        </footer>
+      )}
+    </form>
   );
-};
-
-export default PayrollInformation;
+}

@@ -7,7 +7,7 @@ import { EmployeeProfile } from "interfaces/index";
 
 /**
  * useAllEmployeePayroll Custom Hook
- * 
+ *
  * Manages employee payroll data with:
  * - Employee salary information
  * - Sales commission data
@@ -35,7 +35,7 @@ export const useAllEmployeePayroll = () => {
     const isBeforeSalaryDay = day < 10;
     const payrollMonth = isBeforeSalaryDay ? (m === 1 ? 12 : m - 1) : m;
     const payrollYear = isBeforeSalaryDay && m === 1 ? y - 1 : y;
-  
+
     // Calculate commission period (always month before payroll)
     let commissionMonth = payrollMonth - 1;
     let commissionYear = payrollYear;
@@ -43,20 +43,22 @@ export const useAllEmployeePayroll = () => {
       commissionMonth = 12;
       commissionYear -= 1;
     }
-  
+
     return [payrollYear, payrollMonth, commissionYear, commissionMonth];
   }, []);
 
   /**
    * Fetches employee salary profiles
    */
-  const { 
-    data: profiles = [], 
+  const {
+    data: profilesData,
     isLoading: isLoadingProfiles,
+    isFetching: isFetchingProfiles,
+    refetch: refetchProfiles,
     isError: isProfilesError,
-    error: profilesError 
+    error: profilesError,
   } = useQuery<EmployeeProfile[]>({
-    queryKey: ['employee-salaries', accessToken],
+    queryKey: ["employee-salaries", accessToken],
     queryFn: async () => {
       const res = await axios.get(`${backendUrl}/api/salaries/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -71,13 +73,15 @@ export const useAllEmployeePayroll = () => {
   /**
    * Fetches sales commission data
    */
-  const { 
-    data: commissions = {}, 
+  const {
+    data: commissionsData,
     isLoading: isLoadingCommissions,
+    isFetching: isFetchingCommissions,
+    refetch: refetchCommissions,
     isError: isCommissionsError,
-    error: commissionsError 
+    error: commissionsError,
   } = useQuery<Record<string, number>>({
-    queryKey: ['sales-commissions', prevYear, prevMonth, accessToken],
+    queryKey: ["sales-commissions", prevYear, prevMonth, accessToken],
     queryFn: async () => {
       // Map salesman names to usernames
       const nameToUsernameMap: Record<string, string> = {
@@ -88,25 +92,26 @@ export const useAllEmployeePayroll = () => {
 
       const res = await axios.get(
         `${apiUrl}/salesmen/commissions/${prevYear}/${prevMonth}/`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+        { headers: { Authorization: `Bearer ${accessToken}` } },
       );
 
       // Transform commission data into username-keyed object
       const commissionMap: Record<string, number> = {};
-      res.data.forEach(
-        (entry: { salesman: string; commission: number }) => {
-          const username = nameToUsernameMap[entry.salesman];
-          if (username) {
-            commissionMap[username] = entry.commission;
-          }
+      res.data.forEach((entry: { salesman: string; commission: number }) => {
+        const username = nameToUsernameMap[entry.salesman];
+        if (username) {
+          commissionMap[username] = entry.commission;
         }
-      );
+      });
       return commissionMap;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes cache
     enabled: !!accessToken && !!prevYear && !!prevMonth,
     retry: 2, // Retry failed requests twice
   });
+
+  const profiles = profilesData || [];
+  const commissions = commissionsData || {};
 
   /**
    * Toggles expansion of a payroll item
@@ -120,6 +125,11 @@ export const useAllEmployeePayroll = () => {
    * Generates and opens a PDF payroll report
    */
   const handleViewPayrollPDF = async () => {
+    // Reserve the tab during the click so the browser does not block it after await.
+    const reportWindow = window.open("about:blank", "_blank");
+    if (!reportWindow)
+      throw new Error("Allow pop-ups to open the payslips, then try again.");
+    reportWindow.opener = null;
     try {
       const response = await axios.post(
         `${backendUrl}/api/payroll/pdf/`,
@@ -130,22 +140,18 @@ export const useAllEmployeePayroll = () => {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       // Create and open PDF blob
       const url = window.URL.createObjectURL(
-        new Blob([response.data], { type: "application/pdf" })
+        new Blob([response.data], { type: "application/pdf" }),
       );
-      const newWindow = window.open(url, '_blank');
-      
-      // Ensure window was opened
-      if (!newWindow) {
-        throw new Error('Popup window was blocked');
-      }
-    } catch (error) {
-      console.error("Failed to generate PDF:", error);
-      throw error; // Re-throw for error handling in components
+      reportWindow.location.href = url;
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+    } catch {
+      reportWindow.close();
+      throw new Error("Payslips couldn’t be generated. Please try again.");
     }
   };
 
@@ -160,6 +166,9 @@ export const useAllEmployeePayroll = () => {
     profiles,
     expandedId,
     isLoading,
+    isFetching: isFetchingProfiles || isFetchingCommissions,
+    hasData: profilesData !== undefined && commissionsData !== undefined,
+    refetch: () => Promise.all([refetchProfiles(), refetchCommissions()]),
     isError,
     error,
     year,

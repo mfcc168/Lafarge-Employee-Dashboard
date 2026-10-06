@@ -2,7 +2,7 @@ import { LazyAllEmployeePayroll as AllEmployeePayroll } from "@components/LazyCo
 import PageHeader from "@components/PageHeader";
 export default function Payroll() {
   return (
-    <div className="page-stack">
+    <div className="page-stack payroll-page">
       <PageHeader
         eyebrow="PEOPLE & PAY"
         title="Payroll"

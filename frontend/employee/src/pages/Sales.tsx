@@ -8,14 +8,17 @@ export default function Sales() {
     user?.role || "",
   );
   return (
-    <div className="page-stack">
+    <div className="page-stack sales-page">
       <PageHeader
         eyebrow="PERFORMANCE"
         title={isSalesman ? "My sales" : "Sales overview"}
         description="Monthly performance, invoices, and commission at a glance."
       />
       {isSalesman && user?.username && (
-        <section className="surface surface-pad">
+        <section
+          className="people-panel sales-panel"
+          aria-label="My monthly sales"
+        >
           <SalesmanMonthlyReport
             salesmanName={user.username.toLowerCase().trim()}
           />
@@ -23,10 +26,11 @@ export default function Sales() {
       )}
       {isManager &&
         ["Dominic", "Matthew"].map((name) => (
-          <section className="surface surface-pad" key={name}>
-            <div className="section-bar">
-              <h2>{name}’s performance</h2>
-            </div>
+          <section
+            className="people-panel sales-panel"
+            key={name}
+            aria-label={`${name}’s monthly sales`}
+          >
             <SalesmanMonthlyReport salesmanName={name.toLowerCase()} />
           </section>
         ))}

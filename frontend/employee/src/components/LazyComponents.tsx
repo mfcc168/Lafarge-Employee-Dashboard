@@ -37,17 +37,6 @@ const TableSkeleton = () => (
   </div>
 );
 
-/**
- * Card skeleton for dashboard widgets
- */
-const CardSkeleton = () => (
-  <div className="bg-white p-6 rounded-lg shadow animate-pulse">
-    <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-    <div className="h-6 bg-gray-200 rounded w-1/2 mb-2"></div>
-    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-  </div>
-);
-
 // Heavy components that benefit from lazy loading
 export const LazyReportEntryForm = withLazyLoading(
   () => import("./ReportEntryForm"),
@@ -58,12 +47,14 @@ export const LazyReportEntryForm = withLazyLoading(
 
 export const LazyAllEmployeePayroll = withLazyLoading(
   () => import("./AllEmployeePayroll"),
-  <TableSkeleton />,
+  <div className="people-panel">
+    <LoadingSpinner message="Loading payroll…" />
+  </div>,
 );
 
 export const LazySalesmanMonthlyReport = withLazyLoading(
   () => import("./SalesmanMonthlyReport"),
-  <CardSkeleton />,
+  <LoadingSpinner message="Loading sales…" />,
 );
 
 export const LazyVacationRequestForm = withLazyLoading(

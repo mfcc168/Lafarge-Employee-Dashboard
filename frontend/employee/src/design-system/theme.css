@@ -1216,30 +1216,6 @@ table tbody tr:hover {
   border-radius: 16px;
   padding: 22px;
 }
-.payroll-row {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 22px 24px;
-  text-align: left;
-  background: transparent;
-}
-.payroll-row:hover {
-  background: #ffffff70;
-}
-.sales-week-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: space-between;
-  width: 100%;
-  padding: 18px 20px;
-  text-align: left;
-}
 .employee-profile-link {
   text-decoration: underline;
   text-decoration-color: transparent;
@@ -1266,22 +1242,13 @@ table tbody tr:hover {
   min-width: 0;
 }
 @media (max-width: 639px) {
-  .payroll-row {
-    padding: 18px;
-  }
   .vacation-date-card {
-    padding: 16px;
-  }
-  .sales-week-row {
     padding: 16px;
   }
   .segmented-control button {
     padding: 9px 11px;
     font-size: 0.8125rem;
   }
-}
-input.money-input {
-  padding-left: 30px !important;
 }
 .usage-note {
   color: #5b5d6b;
@@ -1300,49 +1267,6 @@ input.money-input {
   line-height: 1.7;
   padding: 8px 0 14px;
 }
-.payroll-details {
-  padding: 24px;
-  border-top: 1px solid #d2d4da70;
-  animation: toast-enter 150ms var(--ease);
-}
-.sales-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-}
-.sales-stat {
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: var(--inset);
-}
-.sales-stat h3 {
-  font-size: 0.75rem;
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: 500;
-}
-.sales-stat p {
-  font-variant-numeric: tabular-nums;
-  font-size: 1.5rem;
-  letter-spacing: -0.03em;
-}
-@media (max-width: 1199px) {
-  .sales-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 639px) {
-  .payroll-details {
-    padding: 16px;
-  }
-  .sales-stat {
-    padding: 16px 12px;
-  }
-  .sales-stat p {
-    font-size: 1.25rem;
-  }
-}
-
 /* Reports keep a full-width work surface and one compact row per entry. */
 .report-shell .workspace {
   margin-left: 0;
