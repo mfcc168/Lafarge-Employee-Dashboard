@@ -1,0 +1,543 @@
+/* Sales and Payroll use white surfaces and flat, readable details. */
+.finance-section-heading,
+.finance-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+.finance-section-heading h2,
+.finance-section-heading h3,
+.finance-list-heading h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 550;
+}
+.finance-caption {
+  display: block;
+  margin: 0;
+  color: #5b5d6b;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.finance-section-heading > div > .finance-caption {
+  margin-top: 4px;
+}
+.sales-period-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border-radius: 12px;
+  background: #f3f4f8;
+}
+.sales-period-control > span {
+  min-width: 145px;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.finance-quiet-icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 10px;
+  color: #5b5d6b;
+  background: transparent;
+  box-shadow: none;
+}
+.finance-quiet-icon:not(:disabled):hover {
+  background: #fff;
+  color: #282a3a;
+}
+.finance-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 24px 0 28px;
+  padding: 22px 0;
+  border-top: 1px solid #d2d4da80;
+  border-bottom: 1px solid #d2d4da80;
+}
+.finance-metrics > div {
+  min-width: 0;
+  padding: 0 20px;
+  border-left: 1px solid #d2d4da80;
+}
+.finance-metrics > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.finance-metrics dt {
+  color: #5b5d6b;
+  font-size: 0.8125rem;
+}
+.finance-metrics dd {
+  margin: 6px 0 0;
+  color: #282a3a;
+  font-size: clamp(1.125rem, 1.8vw, 1.5rem);
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.finance-list-heading {
+  margin: 20px 0 12px;
+}
+.finance-records {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.finance-record {
+  min-width: 0;
+  border: 1px solid #d2d4da;
+  border-radius: 14px;
+  background: #fff;
+}
+.finance-record[hidden] {
+  display: none;
+}
+.finance-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 76px;
+  padding: 16px 18px;
+  border-radius: 13px;
+  background: #fff;
+  text-align: left;
+}
+.finance-row:not(:disabled):hover {
+  box-shadow: inset 0 0 0 1px #b3b5bd;
+}
+.finance-row-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.finance-row-identity > span:last-child {
+  min-width: 0;
+}
+.finance-row-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #f3f4f8;
+  color: #5b5d6b;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.finance-row-title {
+  display: block;
+  color: #282a3a;
+  font-size: 0.9375rem;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.finance-row-value {
+  min-width: 0;
+  color: #282a3a;
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.finance-chevron {
+  color: #777986;
+  transition: transform 180ms var(--ease);
+}
+.finance-row[aria-expanded="true"] .finance-chevron {
+  transform: rotate(180deg);
+}
+.finance-disclosure {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 180ms var(--ease);
+}
+.finance-disclosure.is-expanded {
+  grid-template-rows: 1fr;
+}
+.finance-disclosure > div {
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 0 0 13px 13px;
+}
+.finance-empty-detail {
+  margin: 0;
+  padding: 20px;
+  color: #5b5d6b;
+  font-size: 0.875rem;
+}
+.finance-disclosure .finance-empty-detail {
+  border-top: 1px solid #d2d4da80;
+}
+.sales-loading {
+  display: grid;
+  min-height: 300px;
+  place-items: center;
+}
+.sales-invoice-list {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #d2d4da80;
+  list-style: none;
+}
+.sales-invoice-list > li {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.7fr) minmax(0, 2fr) auto;
+  align-items: start;
+  gap: 12px 24px;
+  padding: 16px 18px;
+}
+.sales-invoice-list > li + li {
+  border-top: 1px solid #d2d4da70;
+}
+.sales-invoice-identity,
+.sales-invoice-description {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sales-invoice-number,
+.sales-invoice-amount {
+  color: #282a3a;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.sales-invoice-amount {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.sales-invoice-date {
+  display: block;
+  margin-top: 5px;
+  color: #5b5d6b;
+  font-size: 0.75rem;
+}
+.sales-invoice-customer {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.sales-invoice-items {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  color: #5b5d6b;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.finance-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 10px 18px;
+  border-top: 1px solid #d2d4da80;
+  color: #5b5d6b;
+  font-size: 0.8125rem;
+}
+.finance-pagination p {
+  margin: 0;
+}
+.finance-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.payroll-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #d2d4da80;
+}
+.payroll-total {
+  margin: 4px 0;
+  font-size: clamp(1.75rem, 3vw, 2.125rem);
+  font-weight: 550;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+.payroll-team-count {
+  margin: 0;
+  text-align: right;
+}
+.payroll-team-count dt {
+  color: #5b5d6b;
+  font-size: 0.8125rem;
+}
+.payroll-team-count dd {
+  margin: 4px 0 0;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+.payroll-list-title {
+  margin: 24px 0 20px;
+}
+.payroll-print {
+  min-width: 114px;
+}
+.payroll-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+}
+.payroll-search-field {
+  flex: 1 1 240px;
+  max-width: 440px;
+}
+.payroll-status-field {
+  flex: 0 1 220px;
+}
+.payroll-inactive {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: #f3f4f8;
+  font-size: 0.75rem;
+}
+.payroll-breakdown {
+  padding: 20px;
+  border-top: 1px solid #d2d4da80;
+}
+.payroll-information .finance-section-heading {
+  margin-bottom: 18px;
+}
+.payroll-information h3 {
+  font-size: 1rem;
+}
+.payroll-info-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  gap: 32px;
+}
+.payroll-earnings {
+  min-width: 0;
+}
+.payroll-amount-list {
+  margin: 0;
+}
+.payroll-amount-list > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #d2d4da60;
+  font-size: 0.875rem;
+}
+.payroll-amount-list dt {
+  min-width: 0;
+  color: #5b5d6b;
+}
+.payroll-amount-list dd {
+  margin: 0;
+  color: #282a3a;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.payroll-payment-summary {
+  min-width: 0;
+  padding-left: 28px;
+  border-left: 1px solid #d2d4da80;
+}
+.payroll-payment-summary > .finance-caption {
+  margin-bottom: 8px;
+}
+.payroll-amount-list > .payroll-net {
+  align-items: center;
+  margin-top: 4px;
+  border-bottom: 0;
+}
+.payroll-net dt {
+  color: #282a3a;
+  font-weight: 500;
+}
+.payroll-net dd {
+  font-size: 1.25rem;
+  font-weight: 550;
+}
+.payroll-edit-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.workspace-money {
+  position: relative;
+}
+.workspace-money > span {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  color: #5b5d6b;
+  pointer-events: none;
+}
+.workspace-money
+  input.workspace-input:not([type="checkbox"]):not([type="radio"]) {
+  padding-left: 32px;
+}
+.payroll-commission {
+  margin-top: 8px;
+}
+.payroll-edit-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+.payroll-save {
+  min-width: 110px;
+}
+.payroll-save-error {
+  margin: 18px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #b3b5bd;
+  border-radius: 9px;
+  color: #404252;
+  font-size: 0.875rem;
+}
+.payroll-saved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 0;
+  color: #404252;
+  font-size: 0.8125rem;
+}
+.finance-working-icon {
+  animation: finance-working 800ms linear infinite;
+}
+@keyframes finance-working {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 1199px) {
+  .sales-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 0;
+  }
+  .sales-metrics > div:nth-child(3) {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .payroll-info-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+  .payroll-payment-summary {
+    padding: 18px 0 0;
+    border-left: 0;
+    border-top: 1px solid #d2d4da80;
+  }
+}
+@media (max-width: 639px) {
+  .sales-period-control {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .finance-metrics {
+    margin-top: 20px;
+    padding: 18px 0;
+  }
+  .finance-metrics > div {
+    padding-right: 0;
+    padding-left: 14px;
+  }
+  .finance-row {
+    gap: 10px;
+    padding: 14px 12px;
+  }
+  .finance-row-identity {
+    gap: 8px;
+  }
+  .finance-row-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+  .finance-row-title {
+    font-size: 0.875rem;
+  }
+  .finance-row-value {
+    font-size: 0.875rem;
+  }
+  .payroll-employee-toggle .finance-row-icon {
+    display: none;
+  }
+  .sales-invoice-list > li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 14px;
+    padding: 16px 14px;
+  }
+  .sales-invoice-amount {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .sales-invoice-description {
+    grid-column: 1 / -1;
+  }
+  .finance-pagination {
+    padding: 8px 12px;
+  }
+  .payroll-toolbar > div {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .payroll-breakdown {
+    padding: 16px 12px;
+  }
+  .payroll-edit-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .payroll-net dd {
+    font-size: 1.125rem;
+  }
+}
+@media (max-width: 359px) {
+  .payroll-summary {
+    display: block;
+  }
+  .payroll-team-count {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 12px;
+    text-align: left;
+  }
+  .payroll-team-count dd {
+    margin: 0;
+    font-size: 1rem;
+  }
+  .payroll-print {
+    min-width: 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    gap: 0;
+  }
+  .payroll-print > span {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .finance-working-icon {
+    animation: none;
+  }
+}

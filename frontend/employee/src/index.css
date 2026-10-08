@@ -1,1 +1,7 @@
 @import "tailwindcss";
+@import "./design-system/theme.css";
+@import "./design-system/people-pages.css";
+@import "./design-system/form-controls.css";
+@import "./design-system/finance-pages.css";
+@import "./design-system/overview-pages.css";
+@import "./design-system/employee-pages.css";

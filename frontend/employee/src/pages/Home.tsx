@@ -1,29 +1,42 @@
-import { useEffect, useState } from "react";
-import { 
+import PageHeader from "@components/PageHeader";
+import { Link } from "react-router-dom";
+import { ArrowUpRight, FileText, Package, UserRoundPlus } from "lucide-react";
+import { useId, useState } from "react";
+import OverviewPeriodNavigation from "@components/OverviewPeriodNavigation";
+import { formatWeekRange } from "@utils/overviewReports";
+import {
   LazyReportEntryList as ReportEntryList,
   LazyWeeklyNewClientOrder as WeeklyNewClientOrder,
-  LazyWeeklySamplesSummary as WeeklySamplesSummary
+  LazyWeeklySamplesSummary as WeeklySamplesSummary,
 } from "@components/LazyComponents";
 import { useAuth } from "@context/AuthContext";
-import { format, startOfISOWeek, endOfISOWeek, parseISO, addDays } from "date-fns";
+import { format, startOfISOWeek, parseISO, addDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { reportKeys } from "@utils/reportCache";
+import type { ReportEntry } from "@interfaces/index";
 import { backendUrl } from "@configs/DotEnv";
 
 const Home = () => {
   const { accessToken, isAuthenticated, user } = useAuth();
-  const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [authChecked, setAuthChecked] = useState(false);
+  const [currentDate, setCurrentDate] = useState(
+    format(new Date(), "yyyy-MM-dd"),
+  );
   const now = new Date();
-  const startDate = format(startOfISOWeek(now), 'yyyy-MM-dd');
-  const endDate = format(endOfISOWeek(now), 'yyyy-MM-dd');
+  const startDate = format(startOfISOWeek(now), "yyyy-MM-dd");
   const [currentWeekStart, setCurrentWeekStart] = useState<string>(startDate);
-  const [currentWeekEnd, setCurrentWeekEnd] = useState<string>(endDate);
+  const currentWeekEnd = format(
+    addDays(parseISO(currentWeekStart), 6),
+    "yyyy-MM-dd",
+  );
+  const weeklyHeadingId = useId();
 
   // Calculate if the date is recent (within last 7 days)
   const isRecentDate = (date: string) => {
     const dateObj = parseISO(date);
-    const daysDiff = Math.floor((new Date().getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.floor(
+      (new Date().getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24),
+    );
     return daysDiff <= 7;
   };
 
@@ -33,12 +46,12 @@ const Home = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     dateObj.setHours(0, 0, 0, 0);
-    
+
     // If it's today's date, no cache
     if (dateObj.getTime() === today.getTime()) {
       return 0; // No cache for today - always fetch fresh data
     }
-    
+
     if (isRecentDate(date)) {
       return 1000 * 30; // 30 seconds for recent data
     }
@@ -53,105 +66,191 @@ const Home = () => {
   };
 
   // Fetch entries for the current date
-  const { data: dayEntries, isLoading: dailyLoading, refetch: refetchDaily } = useQuery({
-    queryKey: ['report-entries', currentDate],
-    queryFn: async () => {
-      const response = await axios.get(`${backendUrl}/api/dashboard/report-entries/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        params: { date: currentDate }
-      });
+  const {
+    data: dayEntries,
+    isLoading: dailyLoading,
+    isError: dailyError,
+    isFetching: dailyFetching,
+    refetch: refetchDay,
+  } = useQuery({
+    queryKey: reportKeys.day(user?.username, currentDate),
+    queryFn: async ({ signal }) => {
+      const response = await axios.get<ReportEntry[]>(
+        `${backendUrl}/api/dashboard/report-entries/`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          signal,
+          timeout: 30000,
+          params: { date: currentDate },
+        },
+      );
       return response.data;
     },
-    enabled: authChecked && !!accessToken,
+    enabled: isAuthenticated && !!accessToken && !!user?.username,
     staleTime: getDailyCacheTime(currentDate),
-    gcTime: getDailyCacheTime(currentDate) * 10, // Keep in cache 10x longer than stale time
+    gcTime: 1000 * 60 * 30, // Keep visible data during background refreshes, including today
     refetchOnWindowFocus: isRecentDate(currentDate), // Only refetch on focus for recent dates
   });
 
   // Fetch current week entries
-  const { data: weekEntries, isLoading: weeklyLoading, refetch: refetchWeekly } = useQuery({
-    queryKey: ['report-entries', currentWeekStart, currentWeekEnd],
-    queryFn: async () => {
-      const response = await axios.get(`${backendUrl}/api/dashboard/report-entries-by-date/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        params: { start_date: currentWeekStart, end_date: currentWeekEnd }
-      });
+  const {
+    data: weekEntries,
+    isLoading: weeklyLoading,
+    isError: weeklyError,
+    isFetching: weeklyFetching,
+    refetch: refetchWeek,
+  } = useQuery({
+    queryKey: reportKeys.week(user?.username, currentWeekStart, currentWeekEnd),
+    queryFn: async ({ signal }) => {
+      const response = await axios.get<ReportEntry[]>(
+        `${backendUrl}/api/dashboard/report-entries-by-date/`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          signal,
+          timeout: 30000,
+          params: { start_date: currentWeekStart, end_date: currentWeekEnd },
+        },
+      );
       return response.data;
     },
-    enabled: authChecked && !!accessToken,
+    enabled: isAuthenticated && !!accessToken && !!user?.username,
     staleTime: getWeeklyCacheTime(currentWeekStart),
     gcTime: getWeeklyCacheTime(currentWeekStart) * 10, // Keep in cache 10x longer than stale time
     refetchOnWindowFocus: isRecentDate(currentWeekStart), // Only refetch on focus for recent weeks
   });
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      setAuthChecked(true);
-    }
-  }, [isAuthenticated, user]);
-
   const handleDateChange = (newDate: string) => {
     setCurrentDate(newDate);
-    refetchDaily();
   };
 
   const handleWeekChange = (newDate: string) => {
     setCurrentWeekStart(newDate);
-    const newEnd = format(addDays(parseISO(newDate), 6), 'yyyy-MM-dd');
-    setCurrentWeekEnd(newEnd);
-    refetchWeekly();
   };
 
+  const visibleWeekEntries = (weekEntries || []).filter(
+    (entry) =>
+      user?.role !== "SALESMAN" ||
+      entry.salesman_name === `${user.firstname} ${user.lastname}`,
+  );
+  const stats = [
+    {
+      label:
+        currentWeekStart === startDate
+          ? "Reports this week"
+          : "Reports in selected week",
+      value: visibleWeekEntries.length,
+      note: "Recorded client visits",
+      Icon: FileText,
+    },
+    {
+      label: "Entries with orders",
+      value: visibleWeekEntries.filter(
+        (entry) => entry.orders || entry.tel_orders,
+      ).length,
+      note: "In person & by telephone",
+      Icon: Package,
+    },
+    {
+      label: "New client visits",
+      value: visibleWeekEntries.filter((entry) => entry.new_client).length,
+      note: "Building new connections",
+      Icon: UserRoundPlus,
+    },
+  ];
   return (
-    <div className="min-h-screen space-y-8 animate-fadeIn">
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-slate-700 to-emerald-600 rounded-2xl p-8 text-white shadow-soft animate-fadeInDown">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-display mb-2">Welcome back!</h1>
-            <p className="text-slate-100 text-lg">Here's your dashboard overview for today</p>
-          </div>
-          <div className="hidden md:block">
-            <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+    <div className="page-stack overview-page">
+      <PageHeader
+        eyebrow="YOUR WORKDAY, AT A GLANCE"
+        title={`Welcome back${user?.firstname ? `, ${user.firstname}` : ""}.`}
+        description="Your daily reports and weekly activity, in one place."
+        actions={
+          user?.role === "SALESMAN" && (
+            <Link className="button button-primary" to="/report">
+              Write a report
+              <ArrowUpRight size={18} />
+            </Link>
+          )
+        }
+      />
+      <div className="stats-grid">
+        {stats.map(({ label, value, note, Icon }) => (
+          <section className="surface stat-card" key={label}>
+            <div className="stat-top">
+              <span>{label}</span>
+              <span className="stat-icon">
+                <Icon size={18} aria-hidden="true" />
+              </span>
             </div>
+            <strong className="stat-value">
+              {weeklyLoading || (weeklyError && weekEntries === undefined)
+                ? "—"
+                : value}
+            </strong>
+            <p className="stat-note">{note}</p>
+          </section>
+        ))}
+      </div>
+      <ReportEntryList
+        allEntries={dayEntries || []}
+        currentDate={currentDate}
+        onDateChange={handleDateChange}
+        isLoading={dailyLoading}
+        isFetching={dailyFetching}
+        isError={dailyError}
+        hasData={dayEntries !== undefined}
+        onRetry={() => void refetchDay()}
+      />
+      <section className="overview-week" aria-labelledby={weeklyHeadingId}>
+        <header className="overview-week-heading">
+          <div>
+            <h2 id={weeklyHeadingId}>Weekly activity</h2>
+            <p className="overview-caption">
+              {formatWeekRange(currentWeekStart)}
+            </p>
           </div>
-        </div>
-      </div>
-
-      {/* Dashboard Cards */}
-      <div className="space-y-8">
-        <div className="animate-scaleIn">
-          <ReportEntryList 
-            allEntries={dayEntries || []} 
-            currentDate={currentDate}
-            onDateChange={handleDateChange}
-            isLoading={dailyLoading}
+          <OverviewPeriodNavigation
+            unit="week"
+            value={currentWeekStart}
+            onChange={handleWeekChange}
           />
-        </div>
-        
-        <div className="bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-normal p-6 animate-scaleIn border border-gray-100" style={{ animationDelay: '200ms' }}>
-          <WeeklySamplesSummary 
-            entries={weekEntries || []} 
-            weekStart={currentWeekStart} 
-            onWeekChange={handleWeekChange} 
-            isLoading={weeklyLoading}
-          />
-        </div>
-        
-        <div className="bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-normal p-6 animate-scaleIn border border-gray-100" style={{ animationDelay: '400ms' }}>
-          <WeeklyNewClientOrder 
-            entries={weekEntries || []} 
-            weekStart={currentWeekStart} 
-            onWeekChange={handleWeekChange} 
-            isLoading={weeklyLoading}
-          />
-        </div>
-      </div>
+        </header>
+        {weeklyError && (
+          <div
+            className="people-inline-message overview-refresh-error"
+            role="alert"
+          >
+            <span>
+              Weekly activity couldn’t be loaded.
+              {weekEntries !== undefined && " Showing your previous results."}
+            </span>
+            <button
+              type="button"
+              className="button button-quiet"
+              disabled={weeklyFetching}
+              onClick={() => void refetchWeek()}
+            >
+              Try again
+            </button>
+          </div>
+        )}
+        <WeeklySamplesSummary
+          entries={weekEntries || []}
+          weekStart={currentWeekStart}
+          isLoading={weeklyLoading}
+          isFetching={weeklyFetching}
+          isError={weeklyError && weekEntries === undefined}
+          hasData={weekEntries !== undefined}
+        />
+        <WeeklyNewClientOrder
+          entries={weekEntries || []}
+          weekStart={currentWeekStart}
+          isLoading={weeklyLoading}
+          isFetching={weeklyFetching}
+          isError={weeklyError && weekEntries === undefined}
+          hasData={weekEntries !== undefined}
+        />
+      </section>
     </div>
   );
 };
-
 export default Home;

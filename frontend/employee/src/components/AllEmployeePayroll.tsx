@@ -1,18 +1,27 @@
+import { useId, useState } from "react";
 import PayrollInformation from "./PayrollInformation";
 import { useAllEmployeePayroll } from "@hooks/useAllEmployeePayroll";
-import { ChevronDown, ChevronUp, Printer } from "lucide-react";
+import { ChevronDown, LoaderCircle, Printer } from "lucide-react";
 import LoadingSpinner from "@components/LoadingSpinner";
+import DisclosurePanel from "@components/DisclosurePanel";
+import SearchField from "@components/SearchField";
+import { formatAmount } from "@utils/formatAmount";
 
-/**
- * Component to display and manage all employee payroll information
- * for authorized users (MANAGER, ADMIN, CEO, DIRECTOR)
- */
-const AllEmployeePayroll = () => {
+export default function AllEmployeePayroll() {
+  const id = useId();
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [printError, setPrintError] = useState("");
   const {
     user,
     profiles,
     expandedId,
     isLoading,
+    isFetching,
+    isError,
+    hasData,
+    refetch,
     year,
     month,
     commissions,
@@ -20,182 +29,315 @@ const AllEmployeePayroll = () => {
     handleViewPayrollPDF,
   } = useAllEmployeePayroll();
 
-
-  // Check if user is unauthorized (not manager, admin, CEO, or director)
-  if (!user || (user.role !== "MANAGER" && user.role !== "ADMIN" && user.role !== "CEO" && user.role !== "DIRECTOR")) {
+  if (
+    !user ||
+    !["MANAGER", "ADMIN", "CEO", "DIRECTOR"].includes(user.role || "")
+  ) {
     return (
-      <div className="max-w-md mx-auto mt-6 text-red-600 font-semibold">
-        You do not have permission to view all employee payrolls.
+      <div className="people-panel people-empty">
+        <h2>Payroll access is restricted</h2>
+        <p>You do not have permission to view all employee payrolls.</p>
+      </div>
+    );
+  }
+  if (isLoading)
+    return (
+      <div className="people-panel">
+        <LoadingSpinner message="Loading payroll…" />
+      </div>
+    );
+  if (!hasData) {
+    return (
+      <div className="people-panel people-empty" role="alert">
+        <h2>Payroll couldn’t be loaded</h2>
+        <p>Please try again.</p>
+        <button
+          className="button button-quiet"
+          disabled={isFetching}
+          onClick={() => void refetch()}
+        >
+          Try again
+        </button>
       </div>
     );
   }
 
-  // Show loading spinner while data is being fetched
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
+  const payrolls = profiles.map((profile) => {
+    const salaryData = {
+      baseSalary: parseFloat(profile.base_salary),
+      bonusPayment: parseFloat(profile.bonus_payment),
+      yearEndBonus: parseFloat(profile.year_end_bonus),
+      transportationAllowance: parseFloat(profile.transportation_allowance),
+      commission: commissions[profile.user.username] || 0,
+      mpfDeduction: profile.is_mpf_exempt ? 0 : 0.05,
+    };
+    const grossPayment =
+      salaryData.baseSalary +
+      salaryData.bonusPayment +
+      salaryData.yearEndBonus +
+      (salaryData.transportationAllowance || 0) +
+      (salaryData.commission || 0);
+    const mpfDeductionAmount = Math.min(
+      1500,
+      grossPayment * salaryData.mpfDeduction,
+    );
+    return {
+      profile,
+      salaryData,
+      grossPayment,
+      mpfDeductionAmount,
+      netPayment: grossPayment - mpfDeductionAmount,
+    };
+  });
+  const active = payrolls.filter(({ profile }) => profile.is_active);
+  const totalNetPayroll = active.reduce(
+    (sum, entry) => sum + entry.netPayment,
+    0,
+  );
+  const period = new Date(year, month - 1).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+  const needle = search.trim().toLowerCase();
+  const visible = payrolls.filter(({ profile }) => {
+    const matchesStatus =
+      status === "all" ||
+      (status === "active" ? profile.is_active : !profile.is_active);
+    return (
+      matchesStatus &&
+      `${profile.user.first_name} ${profile.user.last_name} ${profile.user.username} ${profile.role}`
+        .toLowerCase()
+        .includes(needle)
+    );
+  });
+  const visibleIds = new Set(visible.map(({ profile }) => profile.id));
 
-  // Calculate total net payroll for active employees
-  const totalNetPayroll = profiles
-    .filter(profile => profile.is_active) // Only active employees
-    .reduce((total, profile) => {
-      const commission = commissions[profile.user.username] || 0;
-      const grossPayment =
-        parseFloat(profile.base_salary) +
-        parseFloat(profile.bonus_payment) +
-        parseFloat(profile.year_end_bonus) +
-        (parseFloat(profile.transportation_allowance) || 0) +
-        (commission || 0);
-      
-      const mpfDeduction = profile.is_mpf_exempt ? 0 : 0.05;
-      const mpfDeductionAmount = Math.min(1500, grossPayment * mpfDeduction);
-      const netPayment = grossPayment - mpfDeductionAmount;
-      
-      return total + netPayment;
-    }, 0);
-
-  const activeEmployeeCount = profiles.filter(profile => profile.is_active).length;
+  const printPayslips = async () => {
+    if (isPrinting) return;
+    setPrintError("");
+    setIsPrinting(true);
+    try {
+      await handleViewPayrollPDF();
+    } catch (error) {
+      setPrintError(
+        error instanceof Error
+          ? error.message
+          : "Payslips couldn’t be generated. Please try again.",
+      );
+    } finally {
+      setIsPrinting(false);
+    }
+  };
 
   return (
-    <div className="space-y-8">
-      {/* Total Payroll Summary */}
-      <div className="bg-gradient-to-br from-emerald-50 to-blue-50 border border-emerald-200 rounded-2xl p-6 shadow-soft">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-slate-800 mb-1">Total Net Payroll</h2>
-            <p className="text-slate-600 text-sm">For {activeEmployeeCount} active employee{activeEmployeeCount !== 1 ? 's' : ''}</p>
-          </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold text-emerald-600">
-              ${totalNetPayroll.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div className="text-sm text-slate-500 mt-1">
-              {new Date(year, month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Enhanced Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-12 h-12 bg-gradient-to-br from-slate-600 to-emerald-600 rounded-xl flex items-center justify-center shadow-md">
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-        </div>
+    <section
+      className="people-panel payroll-panel"
+      aria-label="Employee payroll"
+    >
+      <div className="payroll-summary">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 font-display">All Employee Payrolls</h1>
-          <p className="text-slate-500 font-medium">Manage employee compensation and benefits</p>
+          <p className="finance-caption">Total net payroll · {period}</p>
+          <p className="payroll-total">{formatAmount(totalNetPayroll)}</p>
+          <p className="finance-caption">
+            For {active.length} active{" "}
+            {active.length === 1 ? "employee" : "employees"}
+          </p>
         </div>
-        {/* Print button */}
-        <button
-          onClick={() => handleViewPayrollPDF()}
-          className="ml-auto flex items-center gap-2 bg-gradient-to-br from-slate-600 to-emerald-600 hover:from-slate-700 hover:to-emerald-700 text-white px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
-          aria-label="Print All Payslips"
-          title="Print All Payslips"
-        >
-          <Printer size={20} />
-          <span className="font-medium">Print All</span>
-        </button>
+        <dl className="payroll-team-count">
+          <dt>Employees</dt>
+          <dd>{profiles.length}</dd>
+        </dl>
       </div>
-
-      {/* Map through each employee profile to create payroll cards */}
-      {profiles.map((profile) => {
-        // Get commission for current employee or default to 0
-        const commission = commissions[profile.user.username] || 0;
-        // Structure salary data for calculations
-        const salaryData = {
-          baseSalary: parseFloat(profile.base_salary),
-          bonusPayment: parseFloat(profile.bonus_payment),
-          yearEndBonus: parseFloat(profile.year_end_bonus),
-          transportationAllowance: parseFloat(profile.transportation_allowance),
-          commission,
-          mpfDeduction: profile.is_mpf_exempt ? 0 : 0.05,  // 5% MPF deduction if not exempt
-        };
-
-        // Calculate gross payment (sum of all earnings)
-        const grossPayment =
-          salaryData.baseSalary +
-          salaryData.bonusPayment +
-          salaryData.yearEndBonus +
-          (salaryData.transportationAllowance || 0) +
-          (salaryData.commission || 0);
-
-        // Calculate MPF deduction (capped at 1500)
-        const mpfDeductionAmount = Math.min(1500, grossPayment * salaryData.mpfDeduction);
-
-        // Calculate net payment after deductions
-        const netPayment = grossPayment - mpfDeductionAmount;
-
-        // Check if current profile is expanded
-        const isExpanded = expandedId === profile.id;
-
-        return (
-          // Enhanced Employee payroll card container
-          <div
-            key={profile.id}
-            className="bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-300 overflow-hidden border border-slate-100"
+      {isError && (
+        <div className="people-inline-message" role="alert">
+          The latest payroll couldn’t be loaded. Showing your previous results.
+          <button
+            className="button button-quiet"
+            disabled={isFetching}
+            onClick={() => void refetch()}
           >
-            {/* Clickable header to expand/collapse payroll details */}
-            <button
-              onClick={() => toggleExpand(profile.id)}
-              className="flex items-center justify-between w-full px-8 py-6 text-left bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 transition-all duration-200"
+            Try again
+          </button>
+        </div>
+      )}
+      <header className="finance-section-heading payroll-list-title">
+        <h2>Employee payslips</h2>
+        <button
+          type="button"
+          className="button payroll-print"
+          disabled={isPrinting || !profiles.length || isError}
+          onClick={() => void printPayslips()}
+          aria-label="Print all payslips"
+          title="Print all payslips"
+        >
+          {isPrinting ? (
+            <LoaderCircle
+              size={18}
+              className="finance-working-icon"
+              aria-hidden="true"
+            />
+          ) : (
+            <Printer size={18} aria-hidden="true" />
+          )}
+          <span>Print all</span>
+        </button>
+      </header>
+      {isPrinting && (
+        <p className="finance-caption" role="status">
+          Preparing payslips…
+        </p>
+      )}
+      {printError && (
+        <div className="people-inline-message" role="alert">
+          {printError}
+          <button
+            type="button"
+            className="button button-quiet"
+            onClick={() => void printPayslips()}
+            disabled={isPrinting}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+      <div className="payroll-toolbar">
+        <SearchField
+          id={`${id}-search`}
+          label="Search payroll"
+          placeholder="Name or role"
+          value={search}
+          onValueChange={setSearch}
+          clearLabel="Clear payroll search"
+          className="payroll-search-field"
+        />
+        <div className="workspace-field payroll-status-field">
+          <label htmlFor={`${id}-status`}>Employee status</label>
+          <div className="workspace-select">
+            <select
+              className="workspace-input"
+              id={`${id}-status`}
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
             >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-slate-600 to-emerald-600 rounded-xl flex items-center justify-center text-white shadow-md">
-                  {/* Universal person icon for all roles */}
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="flex items-center gap-3">
-                    <p className="font-bold text-slate-800 text-lg">
-                      {profile.user.last_name} {profile.user.first_name}
-                    </p>
-                    {!profile.is_active && (
-                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">
-                        Inactive
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-slate-100 text-slate-700 rounded-lg">
-                      {profile.role}
-                    </span>
-                    <span className="text-sm text-slate-500 font-medium">
-                      Net: ${netPayment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="text-slate-400">
-                  {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                </div>
-              </div>
-            </button>
-            
-            {/* Expanded payroll details (shown when profile is expanded) */}
-            {isExpanded && (
-              <div className="p-8 bg-white border-t border-slate-200">
-                <PayrollInformation
-                  salaryData={salaryData}
-                  grossPayment={grossPayment}
-                  netPayment={netPayment}
-                  mpfDeductionAmount={mpfDeductionAmount}
-                  year={year}
-                  month={month}
-                  userRole={profile.role}
-                  employeeId={profile.id}
-                />
-              </div>
-            )}
+              <option value="all">All employees</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <ChevronDown size={16} aria-hidden="true" />
           </div>
-        );
-      })}
-    </div>
+        </div>
+      </div>
+      <div className="finance-list-heading">
+        <p className="finance-caption" aria-live="polite" aria-atomic="true">
+          Showing {visible.length} of {profiles.length}{" "}
+          {profiles.length === 1 ? "employee" : "employees"}
+        </p>
+        {isFetching && (
+          <span className="finance-caption" role="status">
+            Updating payroll…
+          </span>
+        )}
+      </div>
+      <div className="finance-records payroll-records">
+        {payrolls.map(
+          ({
+            profile,
+            salaryData,
+            grossPayment,
+            mpfDeductionAmount,
+            netPayment,
+          }) => {
+            const expanded = expandedId === profile.id,
+              panelId = `${id}-employee-${profile.id}`;
+            const name =
+              `${profile.user.first_name} ${profile.user.last_name}`.trim() ||
+              profile.user.username;
+            const role =
+              profile.role.length > 3
+                ? profile.role.charAt(0) + profile.role.slice(1).toLowerCase()
+                : profile.role;
+            return (
+              <div
+                key={profile.id}
+                className="finance-record"
+                hidden={!visibleIds.has(profile.id)}
+              >
+                <button
+                  type="button"
+                  className="finance-row payroll-employee-toggle"
+                  onClick={() => toggleExpand(profile.id)}
+                  aria-expanded={expanded}
+                  aria-controls={panelId}
+                >
+                  <span className="finance-row-identity">
+                    <span className="finance-row-icon" aria-hidden="true">
+                      {profile.user.first_name.charAt(0) +
+                        profile.user.last_name.charAt(0) ||
+                        profile.user.username.charAt(0)}
+                    </span>
+                    <span>
+                      <span className="finance-row-title">{name}</span>
+                      <span className="finance-caption">
+                        {role}
+                        {!profile.is_active && (
+                          <span className="payroll-inactive">Inactive</span>
+                        )}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="finance-row-value">
+                    <span className="finance-caption">Net pay</span>
+                    {formatAmount(netPayment)}
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    className="finance-chevron"
+                    aria-hidden="true"
+                  />
+                </button>
+                <DisclosurePanel id={panelId} expanded={expanded}>
+                  <div className="payroll-breakdown">
+                    <PayrollInformation
+                      salaryData={salaryData}
+                      grossPayment={grossPayment}
+                      netPayment={netPayment}
+                      mpfDeductionAmount={mpfDeductionAmount}
+                      year={year}
+                      month={month}
+                      userRole={profile.role}
+                      employeeId={profile.id}
+                    />
+                  </div>
+                </DisclosurePanel>
+              </div>
+            );
+          },
+        )}
+      </div>
+      {!visible.length && (
+        <div className="people-empty">
+          <h3>
+            {profiles.length ? "No matching employees" : "No employees yet"}
+          </h3>
+          {profiles.length ? (
+            <>
+              <p>Try another name, role or status.</p>
+              <button
+                className="button button-quiet"
+                onClick={() => {
+                  setSearch("");
+                  setStatus("all");
+                  document.getElementById(`${id}-search`)?.focus();
+                }}
+              >
+                Clear filters
+              </button>
+            </>
+          ) : (
+            <p>Employee payslips will appear here.</p>
+          )}
+        </div>
+      )}
+    </section>
   );
-};
-
-export default AllEmployeePayroll;
+}

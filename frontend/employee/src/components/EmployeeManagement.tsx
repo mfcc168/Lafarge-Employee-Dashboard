@@ -1,275 +1,371 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { backendUrl } from "@configs/DotEnv";
 import { useAuth } from "@context/AuthContext";
-import { EmployeeProfile } from "@interfaces/EmployeeType";
+import type { EmployeeProfile } from "@interfaces/EmployeeType";
 import LoadingSpinner from "@components/LoadingSpinner";
-import { UserX, UserCheck, AlertCircle, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import {
+  UserX,
+  UserCheck,
+  AlertCircle,
+  Check,
+  LoaderCircle,
+  Users,
+} from "lucide-react";
+import SearchField from "@components/SearchField";
+import { Link } from "react-router-dom";
 import { canManageEmployees, PERMISSION_MESSAGES } from "@utils/permissions";
+import {
+  employeeInitials,
+  employeeName,
+  employeeRole,
+} from "@utils/employeeDisplay";
+import { updateEmployeeCaches } from "@utils/employeeCache";
 
-const EmployeeManagement = () => {
-  const { user, accessToken } = useAuth();
+type StatusFilter = "all" | "active" | "inactive";
+
+function EmployeeRow({
+  employee,
+  canViewProfile,
+  onStatusChange,
+}: {
+  employee: EmployeeProfile;
+  canViewProfile: boolean;
+  onStatusChange: (
+    message: string,
+    active: boolean,
+    restoreFocus: boolean,
+  ) => void;
+}) {
+  const { accessToken } = useAuth();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-
-  // Fetch all employees (including inactive)
-  const { data: employees, isLoading, error } = useQuery<EmployeeProfile[]>({
-    queryKey: ["all-employees", accessToken],
-    queryFn: async () => {
-      const response = await axios.get(`${backendUrl}/api/employees/all/`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
+  const row = useRef<HTMLLIElement>(null);
+  const pending = useRef(false);
+  const hadFocus = useRef(false);
+  const name = employeeName(employee);
+  const mutation = useMutation({
+    retry: false,
+    mutationFn: async () => {
+      const response = await axios.post<{ is_active: boolean }>(
+        `${backendUrl}/api/profile/${employee.id}/toggle-status/`,
+        {},
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+      return response.data;
+    },
+    onSuccess: async (response) => {
+      const restoreFocus =
+        !!row.current?.contains(document.activeElement) ||
+        (hadFocus.current && document.activeElement === document.body);
+      onStatusChange(
+        `${name} ${response.is_active ? "activated" : "deactivated"}.`,
+        response.is_active,
+        restoreFocus,
+      );
+      await updateEmployeeCaches(queryClient, accessToken, employee.id, {
+        is_active: response.is_active,
       });
+    },
+    onSettled: () => {
+      pending.current = false;
+    },
+  });
+
+  return (
+    <li className="employee-row" ref={row}>
+      <div className="employee-identity">
+        <span className="employee-avatar" aria-hidden="true">
+          {employeeInitials(employee)}
+        </span>
+        <div className="employee-identity-text">
+          {canViewProfile ? (
+            <Link
+              className="employee-name-link"
+              to={`/employees/${employee.id}`}
+            >
+              <span>{name}</span>
+              <span className="employee-profile-hint">View profile</span>
+            </Link>
+          ) : (
+            <h3>{name}</h3>
+          )}
+          <div className="employee-contact">
+            <p className="employee-meta">@{employee.user.username}</p>
+            {employee.user.email && (
+              <p className="employee-email">{employee.user.email}</p>
+            )}
+          </div>
+        </div>
+      </div>
+      <span className="employee-role">
+        <span className="employee-mobile-label">Role</span>
+        {employeeRole(employee.role)}
+      </span>
+      <span
+        className={`employee-status ${employee.is_active ? "is-active" : "is-inactive"}`}
+      >
+        <span aria-hidden="true" />
+        {employee.is_active ? "Active" : "Inactive"}
+      </span>
+      <div className="employee-row-actions">
+        <button
+          type="button"
+          className="button button-quiet employee-status-action"
+          disabled={mutation.isPending}
+          aria-label={`${employee.is_active ? "Deactivate" : "Activate"} ${name}`}
+          onClick={() => {
+            if (pending.current) return;
+            hadFocus.current = !!row.current?.contains(document.activeElement);
+            pending.current = true;
+            mutation.mutate();
+          }}
+        >
+          {mutation.isPending ? (
+            <LoaderCircle
+              size={16}
+              className="employee-working-icon"
+              aria-hidden="true"
+            />
+          ) : employee.is_active ? (
+            <UserX size={16} aria-hidden="true" />
+          ) : (
+            <UserCheck size={16} aria-hidden="true" />
+          )}
+          {mutation.isPending
+            ? "Updating…"
+            : employee.is_active
+              ? "Deactivate"
+              : "Activate"}
+        </button>
+        <span className="sr-only" role="status">
+          {mutation.isPending ? `Updating account access for ${name}…` : ""}
+        </span>
+      </div>
+      {mutation.isError && (
+        <p className="employee-row-error" role="alert">
+          {name} couldn’t be {employee.is_active ? "deactivated" : "activated"}.
+          Try again using the button above.
+        </p>
+      )}
+    </li>
+  );
+}
+
+export default function EmployeeManagement() {
+  const { user, accessToken } = useAuth();
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<StatusFilter>("all");
+  const [message, setMessage] = useState("");
+  const filterButtons = useRef<
+    Partial<Record<StatusFilter, HTMLButtonElement | null>>
+  >({});
+  const {
+    data: employees,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useQuery<EmployeeProfile[]>({
+    queryKey: ["all-employees", accessToken],
+    queryFn: async ({ signal }) => {
+      const response = await axios.get<EmployeeProfile[]>(
+        `${backendUrl}/api/employees/all/`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          signal,
+        },
+      );
       return response.data;
     },
     enabled: !!user && canManageEmployees(user.role) && !!accessToken,
   });
-
-  // Toggle employee status mutation
-  const toggleStatusMutation = useMutation({
-    mutationFn: async (profileId: number) => {
-      const response = await axios.post(`${backendUrl}/api/profile/${profileId}/toggle-status/`, {}, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      return response.data;
-    },
-    onSuccess: () => {
-      // Invalidate and refetch employees
-      queryClient.invalidateQueries({ queryKey: ["all-employees"] });
-      queryClient.invalidateQueries({ queryKey: ["employee-profiles"] });
-      queryClient.invalidateQueries({ queryKey: ["employee-salaries"] });
-    },
-  });
-
-  // Check authorization
-  if (!user || !canManageEmployees(user.role)) {
+  if (!user || !canManageEmployees(user.role))
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 animate-fadeIn">
-        <div className="max-w-md w-full bg-white shadow-soft rounded-2xl p-8 animate-scaleIn border border-gray-100 text-center">
-          <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-error-500" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Access Denied</h2>
-          <p className="text-slate-600 font-semibold">{PERMISSION_MESSAGES.manageEmployees}</p>
-        </div>
+      <div className="people-panel people-empty">
+        <AlertCircle size={24} aria-hidden="true" />
+        <h2>Access denied</h2>
+        <p>{PERMISSION_MESSAGES.manageEmployees}</p>
       </div>
     );
-  }
-
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
-
-  if (error) {
+  if (isLoading)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 animate-fadeIn">
-        <div className="max-w-md w-full bg-white shadow-soft rounded-2xl p-8 animate-scaleIn border border-gray-100 text-center">
-          <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-error-500" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Error</h2>
-          <p className="text-slate-600">Error loading employees. Please try again.</p>
-        </div>
+      <div className="people-panel employee-panel">
+        <LoadingSpinner message="Loading employees…" />
       </div>
     );
-  }
-
-  // First filter out management roles from all employees
-  const nonManagementEmployees = employees?.filter((employee) => {
-    return !["ADMIN", "CEO", "DIRECTOR"].includes(employee.role);
-  }) || [];
-
-  // Then filter based on search term
-  const filteredEmployees = nonManagementEmployees.filter((employee) => {
-    if (!searchTerm) return true;
-    
-    const searchLower = searchTerm.toLowerCase();
+  if (!employees)
     return (
-      employee.user.username.toLowerCase().includes(searchLower) ||
-      employee.user.first_name.toLowerCase().includes(searchLower) ||
-      employee.user.last_name.toLowerCase().includes(searchLower) ||
-      employee.role.toLowerCase().includes(searchLower)
-    );
-  });
-
-  // Separate active and inactive employees (from all non-management, not just filtered)
-  const activeEmployees = nonManagementEmployees.filter(emp => emp.is_active);
-  const inactiveEmployees = nonManagementEmployees.filter(emp => !emp.is_active);
-  
-  // For display purposes, get active/inactive from filtered results
-  const filteredActiveEmployees = filteredEmployees.filter(emp => emp.is_active);
-  const filteredInactiveEmployees = filteredEmployees.filter(emp => !emp.is_active);
-
-  const EmployeeCard = ({ employee }: { employee: EmployeeProfile }) => (
-    <div
-      className={`
-        p-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer
-        ${employee.is_active 
-          ? "bg-white" 
-          : "bg-gray-50 opacity-75"
-        }
-      `}
-      onClick={() => navigate(`/employees/${employee.id}`)}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-gray-800">
-              {employee.user.first_name} {employee.user.last_name}
-            </h3>
-            {!employee.is_active && (
-              <span className="text-xs bg-error-100 text-error-700 px-2 py-1 rounded-full">
-                Inactive
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-gray-600">@{employee.user.username}</p>
-          <p className="text-sm text-gray-500">{employee.role}</p>
-          {employee.role === "SALESMAN" && (
-            <p className="text-xs text-gray-400 mt-1">
-              Sales reports and commissions {employee.is_active ? "active" : "disabled"}
-            </p>
-          )}
-        </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent navigation when clicking the toggle button
-            toggleStatusMutation.mutate(employee.id);
-          }}
-          disabled={toggleStatusMutation.isPending}
-          className={`
-            p-3 rounded-lg transition-all duration-200
-            ${employee.is_active
-              ? "bg-error-100 hover:bg-error-200 text-error-600"
-              : "bg-emerald-100 hover:bg-emerald-200 text-emerald-600"
-            }
-            disabled:opacity-50 disabled:cursor-not-allowed
-          `}
-          title={employee.is_active ? "Deactivate employee" : "Activate employee"}
-        >
-          {toggleStatusMutation.isPending ? (
-            <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
-          ) : employee.is_active ? (
-            <UserX size={20} />
-          ) : (
-            <UserCheck size={20} />
-          )}
+      <div className="people-panel people-empty" role="alert">
+        <AlertCircle size={24} aria-hidden="true" />
+        <h2>Employees couldn’t be loaded</h2>
+        <p>Try again to load your team directory.</p>
+        <button type="button" className="button" onClick={() => void refetch()}>
+          Try again
         </button>
       </div>
-    </div>
+    );
+  const directory = employees.filter(
+    (entry) => !["ADMIN", "CEO", "DIRECTOR"].includes(entry.role),
   );
+  const activeCount = directory.filter((entry) => entry.is_active).length;
+  const filters: { value: StatusFilter; label: string; count: number }[] = [
+    { value: "all", label: "All", count: directory.length },
+    { value: "active", label: "Active", count: activeCount },
+    {
+      value: "inactive",
+      label: "Inactive",
+      count: directory.length - activeCount,
+    },
+  ];
+  const term = search.trim().toLocaleLowerCase();
+  const visible = directory.filter(
+    (entry) =>
+      (status === "all" || entry.is_active === (status === "active")) &&
+      `${employeeName(entry)} ${entry.user.username} ${entry.user.email} ${employeeRole(entry.role)}`
+        .toLocaleLowerCase()
+        .includes(term),
+  );
+  const clearFilters = () => {
+    setSearch("");
+    setStatus("all");
+    filterButtons.current.all?.focus();
+  };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">Employee Management</h1>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
-            <span className="text-sm font-medium text-gray-700">Total</span>
-            <span className="text-lg font-bold text-gray-900">{nonManagementEmployees.length}</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-            <span className="text-sm font-medium text-emerald-700">Active</span>
-            <span className="text-lg font-bold text-emerald-900">{activeEmployees.length}</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-error-50 rounded-lg border border-error-200">
-            <div className="w-2 h-2 bg-error-500 rounded-full"></div>
-            <span className="text-sm font-medium text-error-700">Inactive</span>
-            <span className="text-lg font-bold text-error-900">{inactiveEmployees.length}</span>
-          </div>
+    <section
+      className="people-panel employee-panel"
+      aria-labelledby="employee-directory-title"
+    >
+      <div className="employee-directory-heading">
+        <div>
+          <h2 id="employee-directory-title">Team directory</h2>
+          <p>Manage employee profiles and account access.</p>
         </div>
+        <span className="employee-refresh" role="status">
+          {isFetching ? "Updating directory…" : ""}
+        </span>
       </div>
-
-      {/* Search bar */}
-      <div className="relative max-w-xl">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-400" />
+      <div className="employee-directory-toolbar">
+        <div
+          className="people-filter-tabs employee-filters"
+          role="group"
+          aria-label="Filter employees by status"
+        >
+          {filters.map(({ value, label, count }) => (
+            <button
+              key={value}
+              type="button"
+              ref={(element) => {
+                filterButtons.current[value] = element;
+              }}
+              aria-pressed={status === value}
+              aria-controls="employee-directory-list"
+              onClick={() => setStatus(value)}
+            >
+              {label}
+              <span>{count}</span>
+            </button>
+          ))}
         </div>
-        <input
-          type="text"
-          placeholder="Search by name, username, or role..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="
-            block w-full pl-10 pr-4 py-3 
-            border border-gray-200 rounded-xl 
-            bg-gray-50 
-            text-gray-900 placeholder-gray-500
-            focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent focus:bg-white
-            transition-all duration-200
-            text-sm
-          "
+        <SearchField
+          id="employee-search"
+          label="Search employees"
+          placeholder="Name, username, email or role"
+          value={search}
+          onValueChange={setSearch}
+          clearLabel="Clear employee search"
+          className="employee-search-field"
         />
-        {searchTerm && (
+      </div>
+      {error && (
+        <div className="people-inline-message" role="alert">
+          <span>
+            Couldn’t refresh employees. Showing your previous results.
+          </span>
           <button
-            onClick={() => setSearchTerm("")}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+            type="button"
+            className="button button-quiet"
+            onClick={() => void refetch()}
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            Try again
+          </button>
+        </div>
+      )}
+      <div className="employee-results-bar">
+        <p role="status">
+          Showing {visible.length} of {directory.length}{" "}
+          {directory.length === 1 ? "employee" : "employees"}
+        </p>
+        {(term || status !== "all") && (
+          <button
+            type="button"
+            className="button button-quiet"
+            onClick={clearFilters}
+          >
+            Clear filters
           </button>
         )}
       </div>
-
-      {/* Warning message */}
-      <div className="bg-warning-50 border border-warning-200 rounded-lg p-4 flex items-start gap-3">
-        <AlertCircle className="text-warning-600 mt-0.5" size={20} />
-        <div className="text-sm text-warning-800">
-          <p className="font-medium mb-1">Important Notes:</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Deactivating an employee will prevent them from logging in</li>
-            <li>Inactive salesmen's reports will be hidden from views</li>
-            <li>Inactive employees won't appear in payroll lists</li>
-            <li>You can reactivate employees at any time</li>
-          </ul>
-        </div>
+      <div className="employee-list-heading" aria-hidden="true">
+        <span>Employee</span>
+        <span>Role</span>
+        <span>Account</span>
+        <span>Manage access</span>
       </div>
-
-      {/* Active employees */}
-      {filteredActiveEmployees.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-700 mb-3">
-            Active Employees ({filteredActiveEmployees.length})
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredActiveEmployees.map((employee) => (
-              <EmployeeCard key={employee.id} employee={employee} />
-            ))}
-          </div>
+      <ul className="employee-list" id="employee-directory-list">
+        {visible.map((entry) => (
+          <EmployeeRow
+            key={entry.id}
+            employee={entry}
+            canViewProfile={["ADMIN", "DIRECTOR"].includes(user.role || "")}
+            onStatusChange={(nextMessage, active, restoreFocus) => {
+              if (
+                restoreFocus &&
+                status !== "all" &&
+                active !== (status === "active")
+              )
+                filterButtons.current[status]?.focus();
+              setMessage(nextMessage);
+            }}
+          />
+        ))}
+      </ul>
+      {!visible.length && (
+        <div className="people-empty">
+          <Users size={24} aria-hidden="true" />
+          <h3>
+            {directory.length ? "No matching employees" : "No employees yet"}
+          </h3>
+          <p>
+            {directory.length
+              ? "Try another search or clear your filters."
+              : "Employee profiles will appear here when they’re added."}
+          </p>
+          {!!directory.length && (
+            <button type="button" className="button" onClick={clearFilters}>
+              Show all employees
+            </button>
+          )}
         </div>
       )}
-
-      {/* Inactive employees */}
-      {filteredInactiveEmployees.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-700 mb-3">
-            Inactive Employees ({filteredInactiveEmployees.length})
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredInactiveEmployees.map((employee) => (
-              <EmployeeCard key={employee.id} employee={employee} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {filteredEmployees.length === 0 && searchTerm && (
-        <div className="text-center text-gray-500 py-8">
-          No employees found matching "{searchTerm}"
-        </div>
-      )}
-      
-      {nonManagementEmployees.length === 0 && !searchTerm && (
-        <div className="text-center text-gray-500 py-8">
-          No employees to manage. Only regular employees (non-management) are shown here.
-        </div>
-      )}
-    </div>
+      <footer className="employee-directory-footer">
+        <details className="usage-note">
+          <summary>About employee access</summary>
+          <p>
+            Deactivating an employee prevents sign-in and hides their reports
+            and payroll. You can reactivate them at any time.
+          </p>
+        </details>
+        <p className="employee-feedback" role="status" aria-live="polite">
+          {message && (
+            <>
+              <Check size={15} aria-hidden="true" />
+              {message}
+            </>
+          )}
+        </p>
+      </footer>
+    </section>
   );
-};
-
-export default EmployeeManagement;
+}
