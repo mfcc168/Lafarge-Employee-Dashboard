@@ -1,20 +1,16 @@
 import PageHeader from "@components/PageHeader";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, FileText, Package, UserRoundPlus } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
+import OverviewPeriodNavigation from "@components/OverviewPeriodNavigation";
+import { formatWeekRange } from "@utils/overviewReports";
 import {
   LazyReportEntryList as ReportEntryList,
   LazyWeeklyNewClientOrder as WeeklyNewClientOrder,
   LazyWeeklySamplesSummary as WeeklySamplesSummary,
 } from "@components/LazyComponents";
 import { useAuth } from "@context/AuthContext";
-import {
-  format,
-  startOfISOWeek,
-  endOfISOWeek,
-  parseISO,
-  addDays,
-} from "date-fns";
+import { format, startOfISOWeek, parseISO, addDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { reportKeys } from "@utils/reportCache";
@@ -28,9 +24,12 @@ const Home = () => {
   );
   const now = new Date();
   const startDate = format(startOfISOWeek(now), "yyyy-MM-dd");
-  const endDate = format(endOfISOWeek(now), "yyyy-MM-dd");
   const [currentWeekStart, setCurrentWeekStart] = useState<string>(startDate);
-  const [currentWeekEnd, setCurrentWeekEnd] = useState<string>(endDate);
+  const currentWeekEnd = format(
+    addDays(parseISO(currentWeekStart), 6),
+    "yyyy-MM-dd",
+  );
+  const weeklyHeadingId = useId();
 
   // Calculate if the date is recent (within last 7 days)
   const isRecentDate = (date: string) => {
@@ -71,6 +70,8 @@ const Home = () => {
     data: dayEntries,
     isLoading: dailyLoading,
     isError: dailyError,
+    isFetching: dailyFetching,
+    refetch: refetchDay,
   } = useQuery({
     queryKey: reportKeys.day(user?.username, currentDate),
     queryFn: async ({ signal }) => {
@@ -96,6 +97,8 @@ const Home = () => {
     data: weekEntries,
     isLoading: weeklyLoading,
     isError: weeklyError,
+    isFetching: weeklyFetching,
+    refetch: refetchWeek,
   } = useQuery({
     queryKey: reportKeys.week(user?.username, currentWeekStart, currentWeekEnd),
     queryFn: async ({ signal }) => {
@@ -122,8 +125,6 @@ const Home = () => {
 
   const handleWeekChange = (newDate: string) => {
     setCurrentWeekStart(newDate);
-    const newEnd = format(addDays(parseISO(newDate), 6), "yyyy-MM-dd");
-    setCurrentWeekEnd(newEnd);
   };
 
   const visibleWeekEntries = (weekEntries || []).filter(
@@ -157,7 +158,7 @@ const Home = () => {
     },
   ];
   return (
-    <div className="page-stack">
+    <div className="page-stack overview-page">
       <PageHeader
         eyebrow="YOUR WORKDAY, AT A GLANCE"
         title={`Welcome back${user?.firstname ? `, ${user.firstname}` : ""}.`}
@@ -181,41 +182,74 @@ const Home = () => {
               </span>
             </div>
             <strong className="stat-value">
-              {weeklyLoading || weeklyError ? "—" : value}
+              {weeklyLoading || (weeklyError && weekEntries === undefined)
+                ? "—"
+                : value}
             </strong>
             <p className="stat-note">{note}</p>
           </section>
         ))}
       </div>
-      {(dailyError || weeklyError) && (
-        <p role="alert" className="notice">
-          Some reports could not be loaded. Please refresh to try again.
-        </p>
-      )}
       <ReportEntryList
         allEntries={dayEntries || []}
         currentDate={currentDate}
         onDateChange={handleDateChange}
         isLoading={dailyLoading}
+        isFetching={dailyFetching}
+        isError={dailyError}
+        hasData={dayEntries !== undefined}
+        onRetry={() => void refetchDay()}
       />
-      <div className="dashboard-week">
-        <section className="surface surface-pad">
-          <WeeklySamplesSummary
-            entries={weekEntries || []}
-            weekStart={currentWeekStart}
-            onWeekChange={handleWeekChange}
-            isLoading={weeklyLoading}
+      <section className="overview-week" aria-labelledby={weeklyHeadingId}>
+        <header className="overview-week-heading">
+          <div>
+            <h2 id={weeklyHeadingId}>Weekly activity</h2>
+            <p className="overview-caption">
+              {formatWeekRange(currentWeekStart)}
+            </p>
+          </div>
+          <OverviewPeriodNavigation
+            unit="week"
+            value={currentWeekStart}
+            onChange={handleWeekChange}
           />
-        </section>
-        <section className="surface surface-pad">
-          <WeeklyNewClientOrder
-            entries={weekEntries || []}
-            weekStart={currentWeekStart}
-            onWeekChange={handleWeekChange}
-            isLoading={weeklyLoading}
-          />
-        </section>
-      </div>
+        </header>
+        {weeklyError && (
+          <div
+            className="people-inline-message overview-refresh-error"
+            role="alert"
+          >
+            <span>
+              Weekly activity couldn’t be loaded.
+              {weekEntries !== undefined && " Showing your previous results."}
+            </span>
+            <button
+              type="button"
+              className="button button-quiet"
+              disabled={weeklyFetching}
+              onClick={() => void refetchWeek()}
+            >
+              Try again
+            </button>
+          </div>
+        )}
+        <WeeklySamplesSummary
+          entries={weekEntries || []}
+          weekStart={currentWeekStart}
+          isLoading={weeklyLoading}
+          isFetching={weeklyFetching}
+          isError={weeklyError && weekEntries === undefined}
+          hasData={weekEntries !== undefined}
+        />
+        <WeeklyNewClientOrder
+          entries={weekEntries || []}
+          weekStart={currentWeekStart}
+          isLoading={weeklyLoading}
+          isFetching={weeklyFetching}
+          isError={weeklyError && weekEntries === undefined}
+          hasData={weekEntries !== undefined}
+        />
+      </section>
     </div>
   );
 };
