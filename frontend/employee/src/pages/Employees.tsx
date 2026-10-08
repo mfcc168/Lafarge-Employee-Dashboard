@@ -6,7 +6,7 @@ export default function Employees() {
       <PageHeader
         eyebrow="YOUR TEAM"
         title="Employees"
-        description="People, profiles, and access. All in one place."
+        description="Your team, profiles and account access."
       />
       <EmployeeManagement />
     </div>

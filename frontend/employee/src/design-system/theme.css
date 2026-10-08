@@ -1216,31 +1216,6 @@ table tbody tr:hover {
   border-radius: 16px;
   padding: 22px;
 }
-.employee-profile-link {
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  text-underline-offset: 4px;
-}
-.employee-profile-link:hover {
-  text-decoration-color: #9496a1;
-}
-.employee-card {
-  position: relative;
-}
-.employee-card a::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 18px;
-}
-.employee-card button {
-  position: relative;
-  z-index: 1;
-}
-.employee-card > div,
-.employee-card > div > div {
-  min-width: 0;
-}
 @media (max-width: 639px) {
   .vacation-date-card {
     padding: 16px;

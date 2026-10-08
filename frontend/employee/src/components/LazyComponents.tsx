@@ -1,6 +1,5 @@
 import { lazy, Suspense, ComponentType, ReactElement } from "react";
 import LoadingSpinner from "./LoadingSpinner";
-import SkeletonRow from "./SkeletonRow";
 import ChunkLoadErrorBoundary from "./ChunkLoadErrorBoundary";
 import { retryChunkImport } from "@utils/retryLazyImport";
 
@@ -21,21 +20,6 @@ const withLazyLoading = <P extends object>(
     </ChunkLoadErrorBoundary>
   );
 };
-
-/**
- * Skeleton fallback for table-like components
- */
-const TableSkeleton = () => (
-  <div role="status" aria-label="Loading data" className="surface surface-pad">
-    <table>
-      <tbody>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <SkeletonRow key={i} />
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
 
 // Heavy components that benefit from lazy loading
 export const LazyReportEntryForm = withLazyLoading(
@@ -87,5 +71,7 @@ export const LazyWeeklyNewClientOrder = withLazyLoading(
 
 export const LazyEmployeeManagement = withLazyLoading(
   () => import("./EmployeeManagement"),
-  <TableSkeleton />,
+  <div className="people-panel employee-panel">
+    <LoadingSpinner message="Loading employees…" />
+  </div>,
 );

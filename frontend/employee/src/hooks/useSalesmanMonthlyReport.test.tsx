@@ -74,7 +74,7 @@ describe("sales section continuity", () => {
       await result.current.refetch();
     });
     expect(result.current.expandedWeek).toBe(1);
-    expect(result.current.currentPage).toBe(1);
+    await waitFor(() => expect(result.current.currentPage).toBe(1));
     expect(result.current.paginateInvoices([invoice])).toEqual([invoice]);
   });
   it("resets week, shared details and pagination when the selected month changes", async () => {
