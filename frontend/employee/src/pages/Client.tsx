@@ -167,6 +167,8 @@ export default function Client() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSalesman, setSelectedSalesman] = useState("all");
   const [selectedMonth, setSelectedMonth] = useState("all");
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const clientsPerPage = 5;
 
   const salesmanList = useMemo(
@@ -177,7 +179,7 @@ export default function Client() {
     [entries],
   );
 
-  const availableMonths = useMemo(
+  const reportMonths = useMemo(
     () =>
       Array.from(
         new Set(
@@ -188,6 +190,15 @@ export default function Client() {
       ).sort().reverse(),
     [entries, isSalesman, userFullname],
   );
+  const reportYears = reportMonths.map((month) => Number(month.slice(0, 4)));
+  const firstYear = Math.min(currentYear, ...reportYears);
+  const lastYear = Math.max(currentYear, ...reportYears);
+  const availableMonths = reportMonths.filter((month) => month.startsWith(`${selectedYear}-`));
+  const changeYear = (direction: -1 | 1) => {
+    setSelectedYear((year) => Math.max(firstYear, Math.min(lastYear, year + direction)));
+    setSelectedMonth("all");
+    setCurrentPage(1);
+  };
 
   const clients = useMemo(() => {
     const grouped = new Map<string, ReportEntry[]>();
@@ -199,6 +210,7 @@ export default function Client() {
             entry.salesman_name !== selectedSalesman
       )
         continue;
+      if (!entry.date.startsWith(`${selectedYear}-`)) continue;
       if (selectedMonth !== "all" && !entry.date.startsWith(`${selectedMonth}-`))
         continue;
       const visits = grouped.get(entry.doctor_name) || [];
@@ -212,7 +224,7 @@ export default function Client() {
       (a, b) =>
         compareVisits(a.visits[0], b.visits[0]) || a.name.localeCompare(b.name),
     );
-  }, [entries, isSalesman, userFullname, selectedSalesman, selectedMonth]);
+  }, [entries, isSalesman, userFullname, selectedSalesman, selectedMonth, selectedYear]);
 
   const search = searchTerm.trim().toLocaleLowerCase();
   const filteredClients = clients.filter(
@@ -230,11 +242,13 @@ export default function Client() {
     firstIndex,
     firstIndex + clientsPerPage,
   );
-  const filtersActive = Boolean(searchTerm || selectedSalesman !== "all" || selectedMonth !== "all");
+  const filtersActive = Boolean(searchTerm || selectedSalesman !== "all" || selectedMonth !== "all" || selectedYear !== currentYear);
+  const filteredEmptyState = filtersActive || reportMonths.length > 0;
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedSalesman("all");
     setSelectedMonth("all");
+    setSelectedYear(currentYear);
     setCurrentPage(1);
   };
   const firstPageNumber = Math.max(1, Math.min(page - 2, totalPages - 4));
@@ -269,24 +283,47 @@ export default function Client() {
           />
           <div className="workspace-field client-month-field">
             <label htmlFor="client-month">Month</label>
-            <div className="workspace-select">
-              <select
-                id="client-month"
-                className="workspace-input"
-                value={selectedMonth}
-                onChange={(event) => {
-                  setSelectedMonth(event.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">All months</option>
-                {availableMonths.map((month) => (
-                  <option key={month} value={month}>
-                    {format(parseISO(`${month}-01`), "MMMM yyyy")}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={16} aria-hidden="true" />
+            <div className="client-month-controls">
+              <div className="client-year-control" role="group" aria-label="Filter year">
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Previous year"
+                  disabled={selectedYear <= firstYear}
+                  onClick={() => changeYear(-1)}
+                >
+                  <ChevronLeft size={16} aria-hidden="true" />
+                </button>
+                <span aria-live="polite" aria-atomic="true">{selectedYear}</span>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Next year"
+                  disabled={selectedYear >= lastYear}
+                  onClick={() => changeYear(1)}
+                >
+                  <ChevronRight size={16} aria-hidden="true" />
+                </button>
+              </div>
+              <div className="workspace-select">
+                <select
+                  id="client-month"
+                  className="workspace-input"
+                  value={selectedMonth}
+                  onChange={(event) => {
+                    setSelectedMonth(event.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="all">All months</option>
+                  {availableMonths.map((month) => (
+                    <option key={month} value={month}>
+                      {format(parseISO(`${month}-01`), "MMMM")}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={16} aria-hidden="true" />
+              </div>
             </div>
           </div>
           {!isSalesman && (
@@ -364,11 +401,11 @@ export default function Client() {
               <div className="people-empty">
                 <UsersRound size={28} aria-hidden="true" />
                 <h2>
-                  {filtersActive ? "No matching clients" : "No clients yet"}
+                  {filteredEmptyState ? "No matching clients" : "No clients yet"}
                 </h2>
                 <p>
-                  {filtersActive
-                    ? "Try another name, district, month or salesperson."
+                  {filteredEmptyState
+                    ? "Try another name, district, month, year or salesperson."
                     : "Clients appear here after their first report entry."}
                 </p>
                 {filtersActive && (

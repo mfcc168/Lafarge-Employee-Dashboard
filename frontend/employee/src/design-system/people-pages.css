@@ -149,9 +149,44 @@
   flex: 1 1 280px;
   max-width: 440px;
 }
-.client-salesperson-field,
-.client-month-field {
+.client-salesperson-field {
   flex: 0 1 240px;
+}
+.client-month-field {
+  flex: 0 1 320px;
+}
+.client-month-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.client-month-controls .workspace-select {
+  flex: 1;
+  min-width: 0;
+}
+.client-year-control {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 48px;
+  border: 1px solid #d2d4da;
+  border-radius: 12px;
+  background: #fff;
+}
+.client-year-control .icon-button {
+  width: 36px;
+  min-height: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+}
+.client-year-control > span {
+  min-width: 40px;
+  text-align: center;
+  color: #404252;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 .client-results-bar {
   display: flex;
