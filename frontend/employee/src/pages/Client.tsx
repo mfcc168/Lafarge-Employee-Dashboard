@@ -1,6 +1,7 @@
 import { useGetAllReportEntries } from "@hooks/useGetAllReportEntries";
 import { ReportEntry } from "@interfaces/index";
 import { useAuth } from '@context/AuthContext';
+import { format, parseISO } from "date-fns";
 import { useMemo, useState } from "react";
 
 const Client = () => {
@@ -8,6 +9,7 @@ const Client = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSalesman, setSelectedSalesman] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState("all");
   const clientsPerPage = 5;
 
   const { user } = useAuth();
@@ -54,41 +56,31 @@ const Client = () => {
     );
   }
 
+  const visibleEntries = isSalesman
+    ? entries.filter((entry) => entry.salesman_name === userFullname)
+    : entries;
+  const availableMonths = Array.from(
+    new Set(visibleEntries.map((entry) => entry.date.slice(0, 7)))
+  ).sort().reverse();
+
+  // Filter visits before grouping so client details and visit counts match the month.
+  const filteredEntries = visibleEntries.filter((entry) => {
+    const matchesSalesman = isSalesman || selectedSalesman === "all" ||
+      entry.salesman_name === selectedSalesman;
+    const matchesMonth = selectedMonth === "all" || entry.date.startsWith(`${selectedMonth}-`);
+    return matchesSalesman && matchesMonth;
+  });
+
   // Group by client (doctor_name)
   const clientsMap = new Map<string, ReportEntry[]>();
-  if (isSalesman) {
-    const filtered_entries = entries.filter((entry: ReportEntry) =>
-      entry.salesman_name === userFullname
-    );
-    filtered_entries?.forEach((entry: ReportEntry) => {
+  filteredEntries.forEach((entry) => {
     if (!clientsMap.has(entry.doctor_name)) {
       clientsMap.set(entry.doctor_name, []);
     }
     clientsMap.get(entry.doctor_name)?.push(entry);
   });
-  } 
-  else if (selectedSalesman !== "all") {
-    const filtered_entries = entries.filter((entry: ReportEntry) =>
-      entry.salesman_name === selectedSalesman
-    );
-    filtered_entries?.forEach((entry: ReportEntry) => {
-    if (!clientsMap.has(entry.doctor_name)) {
-      clientsMap.set(entry.doctor_name, []);
-    }
-    clientsMap.get(entry.doctor_name)?.push(entry);
-  });
-  }
-  else {
-    entries?.forEach((entry: ReportEntry) => {
-      if (!clientsMap.has(entry.doctor_name)) {
-        clientsMap.set(entry.doctor_name, []);
-      }
-      clientsMap.get(entry.doctor_name)?.push(entry);
-    });
-  }
-  
 
-  // Filter by search and type
+  // Filter by client name
   const filteredClients = Array.from(clientsMap.entries()).filter(([clientName]) => {
     const matchesSearch = clientName.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
@@ -98,7 +90,7 @@ const Client = () => {
   const indexOfLastClient = currentPage * clientsPerPage;
   const indexOfFirstClient = indexOfLastClient - clientsPerPage;
   const currentClients = filteredClients.slice(indexOfFirstClient, indexOfLastClient);
-  const totalPages = Math.ceil(filteredClients.length / clientsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredClients.length / clientsPerPage));
 
   const paginate = (page: number) => setCurrentPage(page);
 
@@ -124,9 +116,10 @@ const Client = () => {
       <div className="bg-white rounded-2xl shadow-soft hover:shadow-strong transition-all duration-normal p-8 border border-gray-100 animate-scaleIn">
         <div className="space-y-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-            <div className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-5 w-full sm:w-auto">
               <input
                 type="search"
+                aria-label="Search clients"
                 placeholder="Search clients..."
                 className="w-full sm:w-72 px-5 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-slate-500 focus:outline-none shadow-sm transition"
                 value={searchTerm}
@@ -135,9 +128,26 @@ const Client = () => {
                   setCurrentPage(1);
                 }}
               />
+              <select
+                aria-label="Filter by month"
+                className="w-full sm:w-56 px-5 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-slate-500 focus:outline-none shadow-sm transition bg-white cursor-pointer"
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">All Months</option>
+                {availableMonths.map((month) => (
+                  <option key={month} value={month}>
+                    {format(parseISO(`${month}-01`), "MMMM yyyy")}
+                  </option>
+                ))}
+              </select>
               {/* Salesman filter dropdown */}
               {!isSalesman && 
                 <select
+                  aria-label="Filter by salesman"
                   className="w-full sm:w-56 px-5 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-slate-500 focus:outline-none shadow-sm transition bg-white cursor-pointer"
                   value={selectedSalesman}
                   onChange={(e) => {
