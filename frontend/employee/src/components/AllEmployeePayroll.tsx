@@ -165,7 +165,7 @@ export default function AllEmployeePayroll() {
         <button
           type="button"
           className="button payroll-print"
-          disabled={isPrinting || !profiles.length || isError}
+          disabled={isPrinting || isFetching || !profiles.length || isError}
           onClick={() => void printPayslips()}
           aria-label="Print all payslips"
           title="Print all payslips"

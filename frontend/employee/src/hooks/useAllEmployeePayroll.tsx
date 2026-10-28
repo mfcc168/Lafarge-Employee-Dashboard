@@ -5,6 +5,17 @@ import { useAuth } from "@context/AuthContext";
 import { apiUrl, backendUrl } from "@configs/DotEnv";
 import { EmployeeProfile } from "interfaces/index";
 
+// Payroll is live server state. Keep it only while this page is in use, and
+// refresh visible pages for changes made in another browser or Django admin.
+const livePayrollQueryOptions = {
+  staleTime: 0,
+  gcTime: 0,
+  refetchOnMount: "always",
+  refetchOnWindowFocus: "always",
+  refetchOnReconnect: "always",
+  refetchInterval: 30_000,
+} as const;
+
 /**
  * useAllEmployeePayroll Custom Hook
  *
@@ -13,7 +24,7 @@ import { EmployeeProfile } from "interfaces/index";
  * - Sales commission data
  * - PDF generation functionality
  * - Automatic payroll month/year calculation
- * - Cached data fetching
+ * - Fresh data on every visit and automatic refresh while open
  */
 export const useAllEmployeePayroll = () => {
   // UI state for expanded items
@@ -59,13 +70,17 @@ export const useAllEmployeePayroll = () => {
     error: profilesError,
   } = useQuery<EmployeeProfile[]>({
     queryKey: ["employee-salaries", accessToken],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const res = await axios.get(`${backendUrl}/api/salaries/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
+        // Bypass HTTP responses cached by older releases without requiring
+        // additional CORS request headers on either API.
+        params: { _: Date.now() },
+        signal,
       });
       return res.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    ...livePayrollQueryOptions,
     enabled: !!accessToken,
     retry: 2, // Retry failed requests twice
   });
@@ -82,7 +97,7 @@ export const useAllEmployeePayroll = () => {
     error: commissionsError,
   } = useQuery<Record<string, number>>({
     queryKey: ["sales-commissions", prevYear, prevMonth, accessToken],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       // Map salesman names to usernames
       const nameToUsernameMap: Record<string, string> = {
         "Dominic So": "dominic",
@@ -92,7 +107,11 @@ export const useAllEmployeePayroll = () => {
 
       const res = await axios.get(
         `${apiUrl}/salesmen/commissions/${prevYear}/${prevMonth}/`,
-        { headers: { Authorization: `Bearer ${accessToken}` } },
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          params: { _: Date.now() },
+          signal,
+        },
       );
 
       // Transform commission data into username-keyed object
@@ -105,7 +124,7 @@ export const useAllEmployeePayroll = () => {
       });
       return commissionMap;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    ...livePayrollQueryOptions,
     enabled: !!accessToken && !!prevYear && !!prevMonth,
     retry: 2, // Retry failed requests twice
   });
