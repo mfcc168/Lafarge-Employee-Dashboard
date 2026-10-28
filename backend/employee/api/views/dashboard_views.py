@@ -5,20 +5,16 @@ These endpoints provide limited access to reports for dashboard purposes.
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from django.utils.dateparse import parse_date
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.conf import settings
-from datetime import datetime, timedelta
+from datetime import timedelta
 from rest_framework.exceptions import ValidationError
 
+from .report_views import FreshReportResponseMixin
 from report.models import ReportEntry
 from report.serializers import ReportEntrySerializer
 
 
-class DashboardReportEntriesView(generics.ListAPIView):
+class DashboardReportEntriesView(FreshReportResponseMixin, generics.ListAPIView):
     """
     Dashboard view for report entries - accessible to all authenticated users.
     Provides basic reporting data for the home dashboard.
@@ -43,8 +39,7 @@ class DashboardReportEntriesView(generics.ListAPIView):
         return qs
 
 
-@method_decorator(cache_page(settings.CACHE_TIMEOUTS.get('report_recent', 120)), name='get')
-class DashboardReportEntriesByDateView(generics.ListAPIView):
+class DashboardReportEntriesByDateView(FreshReportResponseMixin, generics.ListAPIView):
     """
     Dashboard view for report entries by date range - accessible to all authenticated users.
     Provides basic reporting data for weekly/monthly dashboard summaries.

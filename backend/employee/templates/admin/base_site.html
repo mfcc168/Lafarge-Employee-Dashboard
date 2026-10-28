@@ -1,0 +1,11 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block title %}{{ title }} | Lafarge administration{% endblock %}
+{% block branding %}
+<div class="lafarge-brand"><a href="{% url 'admin:index' %}"><span class="lafarge-brand-mark">L.</span><span>Lafarge<small>ADMINISTRATION</small></span></a></div>
+{% endblock %}
+{% block dark-mode-vars %}{% endblock %}
+{% block responsive %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/lafarge-theme.css' %}">
+{% endblock %}

@@ -77,7 +77,6 @@ class Command(BaseCommand):
             results = warm_essential_caches()
             
             self.stdout.write(f"✅ Users warmed: {results.get('users_warmed', 0)}")
-            self.stdout.write(f"✅ Reports warmed: {results.get('reports_warmed', 0)}")
             
             if verbose:
                 self.stdout.write(f"📝 Full results: {json.dumps(results, indent=2)}")

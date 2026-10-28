@@ -1,0 +1,459 @@
+/* Flat employee records and readable profiles on one quiet white surface. */
+.employee-panel .loading-state {
+  min-height: 180px;
+}
+.employee-directory-heading,
+.employee-profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.employee-directory-heading h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.employee-directory-heading p {
+  margin: 5px 0 0;
+  font-size: 0.875rem;
+  color: #5b5d6b;
+}
+.employee-refresh {
+  min-height: 20px;
+  color: #5b5d6b;
+  font-size: 0.8125rem;
+}
+.employee-directory-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  margin-top: 24px;
+}
+.employee-directory-toolbar .employee-search-field {
+  flex: 1 1 280px;
+  max-width: 400px;
+}
+.employee-results-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  min-height: 60px;
+  color: #5b5d6b;
+  font-size: 0.8125rem;
+}
+.employee-results-bar p {
+  margin: 0;
+}
+.employee-results-bar .button {
+  padding: 8px 10px;
+  font-size: 0.8125rem;
+}
+.employee-list-heading,
+.employee-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 114px 92px 126px;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 12px 16px;
+}
+.employee-list-heading {
+  border-radius: 10px;
+  background: #f3f4f8;
+  color: #5b5d6b;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.employee-list-heading > :last-child {
+  text-align: right;
+}
+.employee-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.employee-row {
+  border-bottom: 1px solid #d2d4da70;
+  background: #fff;
+}
+.employee-identity {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 14px;
+}
+.employee-avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border: 1px solid #d2d4da70;
+  border-radius: 13px;
+  background: #f3f4f8;
+  color: #404252;
+  font-size: 0.8125rem;
+  font-weight: 550;
+}
+.employee-identity-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.employee-name-link {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  width: fit-content;
+  min-height: 44px;
+  color: #282a3a;
+  font-size: 0.9375rem;
+  font-weight: 550;
+  text-decoration: none;
+  border-radius: 4px;
+}
+.employee-profile-hint {
+  color: #5b5d6b;
+  font-size: 0.75rem;
+  font-weight: 400;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-color: #b3b5bd;
+  text-underline-offset: 3px;
+}
+.employee-name-link:hover .employee-profile-hint {
+  color: #282a3a;
+  text-decoration-color: #404252;
+}
+.employee-identity h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 550;
+}
+.employee-meta,
+.employee-email {
+  margin: 0;
+  color: #5b5d6b;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.employee-contact {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 12px;
+}
+.employee-contact > p {
+  min-width: 0;
+  max-width: 100%;
+}
+.employee-role {
+  color: #404252;
+  font-size: 0.875rem;
+}
+.employee-mobile-label {
+  display: none;
+}
+.employee-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  padding: 5px 9px;
+  border: 1px solid #d2d4da90;
+  border-radius: 7px;
+  color: #404252;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.employee-status > span {
+  width: 6px;
+  height: 6px;
+  border: 1px solid #777986;
+  border-radius: 50%;
+}
+.employee-status.is-active > span {
+  background: #5b5d6b;
+}
+.employee-row-actions {
+  display: flex;
+  justify-content: end;
+}
+.employee-status-action.button {
+  min-width: 122px;
+  padding: 9px 10px;
+  font-size: 0.8125rem;
+}
+.employee-row-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 2px solid #777986;
+  color: #404252;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.employee-directory-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin-top: 12px;
+}
+.employee-directory-footer .usage-note summary {
+  font-size: 0.8125rem;
+}
+.employee-feedback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  margin: 0;
+  color: #404252;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.employee-feedback > svg {
+  flex-shrink: 0;
+}
+.employee-profile-header {
+  padding-bottom: 24px;
+  border-bottom: 1px solid #d2d4da80;
+}
+.employee-profile-avatar {
+  width: 56px;
+  height: 56px;
+  font-size: 1rem;
+  border-radius: 16px;
+}
+.employee-profile-header h2 {
+  margin: 0 0 4px;
+  color: #282a3a;
+  font-size: clamp(1.125rem, 2vw, 1.375rem);
+  font-weight: 550;
+  letter-spacing: -0.025em;
+}
+.employee-profile-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.employee-edit-label {
+  color: #5b5d6b;
+  font-size: 0.8125rem;
+}
+.employee-profile-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+  padding-top: 28px;
+}
+.employee-profile-section {
+  min-width: 0;
+}
+.employee-profile-section + .employee-profile-section {
+  padding-left: 32px;
+  border-left: 1px solid #d2d4da80;
+}
+.employee-profile-section h3 {
+  margin: 0 0 4px;
+  color: #282a3a;
+  font-size: 1rem;
+  font-weight: 550;
+}
+.employee-detail-list {
+  margin: 18px 0 0;
+}
+.employee-detail-list > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid #d2d4da60;
+  font-size: 0.875rem;
+}
+.employee-detail-list dt {
+  min-width: 0;
+  color: #5b5d6b;
+}
+.employee-detail-list dd {
+  margin: 0;
+  color: #282a3a;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.employee-detail-list dd > span {
+  color: #5b5d6b;
+  font-weight: 400;
+}
+.employee-compensation-list dd {
+  white-space: nowrap;
+}
+.employee-edit-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 20px 16px;
+  min-width: 0;
+  margin: 24px 0 0;
+  padding: 0;
+  border: 0;
+}
+.employee-checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  color: #404252;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.employee-checkbox-field input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: #404252;
+}
+.employee-profile-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 28px;
+  min-height: 44px;
+}
+.employee-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.employee-working-icon {
+  animation: employee-working 900ms linear infinite;
+}
+@keyframes employee-working {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 1199px) {
+  .employee-list-heading,
+  .employee-row {
+    grid-template-columns: minmax(0, 1fr) 96px 82px 116px;
+    gap: 12px;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+  .employee-profile-sections {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .employee-profile-section + .employee-profile-section {
+    padding: 28px 0 0;
+    border-top: 1px solid #d2d4da80;
+    border-left: 0;
+  }
+}
+@media (max-width: 799px) {
+  .employee-list-heading {
+    display: none;
+  }
+  .employee-list {
+    border-top: 1px solid #d2d4da80;
+  }
+  .employee-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 16px 0;
+    gap: 12px;
+  }
+  .employee-identity,
+  .employee-row-actions {
+    grid-column: 1 / -1;
+  }
+  .employee-role {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .employee-mobile-label {
+    display: inline;
+    color: #5b5d6b;
+    font-size: 0.75rem;
+  }
+  .employee-status-action.button {
+    border-color: #d2d4da90;
+  }
+}
+@media (max-width: 639px) {
+  .employee-panel,
+  .employee-profile-panel {
+    padding: 18px 16px;
+  }
+  .employee-directory-heading {
+    gap: 4px;
+  }
+  .employee-directory-heading .employee-refresh:empty {
+    display: none;
+  }
+  .employee-directory-toolbar {
+    gap: 18px;
+    margin-top: 20px;
+  }
+  .employee-directory-toolbar .employee-search-field {
+    max-width: none;
+    flex-basis: 100%;
+  }
+  .employee-filters {
+    width: 100%;
+    gap: 2px;
+  }
+  .employee-filters button {
+    flex: 1;
+    padding: 8px 6px;
+    gap: 5px;
+    font-size: 0.8125rem;
+  }
+  .employee-profile-header {
+    gap: 18px;
+    padding-bottom: 20px;
+  }
+  .employee-profile-header > .employee-identity {
+    width: 100%;
+    align-items: start;
+    gap: 12px;
+  }
+  .employee-profile-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .employee-profile-sections {
+    padding-top: 24px;
+    gap: 24px;
+  }
+  .employee-edit-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    margin-top: 20px;
+  }
+  .employee-form-actions {
+    width: 100%;
+  }
+  .employee-form-actions .button {
+    flex: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .employee-working-icon {
+    animation: none;
+  }
+}
