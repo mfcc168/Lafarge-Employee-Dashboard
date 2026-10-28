@@ -1,3 +1,6 @@
+import PageHeader from "@components/PageHeader";
+import PasswordField from "@components/PasswordField";
+import { useToast } from "@context/ToastContext";
 import { useState } from "react";
 import axios from "axios";
 import { useAuth } from "@context/AuthContext";
@@ -12,6 +15,7 @@ const ChangePassword = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { accessToken } = useAuth();
   const navigate = useNavigate();
+  const { showSuccess } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,12 +39,15 @@ const ChangePassword = () => {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        }
+        },
       );
+      showSuccess("Password updated", "Your new password is ready to use.");
       navigate("/");
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        setErrorMessage(err.response?.data?.detail || "Failed to change password");
+        setErrorMessage(
+          err.response?.data?.detail || "Failed to change password",
+        );
       } else {
         setErrorMessage("Failed to change password");
       }
@@ -50,61 +57,55 @@ const ChangePassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 px-4 animate-fadeIn">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-soft hover:shadow-strong p-8 space-y-6 animate-scaleIn transition-all duration-normal border border-gray-100">
-        <div className="text-center space-y-2">
-          <h2 className="text-3xl font-bold text-gray-900 font-display">Change Password</h2>
-          <p className="text-gray-600">Update your account password</p>
-        </div>
-
+    <div className="page-stack">
+      <PageHeader
+        eyebrow="YOUR ACCOUNT"
+        title="Change password"
+        description="Keep your account secure with a strong, unique password."
+      />
+      <section className="surface settings-card">
         {errorMessage && (
-          <div className="p-3 rounded-md text-sm bg-error-100 text-error-700 border border-error-300">
+          <p className="notice mb-6" role="alert">
             {errorMessage}
-          </div>
+          </p>
         )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="password"
-            placeholder="Current Password"
+        <form onSubmit={handleSubmit}>
+          <PasswordField
+            label="Current password"
             value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-slate-500 focus:ring-2 focus:ring-slate-500 focus:ring-opacity-20 outline-none transition-colors duration-fast"
-            required
+            onChange={setCurrentPassword}
           />
-          <input
-            type="password"
-            placeholder="New Password"
+          <PasswordField
+            label="New password"
             value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-slate-500 focus:ring-2 focus:ring-slate-500 focus:ring-opacity-20 outline-none transition-colors duration-fast"
-            required
+            onChange={setNewPassword}
+            autoComplete="new-password"
           />
-          <input
-            type="password"
-            placeholder="Confirm New Password"
+          <PasswordField
+            label="Confirm new password"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-slate-500 focus:ring-2 focus:ring-slate-500 focus:ring-opacity-20 outline-none transition-colors duration-fast"
-            required
+            onChange={setConfirmPassword}
+            autoComplete="new-password"
           />
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full flex justify-center items-center gap-2 px-4 py-3 rounded-xl bg-slate-600 text-white hover:bg-slate-700 transition-all duration-fast font-medium shadow-md hover:shadow-lg disabled:opacity-60"
-          >
-            {isLoading && (
-              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            )}
-            {isLoading ? "Changing..." : "Change Password"}
-          </button>
+          <div className="page-actions">
+            <button
+              type="submit"
+              className="button button-primary"
+              disabled={isLoading}
+            >
+              {isLoading ? "Updating password…" : "Update password"}
+            </button>
+            <button
+              type="button"
+              className="button button-quiet"
+              onClick={() => navigate("/")}
+            >
+              Cancel
+            </button>
+          </div>
         </form>
-      </div>
+      </section>
     </div>
   );
 };
-
 export default ChangePassword;

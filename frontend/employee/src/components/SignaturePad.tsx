@@ -1,28 +1,42 @@
-import { PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 type SignaturePadProps = {
   value: string;
   onChange: (nextValue: string) => void;
   onClear: () => void;
+  disabled?: boolean;
 };
 
-const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
+const SignaturePad = ({
+  value,
+  onChange,
+  onClear,
+  disabled = false,
+}: SignaturePadProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isDrawingRef = useRef(false);
-  const [hasSignature, setHasSignature] = useState<boolean>(() => Boolean(value));
+  const [hasSignature, setHasSignature] = useState<boolean>(() =>
+    Boolean(value),
+  );
 
   const initializeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const deviceRatio = window.devicePixelRatio || 1;
     const width = container.clientWidth;
-    const height = Math.max(container.clientHeight, 220);
+    const height = Math.max(container.clientHeight, 180);
 
     canvas.width = width * deviceRatio;
     canvas.height = height * deviceRatio;
@@ -31,10 +45,10 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(deviceRatio, deviceRatio);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctx.lineWidth = 2;
-    ctx.strokeStyle = '#1f2937'; // slate-800
+    ctx.strokeStyle = "#1f2937"; // gray-800
 
     if (value) {
       const image = new Image();
@@ -53,7 +67,7 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
     const container = containerRef.current;
     if (!container) return;
 
-    if (typeof ResizeObserver === 'undefined') {
+    if (typeof ResizeObserver === "undefined") {
       return undefined;
     }
 
@@ -86,14 +100,15 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
   const commitStroke = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const dataUrl = canvas.toDataURL('image/png');
+    const dataUrl = canvas.toDataURL("image/png");
     onChange(dataUrl);
     setHasSignature(true);
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (disabled) return;
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
     event.preventDefault();
@@ -109,7 +124,7 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
     event.preventDefault();
 
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
     const { x, y } = getCursorPosition(event);
@@ -122,7 +137,7 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
     event.preventDefault();
 
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
     canvas.releasePointerCapture(event.pointerId);
@@ -134,7 +149,7 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
   const handlePointerLeave = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current) return;
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
     canvas.releasePointerCapture(event.pointerId);
@@ -146,7 +161,7 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
   const handlePointerCancel = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current) return;
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
     ctx.closePath();
@@ -157,24 +172,21 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
 
   const handleClear = () => {
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
-    onChange('');
+    onChange("");
     onClear();
     setHasSignature(false);
   };
 
   return (
-    <div className="space-y-3">
-      <div
-        ref={containerRef}
-        className="w-full h-56 sm:h-64 border-2 border-dashed border-emerald-300 bg-white rounded-2xl shadow-inner overflow-hidden touch-none select-none"
-      >
+    <div className="signature-pad">
+      <div ref={containerRef} className="signature-canvas-wrap">
         <canvas
           ref={canvasRef}
           className="w-full h-full cursor-crosshair touch-none select-none"
@@ -184,16 +196,18 @@ const SignaturePad = ({ value, onChange, onClear }: SignaturePadProps) => {
           onPointerLeave={handlePointerLeave}
           onPointerCancel={handlePointerCancel}
           aria-label="Signature input canvas"
+          aria-disabled={disabled}
         />
       </div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <span className="text-xs text-slate-500">
-          {hasSignature ? 'Signature captured. You can clear and retry if needed.' : 'Draw your signature directly in the box above.'}
+      <div className="signature-pad-footer">
+        <span className="people-caption" role="status">
+          {hasSignature ? "Signature added" : "Draw in the box above"}
         </span>
         <button
           type="button"
           onClick={handleClear}
-          className="self-start sm:self-auto px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors duration-150"
+          disabled={disabled || !hasSignature}
+          className="button button-quiet"
         >
           Clear Signature
         </button>
