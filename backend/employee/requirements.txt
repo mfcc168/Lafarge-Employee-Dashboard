@@ -1,3 +1,5 @@
+# Keep the existing Django series compatible with PostgreSQL 13.
+Django>=4.2.30,<5.0
 psycopg[binary]
 djangorestframework-simplejwt[blacklist]
 djangorestframework
