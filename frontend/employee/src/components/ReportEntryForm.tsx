@@ -39,13 +39,6 @@ const detailFields = [
   },
 ] as const;
 
-// Only the active text field expands; other rows stay compact while reviewing.
-function expandTextarea(textarea: HTMLTextAreaElement) {
-  textarea.style.height = "auto";
-  textarea.style.height = `${Math.min(144, textarea.scrollHeight + 2)}px`;
-  revealEntry(textarea);
-}
-
 // Keep the active row's controls and save feedback below the sticky headings.
 function revealEntry(control: HTMLElement) {
   const row = control.closest<HTMLElement>(".entry-container");
@@ -57,6 +50,7 @@ function revealEntry(control: HTMLElement) {
     region.querySelector("thead")?.getBoundingClientRect().height || 0;
   const top = viewport.top + headerHeight + 4;
   const bottom = viewport.bottom - 4;
+  if (bounds.height > bottom - top) return;
   if (bounds.top < top) region.scrollTop -= top - bounds.top;
   else if (bounds.bottom > bottom) region.scrollTop += bounds.bottom - bottom;
 }
@@ -474,35 +468,32 @@ export default function ReportEntryForm() {
                     />
                   </label>
                 </td>
-                {detailFields.map((field) => (
-                  <td key={field.key}>
-                    <label
-                      className="sr-only"
-                      htmlFor={`${field.key}-${entry.clientId}`}
-                    >
-                      {field.label}
-                    </label>
-                    <textarea
-                      id={`${field.key}-${entry.clientId}`}
-                      value={entry[field.key] || ""}
-                      rows={1}
-                      title={entry[field.key] || field.hint}
-                      onFocus={(event) => expandTextarea(event.currentTarget)}
-                      onBlur={(event) => {
-                        event.currentTarget.style.height = "";
-                        event.currentTarget.scrollTop = 0;
-                      }}
-                      onChange={(event) => {
-                        handleChange(
-                          entry.clientId,
-                          field.key,
-                          event.target.value,
-                        );
-                        expandTextarea(event.currentTarget);
-                      }}
-                    />
-                  </td>
-                ))}
+                {detailFields.map((field) => {
+                  const id = `${field.key}-${entry.clientId}`;
+                  const value = entry[field.key] ?? "";
+                  return (
+                    <td key={field.key}>
+                      <label className="sr-only" htmlFor={id}>
+                        {field.label}
+                      </label>
+                      <div className="report-note" data-value={value}>
+                        <textarea
+                          id={id}
+                          value={value}
+                          rows={1}
+                          title={value || field.hint}
+                          onChange={(event) =>
+                            handleChange(
+                              entry.clientId,
+                              field.key,
+                              event.target.value,
+                            )
+                          }
+                        />
+                      </div>
+                    </td>
+                  );
+                })}
                 <td className="report-row-delete">
                   <button
                     type="button"

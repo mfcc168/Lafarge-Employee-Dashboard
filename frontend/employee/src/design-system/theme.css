@@ -1408,6 +1408,9 @@ table tbody tr:hover {
   outline-offset: 2px;
 }
 .report-table {
+  --report-control-height: 32px;
+  --report-control-font-size: 0.8125rem;
+  --report-control-line-height: 18px;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
@@ -1535,17 +1538,18 @@ table tbody tr:hover {
 .report-table
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 .report-table select,
-.report-table textarea {
+.report-table textarea,
+.report-note::after {
   width: 100%;
-  min-height: 32px;
-  height: 32px;
+  min-height: var(--report-control-height);
+  height: var(--report-control-height);
   border: 1px solid transparent;
   border-radius: 5px;
   background: #fff;
   box-shadow: none;
   padding: 6px 8px;
-  font-size: 0.8125rem;
-  line-height: 18px;
+  font-size: var(--report-control-font-size);
+  line-height: var(--report-control-line-height);
 }
 .report-table
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover,
@@ -1570,16 +1574,27 @@ table tbody tr:hover {
   background-color: #fff;
   box-shadow: none;
 }
+.report-note {
+  display: grid;
+}
+.report-table textarea,
+.report-note::after {
+  grid-area: 1 / 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.report-note::after {
+  /* The hidden copy sizes the cell. The space preserves a final blank line. */
+  content: attr(data-value) " ";
+  height: auto;
+  visibility: hidden;
+}
 .report-table textarea {
   display: block;
-  max-height: 144px;
+  height: 100%;
   resize: none;
-  white-space: pre;
   overflow: hidden;
-}
-.report-table textarea:focus {
-  white-space: pre-wrap;
-  overflow-y: auto;
 }
 .report-table .report-row-delete {
   vertical-align: middle;
@@ -1781,16 +1796,10 @@ table tbody tr:hover {
 }
 @media (pointer: coarse), (max-width: 639px) {
   .report-table {
+    --report-control-height: 44px;
+    --report-control-font-size: 1rem;
+    --report-control-line-height: 24px;
     min-width: 1280px;
-  }
-  .report-table
-    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-  .report-table select,
-  .report-table textarea {
-    min-height: 44px;
-    height: 44px;
-    font-size: 1rem;
-    line-height: 24px;
   }
   .report-table .report-checkbox {
     min-height: 44px;
