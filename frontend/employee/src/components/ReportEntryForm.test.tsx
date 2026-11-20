@@ -381,6 +381,48 @@ describe("report save workflow", () => {
     expect(request.mock.calls[0][0].data.new_client).toBe(true);
   });
 
+  it("keeps the note sizing text in sync with saved reports and edits", async () => {
+    const savedOrders =
+      "20 boxes for Central clinic\nConfirm stock before delivery";
+    const editedOrders = "10 boxes\nDeliver Friday";
+    const date = new Date().toISOString().slice(0, 10);
+    const stored = {
+      id: "report-1",
+      date,
+      time_range: "09:00",
+      doctor_name: "Dr Chan",
+      district: "Central",
+      client_type: "doctor",
+      new_client: false,
+      orders: savedOrders,
+    };
+    vi.mocked(axios.get).mockImplementation(async (url) => ({
+      data: String(url).endsWith("/suggestions/")
+        ? emptyReportSuggestions
+        : [stored],
+    }));
+    await setup();
+    const orders = within(rows()[0]).getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Orders",
+    });
+    const sizer = orders.closest(".report-note");
+    expect(orders.value).toBe(savedOrders);
+    expect(sizer?.getAttribute("data-value")).toBe(savedOrders);
+
+    fireEvent.focus(orders);
+    fireEvent.change(orders, { target: { value: editedOrders } });
+    fireEvent.blur(orders);
+    expect(sizer?.getAttribute("data-value")).toBe(editedOrders);
+
+    fireEvent.click(saveAll());
+    await waitFor(() =>
+      expect(request.mock.calls[0]?.[0]).toMatchObject({
+        method: "PUT",
+        data: { orders: editedOrders },
+      }),
+    );
+  });
+
   it("keeps the single bottom Save All button enabled throughout a pending save and failure", async () => {
     const pending = deferred<{ data: { id: string } }>();
     request.mockReturnValueOnce(pending.promise);
